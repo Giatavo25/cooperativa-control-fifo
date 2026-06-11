@@ -1,12 +1,11 @@
 <script>
-        // URL pública de ejecución de tu Google Apps Script (Tu última versión generada)
+        // PEGA AQUÍ TU NUEVA URL GENERADA TRAS ACTUALIZAR EL .GS
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
         
         let cacheProveedores = []; 
         let cacheHistorialDespachos = []; 
         let chartsCargados = false; 
 
-        // Intentar inicializar Google Charts de forma segura si la librería externa ya bajó
         function inicializarGraficos() {
             try {
                 if (typeof google !== 'undefined' && google.charts) {
@@ -16,19 +15,16 @@
                     });
                 }
             } catch (e) {
-                console.error("Aviso: Esperando carga completa de librerías de gráficos.");
+                console.error("Esperando carga completa de librerías de gráficos.");
             }
         }
 
-        // FUNCIÓN PRINCIPAL DE CARGA (Usando JSONP nativo para saltar bloqueos de CORS)
         function cargarDatos() {
-            // Verificar si existen los contenedores antes de asignarles texto para evitar errores fatales
             const elProgreso = document.getElementById('chart-progreso');
             const elDistribucion = document.getElementById('chart-distribucion');
-            if (elProgreso) elProgreso.innerText = "Cargando gráficos...";
-            if (elDistribucion) elDistribucion.innerText = "Procesando existencias...";
+            if (elProgreso) elProgreso.innerText = "Sincronizando con Google Sheets...";
+            if (elDistribucion) elDistribucion.innerText = "Cargando existencias...";
 
-            // Callback global que recibirá la respuesta desde Google Sheets
             window.procesarRespuestaGoogle = function(resultado) {
                 if (resultado && resultado.status === "success") {
                     cacheProveedores = resultado.data.proveedores || [];
@@ -38,24 +34,21 @@
                     actualizarInterfacesProveedores();
                     renderizarTablaReportes(); 
                 } else {
-                    console.error("El backend de Google devolvió un error:", resultado);
+                    console.error("Error en backend de Google:", resultado);
                 }
                 
-                // Limpieza del elemento inyectado
                 const loader = document.getElementById('jsonp-script-loader');
                 if (loader) loader.remove();
             };
 
-            // Intentar levantar los gráficos si no se ha hecho
             if (!chartsCargados) inicializarGraficos();
 
-            // Inyección dinámica en el DOM
             const script = document.createElement('script');
             script.id = 'jsonp-script-loader';
             script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'callback=procesarRespuestaGoogle';
             
             script.onerror = function() {
-                console.error("Error crítico de red o timeout al conectar con Google Apps Script.");
+                console.error("Error de comunicación de red con la hoja de cálculo.");
             };
 
             document.body.appendChild(script);
@@ -152,7 +145,7 @@
                 if (productosLista.length > 0) {
                     selectDestino.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
                     productosLista.forEach(function(prod) {
-                        selectDestino.innerHTML += `<option value="${prod}">${prod}</option>`;
+                        selectDestino.innerHTML += `<option value="${prod}">${prod}</option>';
                     });
                 } else {
                     selectDestino.innerHTML = '<option value="">⚠️ Sin mercancía registrada</option>';
@@ -288,22 +281,24 @@
             contenedorTabla.innerHTML = htmlTabla;
         }
 
-        // Envío de formularios alternativo sin Fetch clásico para asegurar compatibilidad CORS
         function enviarFormularioManual(payload, formId) {
             window.procesarRespuestaPost = function(res) {
-                alert("¡Transacción enviada correctamente!");
-                const formDom = document.getElementById(formId);
-                if (formDom) formDom.reset();
-                setTimeout(function() { cargarDatos(); }, 1200);
+                if(res && res.status === "success") {
+                    alert("¡Registro guardado y procesado bajo FIFO en Google Sheets!");
+                    const formDom = document.getElementById(formId);
+                    if (formDom) formDom.reset();
+                    setTimeout(function() { cargarDatos(); }, 1200);
+                } else {
+                    alert("Error al procesar: " + (res.message || "Desconocido"));
+                }
             };
 
             const scriptEnvio = document.createElement('script');
             scriptEnvio.src = WEB_APP_URL + "?payload=" + encodeURIComponent(JSON.stringify(payload)) + "&callback=procesarRespuestaPost";
             document.body.appendChild(scriptEnvio);
-            setTimeout(function() { scriptEnvio.remove(); }, 2000);
+            setTimeout(function() { scriptEnvio.remove(); }, 3000);
         }
 
-        // Manejadores de envío para interceptar formularios y mandarlos por JSONP seguro
         window.addEventListener("DOMContentLoaded", function() {
             const formProv = document.getElementById("form-proveedor");
             if (formProv) {
@@ -311,8 +306,13 @@
                     e.preventDefault();
                     const nombre = document.getElementById("prov-nombre").value;
                     const inputs = document.querySelectorAll(".input-mercancia");
-                    const productos = Array.from(inputs).map(i => i.value).filter(v => v.trim() !== "");
-                    enviarFormularioManual({ action: "crearProveedor", nombre: nombre, productos: productos }, "form-proveedor");
+                    const productos = Array.from(inputs).map(i => i.value).filter(v => v.trim() !== "").join(", ");
+                    
+                    const payload = { 
+                        accion: "registrar_proveedor", 
+                        data: { nombre: nombre, productos: productos } 
+                    };
+                    enviarFormularioManual(payload, "form-proveedor");
                 });
             }
 
@@ -320,11 +320,16 @@
             if (formPre) {
                 formPre.addEventListener("submit", function(e) {
                     e.preventDefault();
+                    const aleatorio = Math.floor(1000 + Math.random() * 9000);
                     const payload = {
-                        action: "registrarPrepago",
-                        proveedor: document.getElementById("pre-proveedor").value,
-                        producto: document.getElementById("pre-producto").value,
-                        cantidad: parseInt(document.getElementById("pre-cantidad").value)
+                        accion: "registrar_prepago",
+                        data: {
+                            idLote: "LOTE-" + aleatorio,
+                            proveedor: document.getElementById("pre-proveedor").value,
+                            producto: document.getElementById("pre-producto").value,
+                            cantidadPrepagada: parseInt(document.getElementById("pre-cantidad").value),
+                            tasaCambio: parseFloat(document.getElementById("pre-tasa") ? document.getElementById("pre-tasa").value : 1)
+                        }
                     };
                     enviarFormularioManual(payload, "form-prepago");
                 });
@@ -334,13 +339,18 @@
             if (formDes) {
                 formDes.addEventListener("submit", function(e) {
                     e.preventDefault();
+                    const aleatorio = Math.floor(1000 + Math.random() * 9000);
                     const payload = {
-                        action: "registrarDespacho",
-                        factura: document.getElementById("des-factura").value,
-                        proveedor: document.getElementById("des-proveedor").value,
-                        producto: document.getElementById("des-producto").value,
-                        cantidad: parseInt(document.getElementById("des-cantidad").value),
-                        montoBs: parseFloat(document.getElementById("des-monto").value)
+                        accion: "registrar_despacho",
+                        data: {
+                            idDespacho: "DESP-" + aleatorio,
+                            nroFacturaEntrega: document.getElementById("des-factura").value,
+                            proveedor: document.getElementById("des-proveedor").value,
+                            producto: document.getElementById("des-producto").value,
+                            cantidadRecibida: parseInt(document.getElementById("des-cantidad").value),
+                            tasaDiaRecepcion: parseFloat(document.getElementById("des-monto") ? document.getElementById("des-monto").value : 0),
+                            montoBsRecibido: parseFloat(document.getElementById("des-monto") ? document.getElementById("des-monto").value : 0)
+                        }
                     };
                     enviarFormularioManual(payload, "form-recepcion");
                 });
