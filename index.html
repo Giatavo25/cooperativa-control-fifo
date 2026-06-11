@@ -1,7 +1,7 @@
 <script src="https://www.gstatic.com/charts/loader.js"></script>
 
     <script>
-        // Tu URL de Google Apps Script en producción
+        // URL de tu Google Apps Script de producción
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
         
         let cacheProveedores = []; 
@@ -22,9 +22,9 @@
         }
 
         function cargarDatos() {
-            // CONTROL SEGURO: Si no existen estos elementos, no se rompe el script
-            const elProgreso = document.getElementById('chart-progreso') || document.getElementById('progreso-grafico');
-            const elDistribucion = document.getElementById('chart-distribucion') || document.getElementById('distribucion-grafico');
+            // Protección: Si no existen estos elementos en tu HTML, el código NO se rompe
+            const elProgreso = document.getElementById('chart-progreso') || document.getElementById('progreso-grafico') || document.getElementById('chart-progresó');
+            const elDistribucion = document.getElementById('chart-distribucion') || document.getElementById('distribucion-grafico') || document.getElementById('chart-distribución');
             
             if (elProgreso) elProgreso.innerText = "Sincronizando con Google Sheets...";
             if (elDistribucion) elDistribucion.innerText = "Cargando existencias...";
@@ -38,8 +38,6 @@
                         renderizarDashboard(resultado.data);
                         actualizarInterfacesProveedores();
                         renderizarTablaReportes(); 
-                    } else {
-                        console.error("Error en backend de Google:", resultado);
                     }
                 } catch (err) {
                     console.error("Error al procesar los datos recibidos:", err);
@@ -51,13 +49,11 @@
 
             if (!chartsCargados) inicializarGraficos();
 
-            // Petición JSONP pura y limpia
             const script = document.createElement('script');
             script.id = 'jsonp-script-loader';
             script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'callback=procesarRespuestaGoogle';
             
             script.onerror = function() {
-                console.error("Error de comunicación de red con la hoja de cálculo.");
                 if (elProgreso) elProgreso.innerText = "⚠️ Error de conexión.";
             };
 
@@ -66,7 +62,7 @@
 
         function cambiarModulo(idModulo) {
             const modTarget = document.getElementById(idModulo);
-            if (!modTarget) return; // Si el módulo no existe, frena pacíficamente
+            if (!modTarget) return; 
             
             document.querySelectorAll('.modulo').forEach(function(m) { m.classList.add('hidden'); });
             modTarget.classList.remove('hidden');
@@ -87,15 +83,14 @@
                 }
             }
             
-            const titulos = { 
-                'mod-dashboard': 'Dashboard General', 
-                'mod-prepagos': 'Registrar Prepagos', 
-                'mod-recepcion': 'Recepción de Carga', 
-                'mod-proveedores': 'Ficha de Proveedores',
-                'mod-reportes': 'Reportes y Auditoría'
-            };
             const txtTitulo = document.getElementById('titulo-modulo');
-            if (txtTitulo) txtTitulo.innerText = titulos[idModulo] || 'Sistema Cooperativa';
+            if (txtTitulo) {
+                const titulos = { 
+                    'mod-dashboard': 'Dashboard General', 'mod-prepagos': 'Registrar Prepagos', 
+                    'mod-recepcion': 'Recepción de Carga', 'mod-proveedores': 'Ficha de Proveedores', 'mod-reportes': 'Reportes y Auditoría'
+                };
+                txtTitulo.innerText = titulos[idModulo] || 'Sistema Cooperativa';
+            }
         }
 
         function agregarCampoMercancia() {
@@ -150,19 +145,15 @@
             }
 
             const proveedorEncontrado = cacheProveedores.find(function(p) { return p.nombre === nombreProveedor; });
-            
             if (proveedorEncontrado && proveedorEncontrado.productos && Array.isArray(proveedorEncontrado.productos)) {
-                const productosLista = proveedorEncontrado.productos;
-                if (productosLista.length > 0) {
+                if (proveedorEncontrado.productos.length > 0) {
                     selectDestino.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
-                    productosLista.forEach(function(prod) {
+                    proveedorEncontrado.productos.forEach(function(prod) {
                         selectDestino.innerHTML += `<option value="${prod}">${prod}</option>`;
                     });
                 } else {
                     selectDestino.innerHTML = '<option value="">⚠️ Sin mercancía registrada</option>';
                 }
-            } else {
-                selectDestino.innerHTML = '<option value="">⚠️ Sin mercancía registrada</option>';
             }
         }
 
@@ -173,9 +164,6 @@
             
             if (!data.detallesLotes || data.detallesLotes.length === 0) {
                 if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-gray-400 italic">No hay lotes activos registrados</td></tr>`;
-                if (document.getElementById("kpi-prepagado")) document.getElementById("kpi-prepagado").innerText = "0";
-                if (document.getElementById("kpi-recibido")) document.getElementById("kpi-recibido").innerText = "0";
-                if (document.getElementById("kpi-pendiente")) document.getElementById("kpi-pendiente").innerText = "0";
                 return;
             }
 
@@ -205,8 +193,8 @@
 
         function dibujarGraficos(resumen) {
             try {
-                const elProgreso = document.getElementById('chart-progreso') || document.getElementById('progreso-grafico');
-                const elDistribucion = document.getElementById('chart-distribucion') || document.getElementById('distribucion-grafico');
+                const elProgreso = document.getElementById('chart-progreso') || document.getElementById('progreso-grafico') || document.getElementById('chart-progresó');
+                const elDistribucion = document.getElementById('chart-distribucion') || document.getElementById('distribucion-grafico') || document.getElementById('chart-distribución');
                 if (!elProgreso || !elDistribucion) return;
 
                 const dataProgreso = new google.visualization.DataTable();
@@ -222,9 +210,7 @@
                 
                 new google.visualization.BarChart(elProgreso).draw(dataProgreso, { isStacked: true, colors: ['#10b981', '#f59e0b'], chartArea: {width: '70%', height: '70%'} });
                 new google.visualization.PieChart(elDistribucion).draw(google.visualization.arrayToDataTable(dataTorta), { colors: ['#3b82f6', '#f59e0b', '#ef4444'], chartArea: {width: '80%', height: '80%'} });
-            } catch (chartError) {
-                console.error("Error renderizando gráficos gráficos:", chartError);
-            }
+            } catch (err) {}
         }
 
         function renderizarTablaReportes() {
@@ -267,10 +253,10 @@
             setTimeout(function() { scriptEnvio.remove(); }, 3000);
         }
 
+        // 🛡️ CONTROL DE PROTECCIÓN: Verificamos si los formularios existen ANTES de ponerles el EventListener
         window.addEventListener("DOMContentLoaded", function() {
             inicializarGraficos();
 
-            // Envolturas seguras para los formularios de acción
             const formProv = document.getElementById("form-proveedor");
             if (formProv) {
                 formProv.addEventListener("submit", function(e) {
