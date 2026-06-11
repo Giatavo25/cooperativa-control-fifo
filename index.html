@@ -1,5 +1,5 @@
 <script>
-        // URL de tu aplicación web de Google Apps Script
+        // 🔥 CORREGIDO: Comilla de cierre añadida y cambiado /dev por /exec para producción pública
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby77QQlwzgH15gQh0ATeP8JkyK7o6raWye2SD4q-rII/exec";
         let cacheProveedores = []; 
         let cacheHistorialDespachos = []; // Caché global para almacenar el histórico de auditoría
@@ -21,8 +21,8 @@
         async function cargarDatos() {
             try {
                 // Colocar textos de carga por si es una actualización
-                document.getElementById('chart-progreso').innerText = "Cargando gráficos...";
-                document.getElementById('chart-distribucion').innerText = "Procesando existencias...";
+                if (document.getElementById('chart-progreso')) document.getElementById('chart-progreso').innerText = "Cargando gráficos...";
+                if (document.getElementById('chart-distribucion')) document.getElementById('chart-distribucion').innerText = "Procesando existencias...";
 
                 const response = await fetch(WEB_APP_URL);
                 const resultado = await response.json();
@@ -43,8 +43,10 @@
         function cambiarModulo(idModulo) {
             // Ocultar todas las secciones modulares
             document.querySelectorAll('.modulo').forEach(m => m.classList.add('hidden'));
-            // Mostrar el módulo seleccionado
-            document.getElementById(idModulo).classList.remove('hidden');
+            
+            // Mostrar el módulo seleccionado si existe
+            const modTarget = document.getElementById(idModulo);
+            if (modTarget) modTarget.classList.remove('hidden');
             
             // Resetear estilos visuales de todos los botones del menú lateral
             document.querySelectorAll('aside nav button').forEach(b => {
@@ -59,7 +61,6 @@
                 } else if (idModulo === 'mod-recepcion') {
                     btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-emerald-600 text-white transition";
                 } else {
-                    // Estilo enfocado para Prepagos, Proveedores y el módulo de Reportes
                     btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-slate-700 text-white transition";
                 }
             }
@@ -72,11 +73,13 @@
                 'mod-proveedores': 'Ficha de Proveedores',
                 'mod-reportes': 'Reportes y Auditoría'
             };
-            document.getElementById('titulo-modulo').innerText = titulos[idModulo] || 'Sistema Cooperativa';
+            const txtTitulo = document.getElementById('titulo-modulo');
+            if (txtTitulo) txtTitulo.innerText = titulos[idModulo] || 'Sistema Cooperativa';
         }
 
         function agregarCampoMercancia() {
             const contenedor = document.getElementById('contenedor-mercancias');
+            if (!contenedor) return;
             const nuevoDiv = document.createElement('div');
             nuevoDiv.className = "flex gap-2"; 
             nuevoDiv.innerHTML = `
@@ -87,10 +90,9 @@
         }
 
         function actualizarInterfacesProveedores() {
-            // Sincroniza dinámicamente cualquier selector con la clase .select-proveedores (incluyendo el del nuevo reporte)
             const selects = document.querySelectorAll('.select-proveedores');
             selects.forEach(sel => {
-                const valorSeleccionadoAnterior = sel.value; // Conservar selección si ya existía una
+                const valorSeleccionadoAnterior = sel.value; 
                 sel.innerHTML = '<option value="">-- Seleccione un proveedor --</option>';
                 cacheProveedores.forEach(p => { 
                     sel.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`; 
@@ -145,44 +147,46 @@
         function renderizarDashboard(data) {
             let totalPrepagado = 0, totalPendiente = 0, totalRecibido = 0;
             const tbody = document.getElementById("tabla-lotes"); 
-            tbody.innerHTML = "";
+            if (tbody) tbody.innerHTML = "";
             
             if (!data.detallesLotes || data.detallesLotes.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-gray-400 italic">No hay lotes activos registrados</td></tr>`;
-                document.getElementById("kpi-prepagado").innerText = "0";
-                document.getElementById("kpi-recibido").innerText = "0";
-                document.getElementById("kpi-pendiente").innerText = "0";
+                if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-gray-400 italic">No hay lotes activos registrados</td></tr>`;
+                if (document.getElementById("kpi-prepagado")) document.getElementById("kpi-prepagado").innerText = "0";
+                if (document.getElementById("kpi-recibido")) document.getElementById("kpi-recibido").innerText = "0";
+                if (document.getElementById("kpi-pendiente")) document.getElementById("kpi-pendiente").innerText = "0";
                 return;
             }
 
             data.detallesLotes.forEach(lote => {
                 const recibido = lote.cantOriginal - lote.cantDisponible;
                 totalPrepagado += lote.cantOriginal; totalPendiente += lote.cantDisponible; totalRecibido += recibido;
-                tbody.insertAdjacentHTML("beforeend", `
-                    <tr class="hover:bg-gray-50 transition border-b">
-                        <td class="px-6 py-4 font-semibold">${lote.idLote}</td>
-                        <td class="px-6 py-4">${lote.proveedor}</td>
-                        <td class="px-6 py-4">${lote.producto}</td>
-                        <td class="px-6 py-4 text-right font-mono">${lote.cantOriginal.toLocaleString()}</td>
-                        <td class="px-6 py-4 text-right font-mono font-bold text-amber-600">${lote.cantDisponible.toLocaleString()}</td>
-                    </tr>`);
+                if (tbody) {
+                    tbody.insertAdjacentHTML("beforeend", `
+                        <tr class="hover:bg-gray-50 transition border-b">
+                            <td class="px-6 py-4 font-semibold">${lote.idLote}</td>
+                            <td class="px-6 py-4">${lote.proveedor}</td>
+                            <td class="px-6 py-4">${lote.producto}</td>
+                            <td class="px-6 py-4 text-right font-mono">${lote.cantOriginal.toLocaleString()}</td>
+                            <td class="px-6 py-4 text-right font-mono font-bold text-amber-600">${lote.cantDisponible.toLocaleString()}</td>
+                        </tr>`);
+                }
             });
 
-            // Asignar los KPIs numéricos de manera segura
-            document.getElementById("kpi-prepagado").innerText = totalPrepagado.toLocaleString();
-            document.getElementById("kpi-recibido").innerText = totalRecibido.toLocaleString();
-            document.getElementById("kpi-pendiente").innerText = totalPendiente.toLocaleString();
+            if (document.getElementById("kpi-prepagado")) document.getElementById("kpi-prepagado").innerText = totalPrepagado.toLocaleString();
+            if (document.getElementById("kpi-recibido")) document.getElementById("kpi-recibido").innerText = totalRecibido.toLocaleString();
+            if (document.getElementById("kpi-pendiente")) document.getElementById("kpi-pendiente").innerText = totalPendiente.toLocaleString();
             
-            // Dibujar gráficos sólo si la librería ya cargó por completo
             if (chartsCargados && data.resumenConsolidated && data.resumenConsolidated.length > 0) {
                 dibujarGraficos(data.resumenConsolidated);
-            } else if (!chartsCargados) {
-                console.warn("Los datos llegaron pero Google Charts aún no termina de cargar.");
             }
         }
 
         function dibujarGraficos(resumen) {
             try {
+                const elProgreso = document.getElementById('chart-progreso');
+                const elDistribucion = document.getElementById('chart-distribucion');
+                if (!elProgreso || !elDistribucion) return;
+
                 const dataProgreso = new google.visualization.DataTable();
                 dataProgreso.addColumn('string', 'Proveedor'); 
                 dataProgreso.addColumn('number', 'Recibido'); 
@@ -195,32 +199,29 @@
                     dataTorta.push([r.proveedor, r.totalPendiente]); 
                 });
                 
-                new google.visualization.BarChart(document.getElementById('chart-progreso')).draw(dataProgreso, { 
+                new google.visualization.BarChart(elProgreso).draw(dataProgreso, { 
                     isStacked: true, 
                     colors: ['#10b981', '#f59e0b'], 
                     chartArea: {width: '60%', height: '70%'} 
                 });
                 
-                new google.visualization.PieChart(document.getElementById('chart-distribucion')).draw(google.visualization.arrayToDataTable(dataTorta), { 
+                new google.visualization.PieChart(elDistribucion).draw(google.visualization.arrayToDataTable(dataTorta), { 
                     colors: ['#3b82f6', '#f59e0b', '#ef4444'], 
                     chartArea: {width: '80%', height: '80%'} 
                 });
             } catch (chartError) {
-                console.error("Error controlado al renderizar los componentes gráficos:", chartError);
+                console.error("Error al renderizar los componentes gráficos:", chartError);
             }
         }
 
-        // Nueva función integrada para renderizar la tabla de auditoría en Reportes
         function renderizarTablaReportes() {
             const selectProv = document.getElementById("rep-proveedor");
-            if (!selectProv) return; // Validación de seguridad si el elemento aún no existe
+            if (!selectProv) return; 
             
             const proveedorFiltrado = selectProv.value;
-            // Buscamos el contenedor estructurado de la tabla dentro del módulo de reportes
             const contenedorTabla = document.querySelector("#mod-reportes .border.rounded-lg");
             if (!contenedorTabla) return;
 
-            // Filtrado local e instantáneo desde memoria caché
             const datosFiltrados = cacheHistorialDespachos.filter(d => {
                 return !proveedorFiltrado || d.proveedor === proveedorFiltrado;
             });
@@ -232,7 +233,6 @@
                 return;
             }
 
-            // Construcción del diseño nativo de la tabla con Tailwind CSS
             let htmlTabla = `
                 <div class="p-4 bg-gray-50 font-bold text-xs text-gray-500 uppercase tracking-wider border-b flex justify-between items-center">
                     <span>Historial de Despachos Procesados</span>
@@ -268,83 +268,83 @@
                 `;
             });
 
-            htmlTabla += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
+            htmlTabla += `</tbody></table></div>`;
             contenedorTabla.innerHTML = htmlTabla;
         }
 
-        // Event Listeners para envíos de Formularios
-        document.getElementById("form-proveedor").addEventListener("submit", function(e) {
-            e.preventDefault();
-            const inputs = document.querySelectorAll('.input-mercancia');
-            const listaProductos = [];
-            inputs.forEach(input => { if (input.value.trim() !== "") listaProductos.push(input.value.trim()); });
+        // Configuración de Envío de Formularios con comprobación de existencia
+        if (document.getElementById("form-proveedor")) {
+            document.getElementById("form-proveedor").addEventListener("submit", function(e) {
+                e.preventDefault();
+                const inputs = document.querySelectorAll('.input-mercancia');
+                const listaProductos = [];
+                inputs.forEach(input => { if (input.value.trim() !== "") listaProductos.push(input.value.trim()); });
 
-            enviar({
-                accion: "registrar_proveedor",
-                data: {
-                    nombre: document.getElementById("prov-nombre").value,
-                    productos: listaProductos.join(", ")
-                }
-            }, "form-proveedor");
-            
-            document.getElementById('contenedor-mercancias').innerHTML = `
-                <div class="flex gap-2">
-                    <input type="text" placeholder="Ej: Pasta Larga" class="input-mercancia w-full p-2 border rounded-lg" required>
-                    <button type="button" onclick="agregarCampoMercancia()" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold">+</button>
-                </div>`;
-        });
+                enviar({
+                    accion: "registrar_proveedor",
+                    data: {
+                        nombre: document.getElementById("prov-nombre").value,
+                        productos: listaProductos.join(", ")
+                    }
+                }, "form-proveedor");
+                
+                document.getElementById('contenedor-mercancias').innerHTML = `
+                    <div class="flex gap-2">
+                        <input type="text" placeholder="Ej: Pasta Larga" class="input-mercancia w-full p-2 border rounded-lg" required>
+                        <button type="button" onclick="agregarCampoMercancia()" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold">+</button>
+                    </div>`;
+            });
+        }
 
-        document.getElementById("form-prepago").addEventListener("submit", function(e) {
-            e.preventDefault();
-            const cant = Number(document.getElementById("p-cantidad").value); 
-            const costo = Number(document.getElementById("p-costo").value); 
-            const tasa = Number(document.getElementById("p-tasa").value); 
-            const usd = cant * costo;
-            
-            enviar({ 
-                accion: "registrar_prepago", 
-                data: { 
-                    idLote: document.getElementById("p-id-lote").value, 
-                    fechaPago: new Date().toLocaleDateString('es-ES'), 
-                    proveedor: document.getElementById("p-proveedor").value, 
-                    producto: document.getElementById("p-producto").value, 
-                    cantidadPrepagada: cant, 
-                    costoLotes: costo, 
-                    montoUsd: usd, 
-                    tasaCambio: tasa, 
-                    montoBsPagado: usd * tasa, 
-                    observaciones: "" 
-                } 
-            }, "form-prepago");
-        });
+        if (document.getElementById("form-prepago")) {
+            document.getElementById("form-prepago").addEventListener("submit", function(e) {
+                e.preventDefault();
+                const cant = Number(document.getElementById("p-cantidad").value); 
+                const costo = Number(document.getElementById("p-costo").value); 
+                const tasa = Number(document.getElementById("p-tasa").value); 
+                const usd = cant * costo;
+                
+                enviar({ 
+                    accion: "registrar_prepago", 
+                    data: { 
+                        idLote: document.getElementById("p-id-lote").value, 
+                        fechaPago: new Date().toLocaleDateString('es-ES'), 
+                        proveedor: document.getElementById("p-proveedor").value, 
+                        producto: document.getElementById("p-producto").value, 
+                        cantidadPrepagada: cant, 
+                        costoLotes: costo, 
+                        montoUsd: usd, 
+                        tasaCambio: tasa, 
+                        montoBsPagado: usd * tasa, 
+                        observaciones: "" 
+                    } 
+                }, "form-prepago");
+            });
+        }
 
-        document.getElementById("form-despacho").addEventListener("submit", function(e) {
-            e.preventDefault();
-            const cant = Number(document.getElementById("d-cantidad").value); 
-            const bs = Number(document.getElementById("d-monto-bs").value);
-            
-            enviar({ 
-                accion: "registrar_despacho", 
-                data: { 
-                    idDespacho: "D-" + Date.now().toString().slice(-4), 
-                    nroFacturaEntrega: document.getElementById("d-factura").value, 
-                    fechaRecepcion: new Date().toLocaleDateString('es-ES'), 
-                    proveedor: document.getElementById("d-proveedor").value, 
-                    producto: document.getElementById("d-producto").value, 
-                    cantidadRecibida: cant, 
-                    tasaDiaRecepcion: cant > 0 ? (bs / (cant * 7.199)) : 0, 
-                    montoBsRecibido: bs, 
-                    ajusteMalEstado: 0 
-                } 
-            }, "form-despacho");
-        });
+        if (document.getElementById("form-despacho")) {
+            document.getElementById("form-despacho").addEventListener("submit", function(e) {
+                e.preventDefault();
+                const cant = Number(document.getElementById("d-cantidad").value); 
+                const bs = Number(document.getElementById("d-monto-bs").value);
+                
+                enviar({ 
+                    accion: "registrar_despacho", 
+                    data: { 
+                        idDespacho: "D-" + Date.now().toString().slice(-4), 
+                        nroFacturaEntrega: document.getElementById("d-factura").value, 
+                        fechaRecepcion: new Date().toLocaleDateString('es-ES'), 
+                        proveedor: document.getElementById("d-proveedor").value, 
+                        producto: document.getElementById("d-producto").value, 
+                        cantidadRecibida: cant, 
+                        tasaDiaRecepcion: cant > 0 ? (bs / (cant * 7.199)) : 0, 
+                        montoBsRecibido: bs, 
+                        ajusteMalEstado: 0 
+                    } 
+                }, "form-despacho");
+            });
+        }
 
-        // Configurar el botón de filtrar en Reportes una vez cargue el DOM
         document.addEventListener("DOMContentLoaded", () => {
             const btnAplicarFiltro = document.querySelector("#mod-reportes button.bg-blue-600");
             if (btnAplicarFiltro) {
@@ -356,7 +356,7 @@
             try {
                 await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
                 alert("¡Guardado con éxito!");
-                document.getElementById(formId).reset();
+                if (document.getElementById(formId)) document.getElementById(formId).reset();
                 setTimeout(() => { cargarDatos(); }, 1000);
             } catch (error) { 
                 alert("Error al enviar la transacción."); 
