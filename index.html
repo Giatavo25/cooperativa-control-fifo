@@ -161,7 +161,6 @@
     </main>
 
     <script>
-        // URL de tu API en Google Apps Script
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
         let cacheProveedores = []; 
 
@@ -188,11 +187,10 @@
             document.getElementById('titulo-modulo').innerText = titulos[idModulo];
         }
 
-        // Corrección de sintaxis aplicada aquí (.classList)
         function agregarCampoMercancia() {
             const contenedor = document.getElementById('contenedor-mercancias');
             const nuevoDiv = document.createElement('div');
-            nuevoDiv.classList = "flex gap-2"; 
+            nuevoDiv.className = "flex gap-2"; 
             nuevoDiv.innerHTML = `
                 <input type="text" placeholder="Ej: Pasta Corta" class="input-mercancia w-full p-2 border rounded-lg" required>
                 <button type="button" onclick="this.parentElement.remove()" class="bg-red-500 text-white px-3 py-2 rounded-lg font-bold">-</button>
@@ -223,7 +221,14 @@
             if (listaDom) {
                 listaDom.innerHTML = "";
                 cacheProveedores.forEach(p => {
-                    const chips = p.productos.map(prod => `<span class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full">${prod}</span>`).join(' ');
+                    let productosLista = [];
+                    if (typeof p.productos === 'string') {
+                        productosLista = p.productos.split(',').map(prod => prod.trim());
+                    } else if (Array.isArray(p.productos)) {
+                        productosLista = p.productos;
+                    }
+                    
+                    const chips = productosLista.map(prod => `<span class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full">${prod}</span>`).join(' ');
                     listaDom.innerHTML += `
                         <div class="p-3 bg-gray-50 border rounded-lg">
                             <p class="font-bold text-sm text-gray-800">${p.nombre}</p>
@@ -233,17 +238,31 @@
             }
         }
 
+        // LÓGICA CORREGIDA: Convierte texto plano de productos en Arreglo Dinámico
         function filtrarProductosPorProveedor(nombreProveedor, idSelectDestino) {
             const selectDestino = document.getElementById(idSelectDestino);
             selectDestino.innerHTML = "";
             
             const proveedorEncontrado = cacheProveedores.find(p => p.nombre === nombreProveedor);
             
-            if (proveedorEncontrado && proveedorEncontrado.productos && proveedorEncontrado.productos.length > 0) {
-                selectDestino.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
-                proveedorEncontrado.productos.forEach(prod => {
-                    selectDestino.innerHTML += `<option value="${prod}">${prod}</option>`;
-                });
+            if (proveedorEncontrado && proveedorEncontrado.productos) {
+                let productosLista = [];
+                
+                // Si viene como Texto Plano separado por comas desde Sheets, lo pica en una lista limpia
+                if (typeof proveedorEncontrado.productos === 'string') {
+                    productosLista = proveedorEncontrado.productos.split(',').map(prod => prod.trim());
+                } else if (Array.isArray(proveedorEncontrado.productos)) {
+                    productosLista = proveedorEncontrado.productos;
+                }
+
+                if (productosLista.length > 0 && productosLista[0] !== "") {
+                    selectDestino.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
+                    productosLista.forEach(prod => {
+                        selectDestino.innerHTML += `<option value="${prod}">${prod}</option>`;
+                    });
+                } else {
+                    selectDestino.innerHTML = '<option value="">⚠️ Sin mercancía registrada</option>';
+                }
             } else {
                 selectDestino.innerHTML = '<option value="">⚠️ Sin mercancía registrada</option>';
             }
