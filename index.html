@@ -161,8 +161,9 @@
     </main>
 
     <script>
+        // URL de tu API en Google Apps Script
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
-        let cacheProveedores = []; // Almacén global temporal de los proveedores y sus mercancías
+        let cacheProveedores = []; 
 
         google.charts.load('current', {'packages':['corechart', 'bar']});
         google.charts.setOnLoadCallback(cargarDatos);
@@ -170,21 +171,28 @@
         function cambiarModulo(idModulo) {
             document.querySelectorAll('.modulo').forEach(m => m.classList.add('hidden'));
             document.getElementById(idModulo).classList.remove('hidden');
-            document.querySelectorAll('aside nav button').forEach(b => b.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 hover:text-white text-slate-300 transition");
+            document.querySelectorAll('aside nav button').forEach(b => {
+                b.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 hover:text-white text-slate-300 transition";
+            });
             
             const btnActivo = document.getElementById('nav-' + idModulo);
-            if (idModulo === 'mod-dashboard') btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition";
-            else if (idModulo === 'mod-recepcion') btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-emerald-600 text-white transition";
-            else btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-slate-700 text-white transition";
+            if (idModulo === 'mod-dashboard') {
+                btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition";
+            } else if (idModulo === 'mod-recepcion') {
+                btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-emerald-600 text-white transition";
+            } else {
+                btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-slate-700 text-white transition";
+            }
             
-            document.getElementById('titulo-modulo').innerText = { 'mod-dashboard': 'Dashboard General', 'mod-prepagos': 'Registrar Prepagos', 'mod-recepcion': 'Recepción de Carga', 'mod-proveedores': 'Ficha de Proveedores' }[idModulo];
+            const titulos = { 'mod-dashboard': 'Dashboard General', 'mod-prepagos': 'Registrar Prepagos', 'mod-recepcion': 'Recepción de Carga', 'mod-proveedores': 'Ficha de Proveedores' };
+            document.getElementById('titulo-modulo').innerText = titulos[idModulo];
         }
 
-        // Agregar dinámicamente un recuadro de mercancía adicional
+        // Corrección de sintaxis aplicada aquí (.classList)
         function agregarCampoMercancia() {
             const contenedor = document.getElementById('contenedor-mercancias');
             const nuevoDiv = document.createElement('div');
-            nuevoDiv classList = "flex gap-2";
+            nuevoDiv.classList = "flex gap-2"; 
             nuevoDiv.innerHTML = `
                 <input type="text" placeholder="Ej: Pasta Corta" class="input-mercancia w-full p-2 border rounded-lg" required>
                 <button type="button" onclick="this.parentElement.remove()" class="bg-red-500 text-white px-3 py-2 rounded-lg font-bold">-</button>
@@ -197,14 +205,13 @@
                 const response = await fetch(WEB_APP_URL);
                 const resultado = await response.json();
                 if (resultado.status === "success") {
-                    cacheProveedores = resultado.data.proveedores;
+                    cacheProveedores = resultado.data.proveedores || [];
                     renderizarDashboard(resultado.data);
                     actualizarInterfacesProveedores();
                 }
-            } catch (error) { console.error(error); }
+            } catch (error) { console.error("Error cargando datos:", error); }
         }
 
-        // Rellenar los selects basándonos en la base de datos
         function actualizarInterfacesProveedores() {
             const selects = document.querySelectorAll('.select-proveedores');
             selects.forEach(sel => {
@@ -213,52 +220,64 @@
             });
 
             const listaDom = document.getElementById('lista-proveedores-completa');
-            listaDom.innerHTML = "";
-            cacheProveedores.forEach(p => {
-                const chips = p.productos.map(prod => `<span class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full">${prod}</span>`).join(' ');
-                listaDom.innerHTML += `
-                    <div class="p-3 bg-gray-50 border rounded-lg">
-                        <p class="font-bold text-sm text-gray-800">${p.nombre}</p>
-                        <div class="flex flex-wrap gap-1 mt-1.5">${chips ? chips : '<span class="text-xs text-gray-400 italic">Sin mercancías</span>'}</div>
-                    </div>`;
-            });
+            if (listaDom) {
+                listaDom.innerHTML = "";
+                cacheProveedores.forEach(p => {
+                    const chips = p.productos.map(prod => `<span class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full">${prod}</span>`).join(' ');
+                    listaDom.innerHTML += `
+                        <div class="p-3 bg-gray-50 border rounded-lg">
+                            <p class="font-bold text-sm text-gray-800">${p.nombre}</p>
+                            <div class="flex flex-wrap gap-1 mt-1.5">${chips ? chips : '<span class="text-xs text-gray-400 italic">Sin mercancías</span>'}</div>
+                        </div>`;
+                });
+            }
         }
 
-        // 🎯 EL FILTRO INTELIGENTE EN VIVO
         function filtrarProductosPorProveedor(nombreProveedor, idSelectDestino) {
             const selectDestino = document.getElementById(idSelectDestino);
             selectDestino.innerHTML = "";
             
             const proveedorEncontrado = cacheProveedores.find(p => p.nombre === nombreProveedor);
             
-            if (proveedorEncontrado && proveedorEncontrado.productos.length > 0) {
+            if (proveedorEncontrado && proveedorEncontrado.productos && proveedorEncontrado.productos.length > 0) {
                 selectDestino.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
                 proveedorEncontrado.productos.forEach(prod => {
                     selectDestino.innerHTML += `<option value="${prod}">${prod}</option>`;
                 });
             } else {
-                selectDestino.innerHTML = '<option value="">⚠️ Este proveedor no tiene mercancía configurada</option>';
+                selectDestino.innerHTML = '<option value="">⚠️ Sin mercancía registrada</option>';
             }
         }
 
         function renderizarDashboard(data) {
             let totalPrepagado = 0, totalPendiente = 0, totalRecibido = 0;
-            const tbody = document.getElementById("tabla-lotes"); tbody.innerHTML = "";
+            const tbody = document.getElementById("tabla-lotes"); 
+            tbody.innerHTML = "";
             
+            if (!data.detallesLotes || data.detallesLotes.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-gray-400 italic">No hay lotes activos registrados</td></tr>`;
+                document.getElementById("kpi-prepagado").innerText = "0";
+                document.getElementById("kpi-recibido").innerText = "0";
+                document.getElementById("kpi-pendiente").innerText = "0";
+                return;
+            }
+
             data.detallesLotes.forEach(lote => {
                 const recibido = lote.cantOriginal - lote.cantDisponible;
                 totalPrepagado += lote.cantOriginal; totalPendiente += lote.cantDisponible; totalRecibido += recibido;
-                let cl = "bg-amber-100 text-amber-800", tx = "Despachando";
-                if (lote.cantDisponible === 0) { cl = "bg-emerald-100 text-emerald-800"; tx = "Completado"; }
                 tbody.insertAdjacentHTML("beforeend", `
                     <tr class="hover:bg-gray-50 transition border-b">
-                        <td class="px-6 py-4 font-semibold">${lote.idLote}</td><td class="px-6 py-4">${lote.proveedor}</td><td class="px-6 py-4">${lote.producto}</td><td class="px-6 py-4 text-right font-mono">${lote.cantOriginal.toLocaleString()}</td><td class="px-6 py-4 text-right font-mono font-bold text-amber-600">${lote.cantDisponible.toLocaleString()}</td>
+                        <td class="px-6 py-4 font-semibold">${lote.idLote}</td>
+                        <td class="px-6 py-4">${lote.proveedor}</td>
+                        <td class="px-6 py-4">${lote.producto}</td>
+                        <td class="px-6 py-4 text-right font-mono">${lote.cantOriginal.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right font-mono font-bold text-amber-600">${lote.cantDisponible.toLocaleString()}</td>
                     </tr>`);
             });
             document.getElementById("kpi-prepagado").innerText = totalPrepagado.toLocaleString();
             document.getElementById("kpi-recibido").innerText = totalRecibido.toLocaleString();
             document.getElementById("kpi-pendiente").innerText = totalPendiente.toLocaleString();
-            if(data.resumenConsolidated.length > 0) dibujarGraficos(data.resumenConsolidated);
+            if(data.resumenConsolidated && data.resumenConsolidated.length > 0) dibujarGraficos(data.resumenConsolidated);
         }
 
         function dibujarGraficos(resumen) {
@@ -270,10 +289,8 @@
             new google.visualization.PieChart(document.getElementById('chart-distribucion')).draw(google.visualization.arrayToDataTable(dataTorta), { colors: ['#3b82f6', '#f59e0b', '#ef4444'], chartArea: {width: '80%', height: '80%'} });
         }
 
-        // Submits (POST)
         document.getElementById("form-proveedor").addEventListener("submit", function(e) {
             e.preventDefault();
-            // Capturar todos los recuadros de mercancía dinámicos que se agregaron
             const inputs = document.querySelectorAll('.input-mercancia');
             const listaProductos = [];
             inputs.forEach(input => { if (input.value.trim() !== "") listaProductos.push(input.value.trim()); });
@@ -282,11 +299,10 @@
                 accion: "registrar_proveedor",
                 data: {
                     nombre: document.getElementById("prov-nombre").value,
-                    productos: listaProductos.join(", ") // Se guardan en Excel como texto separado por comas
+                    productos: listaProductos.join(", ")
                 }
             }, "form-proveedor");
             
-            // Reestablecer el contenedor a un solo campo
             document.getElementById('contenedor-mercancias').innerHTML = `
                 <div class="flex gap-2">
                     <input type="text" placeholder="Ej: Pasta Larga" class="input-mercancia w-full p-2 border rounded-lg" required>
@@ -311,8 +327,8 @@
                 await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
                 alert("¡Guardado con éxito!");
                 document.getElementById(formId).reset();
-                setTimeout(() => { cargarDatos(); }, 1500);
-            } catch (error) { alert("Error."); }
+                setTimeout(() => { cargarDatos(); }, 1000);
+            } catch (error) { alert("Error al enviar."); }
         }
     </script>
 </body>
