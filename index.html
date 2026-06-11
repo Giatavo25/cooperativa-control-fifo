@@ -1,6 +1,8 @@
 <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby77QQlwzgH15gQh0ATeP8JkyK7o6raWye2SD4q-rII/dev;
+        // URL de tu aplicación web de Google Apps Script
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby77QQlwzgH15gQh0ATeP8JkyK7o6raWye2SD4q-rII/exec";
         let cacheProveedores = []; 
+        let cacheHistorialDespachos = []; // Caché global para almacenar el histórico de auditoría
         let chartsCargados = false; // Bandera de seguridad para el estado de Google Charts
 
         // Forzar la carga de Google Charts de manera segura
@@ -26,8 +28,10 @@
                 const resultado = await response.json();
                 if (resultado.status === "success") {
                     cacheProveedores = resultado.data.proveedores || [];
+                    cacheHistorialDespachos = resultado.data.historialDespachos || []; // Guardamos el historial recibido
                     renderizarDashboard(resultado.data);
                     actualizarInterfacesProveedores();
+                    renderizarTablaReportes(); // Renderizar la tabla de auditoría con los datos frescos
                 } else {
                     console.error("El backend no devolvió un estatus de éxito:", resultado);
                 }
@@ -55,12 +59,12 @@
                 } else if (idModulo === 'mod-recepcion') {
                     btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-emerald-600 text-white transition";
                 } else {
-                    // Estilo enfocado para Prepagos, Proveedores y el nuevo módulo de Reportes
+                    // Estilo enfocado para Prepagos, Proveedores y el módulo de Reportes
                     btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-slate-700 text-white transition";
                 }
             }
             
-            // Títulos dinámicos en la cabecera (mapeado de Reportes corregido aquí)
+            // Títulos dinámicos en la cabecera
             const titulos = { 
                 'mod-dashboard': 'Dashboard General', 
                 'mod-prepagos': 'Registrar Prepagos', 
@@ -86,10 +90,12 @@
             // Sincroniza dinámicamente cualquier selector con la clase .select-proveedores (incluyendo el del nuevo reporte)
             const selects = document.querySelectorAll('.select-proveedores');
             selects.forEach(sel => {
+                const valorSeleccionadoAnterior = sel.value; // Conservar selección si ya existía una
                 sel.innerHTML = '<option value="">-- Seleccione un proveedor --</option>';
                 cacheProveedores.forEach(p => { 
                     sel.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`; 
                 });
+                if (valorSeleccionadoAnterior) sel.value = valorSeleccionadoAnterior;
             });
 
             const listaDom = document.getElementById('lista-proveedores-completa');
@@ -162,7 +168,7 @@
                     </tr>`);
             });
 
-            // Asignar los KPIs numéricos primero de manera segura
+            // Asignar los KPIs numéricos de manera segura
             document.getElementById("kpi-prepagado").innerText = totalPrepagado.toLocaleString();
             document.getElementById("kpi-recibido").innerText = totalRecibido.toLocaleString();
             document.getElementById("kpi-pendiente").innerText = totalPendiente.toLocaleString();
@@ -204,6 +210,74 @@
             }
         }
 
+        // Nueva función integrada para renderizar la tabla de auditoría en Reportes
+        function renderizarTablaReportes() {
+            const selectProv = document.getElementById("rep-proveedor");
+            if (!selectProv) return; // Validación de seguridad si el elemento aún no existe
+            
+            const proveedorFiltrado = selectProv.value;
+            // Buscamos el contenedor estructurado de la tabla dentro del módulo de reportes
+            const contenedorTabla = document.querySelector("#mod-reportes .border.rounded-lg");
+            if (!contenedorTabla) return;
+
+            // Filtrado local e instantáneo desde memoria caché
+            const datosFiltrados = cacheHistorialDespachos.filter(d => {
+                return !proveedorFiltrado || d.proveedor === proveedorFiltrado;
+            });
+
+            if (datosFiltrados.length === 0) {
+                contenedorTabla.innerHTML = `
+                    <div class="p-4 bg-gray-50 font-bold text-xs text-gray-500 uppercase tracking-wider border-b">Historial de Despachos Procesados</div>
+                    <div class="p-6 text-center text-sm text-gray-400 italic bg-white">No se encontraron registros de despachos para el filtro seleccionado.</div>`;
+                return;
+            }
+
+            // Construcción del diseño nativo de la tabla con Tailwind CSS
+            let htmlTabla = `
+                <div class="p-4 bg-gray-50 font-bold text-xs text-gray-500 uppercase tracking-wider border-b flex justify-between items-center">
+                    <span>Historial de Despachos Procesados</span>
+                    <span class="bg-blue-100 text-blue-700 text-xs px-2.5 py-0.5 rounded-full font-bold">${datosFiltrados.length} Movimientos</span>
+                </div>
+                <div class="overflow-x-auto bg-white">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-400 text-xs font-bold uppercase border-b">
+                                <th class="px-6 py-3">ID Transacción</th>
+                                <th class="px-6 py-3">Fecha</th>
+                                <th class="px-6 py-3">Factura / Control</th>
+                                <th class="px-6 py-3">Proveedor</th>
+                                <th class="px-6 py-3">Mercancía</th>
+                                <th class="px-6 py-3 text-right">Cantidad (Bultos)</th>
+                                <th class="px-6 py-3 text-right">Monto Declarado (Bs.)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 text-gray-600">
+            `;
+
+            datosFiltrados.forEach(d => {
+                htmlTabla += `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 font-mono text-xs text-gray-400">${d.idDespacho}</td>
+                        <td class="px-6 py-4">${d.fecha}</td>
+                        <td class="px-6 py-4 font-semibold text-slate-700">#${d.factura}</td>
+                        <td class="px-6 py-4">${d.proveedor}</td>
+                        <td class="px-6 py-4"><span class="bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded">${d.producto}</span></td>
+                        <td class="px-6 py-4 text-right font-mono font-bold text-emerald-600">${d.cantidad.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right font-mono text-gray-900">${d.montoBs.toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
+                    </tr>
+                `;
+            });
+
+            htmlTabla += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            contenedorTabla.innerHTML = htmlTabla;
+        }
+
+        // Event Listeners para envíos de Formularios
         document.getElementById("form-proveedor").addEventListener("submit", function(e) {
             e.preventDefault();
             const inputs = document.querySelectorAll('.input-mercancia');
@@ -268,6 +342,14 @@
                     ajusteMalEstado: 0 
                 } 
             }, "form-despacho");
+        });
+
+        // Configurar el botón de filtrar en Reportes una vez cargue el DOM
+        document.addEventListener("DOMContentLoaded", () => {
+            const btnAplicarFiltro = document.querySelector("#mod-reportes button.bg-blue-600");
+            if (btnAplicarFiltro) {
+                btnAplicarFiltro.addEventListener("click", renderizarTablaReportes);
+            }
         });
 
         async function enviar(payload, formId) {
