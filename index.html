@@ -302,6 +302,50 @@
             setTimeout(function() { scriptEnvio.remove(); }, 2000);
         }
 
+        // Manejadores de envío para interceptar formularios y mandarlos por JSONP seguro
+        window.addEventListener("DOMContentLoaded", function() {
+            const formProv = document.getElementById("form-proveedor");
+            if (formProv) {
+                formProv.addEventListener("submit", function(e) {
+                    e.preventDefault();
+                    const nombre = document.getElementById("prov-nombre").value;
+                    const inputs = document.querySelectorAll(".input-mercancia");
+                    const productos = Array.from(inputs).map(i => i.value).filter(v => v.trim() !== "");
+                    enviarFormularioManual({ action: "crearProveedor", nombre: nombre, productos: productos }, "form-proveedor");
+                });
+            }
+
+            const formPre = document.getElementById("form-prepago");
+            if (formPre) {
+                formPre.addEventListener("submit", function(e) {
+                    e.preventDefault();
+                    const payload = {
+                        action: "registrarPrepago",
+                        proveedor: document.getElementById("pre-proveedor").value,
+                        producto: document.getElementById("pre-producto").value,
+                        cantidad: parseInt(document.getElementById("pre-cantidad").value)
+                    };
+                    enviarFormularioManual(payload, "form-prepago");
+                });
+            }
+
+            const formDes = document.getElementById("form-recepcion");
+            if (formDes) {
+                formDes.addEventListener("submit", function(e) {
+                    e.preventDefault();
+                    const payload = {
+                        action: "registrarDespacho",
+                        factura: document.getElementById("des-factura").value,
+                        proveedor: document.getElementById("des-proveedor").value,
+                        producto: document.getElementById("des-producto").value,
+                        cantidad: parseInt(document.getElementById("des-cantidad").value),
+                        montoBs: parseFloat(document.getElementById("des-monto").value)
+                    };
+                    enviarFormularioManual(payload, "form-recepcion");
+                });
+            }
+        });
+
         // Disparador de arranque inicial seguro al terminar de cargar la ventana básica
         window.addEventListener("load", function() {
             inicializarGraficos();
