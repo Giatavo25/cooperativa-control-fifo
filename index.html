@@ -1,7 +1,218 @@
-<script src="https://www.gstatic.com/charts/loader.js"></script>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SICOOP - Control FIFO</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col md:flex-row">
+
+    <aside class="w-full md:w-64 bg-slate-950 p-6 flex flex-col gap-6 border-b md:border-b-0 md:border-r border-slate-800">
+        <div>
+            <h1 class="text-xl font-black tracking-wider text-blue-400">📊 SICOOP</h1>
+            <p class="text-xs text-slate-500 font-medium">Control de Inventario FIFO</p>
+        </div>
+        <nav class="flex flex-col gap-2 flex-1">
+            <button id="nav-mod-dashboard" onclick="cambiarModulo('mod-dashboard')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition">
+                <span>🏠 Dashboard</span>
+            </button>
+            <button id="nav-mod-prepagos" onclick="cambiarModulo('mod-prepagos')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                <span>💳 Registrar Prepago</span>
+            </button>
+            <button id="nav-mod-recepcion" onclick="cambiarModulo('mod-recepcion')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                <span>📦 Recepción Carga</span>
+            </button>
+            <button id="nav-mod-proveedores" onclick="cambiarModulo('mod-proveedores')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                <span>🤝 Proveedores</span>
+            </button>
+            <button id="nav-mod-reportes" onclick="cambiarModulo('mod-reportes')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                <span>📋 Reportes / Auditoría</span>
+            </button>
+        </nav>
+        <div class="pt-4 border-t border-slate-800 text-center">
+            <button onclick="cargarDatos()" class="w-full bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs py-2 rounded-lg font-bold transition">
+                🔄 Forzar Sincronización
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 p-6 md:p-8 flex flex-col gap-6 overflow-y-auto">
+        <header class="flex justify-between items-center border-b border-slate-800 pb-4">
+            <h2 id="titulo-modulo" class="text-2xl font-bold text-white">Dashboard General</h2>
+            <span class="bg-blue-950 text-blue-400 text-xs font-bold px-3 py-1 rounded-full border border-blue-800">Barquisimeto Online</span>
+        </header>
+
+        <section id="mod-dashboard" class="modulo flex flex-col gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Prepagado</p>
+                    <p id="kpi-prepagado" class="text-3xl font-mono font-black text-blue-400 mt-2">0</p>
+                </div>
+                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Recibido</p>
+                    <p id="kpi-recibido" class="text-3xl font-mono font-black text-emerald-400 mt-2">0</p>
+                </div>
+                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pendiente en Origen</p>
+                    <p id="kpi-pendiente" class="text-3xl font-mono font-black text-amber-500 mt-2">0</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <h3 class="text-sm font-bold text-slate-300 mb-2">Progreso por Proveedor</h3>
+                    <div id="chart-progreso" class="w-full h-64 flex items-center justify-center text-xs text-slate-500 bg-slate-900 rounded-lg">Esperando datos...</div>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <h3 class="text-sm font-bold text-slate-300 mb-2">Distribución de Lotes</h3>
+                    <div id="chart-distribucion" class="w-full h-64 flex items-center justify-center text-xs text-slate-500 bg-slate-900 rounded-lg">Esperando existencias...</div>
+                </div>
+            </div>
+
+            <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
+                <div class="p-4 bg-slate-900/50 border-b border-slate-800">
+                    <h3 class="text-sm font-bold text-slate-200">Lotes Activos en Sistema (Cola FIFO)</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-900 text-slate-400 text-xs font-bold uppercase">
+                            <tr>
+                                <th class="px-6 py-3">ID Lote</th>
+                                <th class="px-6 py-3">Proveedor</th>
+                                <th class="px-6 py-3">Mercancía</th>
+                                <th class="px-6 py-3 text-right">Cant. Inicial</th>
+                                <th class="px-6 py-3 text-right">Cant. Disponible</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-lotes" class="divide-y divide-slate-800 text-slate-300">
+                            <tr>
+                                <td colspan="5" class="px-6 py-8 text-center text-xs text-slate-500 italic">Sincronizando con Google Sheets...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="mod-prepagos" class="modulo hidden bg-slate-950 p-6 rounded-xl border border-slate-800 max-w-xl">
+            <form id="form-prepago" class="flex flex-col gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Proveedor</label>
+                    <select id="pre-proveedor" onchange="filtrarProductosPorProveedor(this.value, 'pre-producto')" class="select-proveedores w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                        <option value="">Cargando proveedores...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Mercancía / Producto</label>
+                    <select id="pre-producto" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                        <option value="">-- Seleccione primero un proveedor --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Cantidad Prepagada (Unidades)</label>
+                    <input type="number" id="pre-cantidad" placeholder="Ej: 5000" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Tasa de Cambio Operación</label>
+                    <input type="number" step="0.01" id="pre-tasa" placeholder="Ej: 36.50" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-lg font-bold text-sm text-white mt-2 active:scale-98 transition">
+                    🚀 Registrar Lote en Google Sheets
+                </button>
+            </form>
+        </section>
+
+        <section id="mod-recepcion" class="modulo hidden bg-slate-950 p-6 rounded-xl border border-slate-800 max-w-xl">
+            <form id="form-recepcion" class="flex flex-col gap-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Nro Factura / Control</label>
+                        <input type="text" id="des-factura" placeholder="F-001" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Proveedor</label>
+                        <select id="des-proveedor" onchange="filtrarProductosPorProveedor(this.value, 'des-producto')" class="select-proveedores w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                            <option value="">Cargando proveedores...</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Mercancía Recibida</label>
+                    <select id="des-producto" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                        <option value="">-- Seleccione primero un proveedor --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Cantidad Física que Entra (Unidades)</label>
+                    <input type="number" id="des-cantidad" placeholder="Ej: 1200" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono" required>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Tasa del Día</label>
+                        <input type="number" step="0.01" id="des-tasa" placeholder="0.00" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Monto total Bs.</label>
+                        <input type="number" step="0.01" id="des-monto" placeholder="0.00" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-lg font-bold text-sm text-white mt-2 active:scale-98 transition">
+                    📥 Descargar de la Cola FIFO
+                </button>
+            </form>
+        </section>
+
+        <section id="mod-proveedores" class="modulo hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 lg:col-span-1 h-fit">
+                <h3 class="text-sm font-bold text-white mb-4 uppercase">Nuevo Proveedor</h3>
+                <form id="form-proveedor" class="flex flex-col gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5">Nombre de la Empresa</label>
+                        <input type="text" id="prov-nombre" placeholder="Ej: Polar" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5">Mercancías que Suministra</label>
+                        <div id="contenedor-mercancias" class="flex flex-col gap-2">
+                            <input type="text" class="input-mercancia w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" placeholder="Ej: Harina PAN" required>
+                        </div>
+                        <button type="button" onclick="agregarCampoMercancia()" class="text-xs text-blue-400 font-bold mt-2 hover:underline flex items-center gap-1">
+                            ➕ Añadir otro producto
+                        </button>
+                    </div>
+                    <button type="submit" class="w-full bg-slate-800 hover:bg-slate-700 py-2.5 rounded-lg text-sm font-bold text-white mt-2">
+                        💾 Guardar Ficha
+                    </button>
+                </form>
+            </div>
+            <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 lg:col-span-2">
+                <h3 class="text-sm font-bold text-white mb-4 uppercase">Lista de Aliados Registrados</h3>
+                <div id="lista-proveedores-completa" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <p class="text-xs text-slate-500 italic">Cargando catálogo...</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="mod-reportes" class="modulo hidden flex flex-col gap-4">
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-wrap gap-4 items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-white">Auditoría Histórica de Despachos</h3>
+                    <p class="text-xs text-slate-500">Visualiza las salidas registradas bajo el método FIFO.</p>
+                </div>
+                <div class="w-64">
+                    <select id="rep-proveedor" onchange="renderizarTablaReportes()" class="select-proveedores w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
+                        <option value="">-- Todos los Proveedores --</option>
+                    </select>
+                </div>
+            </div>
+            <div id="tabla-reportes-contenedor" class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
+                </div>
+        </section>
+    </main>
 
     <script>
-        // URL de tu Google Apps Script de producción
+        // URL de tu API de Google Sheets
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
         
         let cacheProveedores = []; 
@@ -12,22 +223,17 @@
             try {
                 if (typeof google !== 'undefined' && google.charts) {
                     google.charts.load('current', {'packages':['corechart', 'bar']});
-                    google.charts.setOnLoadCallback(function() {
-                        chartsCargados = true;
-                    });
+                    google.charts.setOnLoadCallback(function() { chartsCargados = true; });
                 }
-            } catch (e) {
-                console.warn("Esperando carga de librerías de gráficos.");
-            }
+            } catch (e) { console.warn("Google Charts no disponible."); }
         }
 
         function cargarDatos() {
-            // Protección: Si no existen estos elementos en tu HTML, el código NO se rompe
-            const elProgreso = document.getElementById('chart-progreso') || document.getElementById('progreso-grafico') || document.getElementById('chart-progresó');
-            const elDistribucion = document.getElementById('chart-distribucion') || document.getElementById('distribucion-grafico') || document.getElementById('chart-distribución');
+            const elProgreso = document.getElementById('chart-progreso');
+            const elDistribucion = document.getElementById('chart-distribucion');
             
-            if (elProgreso) elProgreso.innerText = "Sincronizando con Google Sheets...";
-            if (elDistribucion) elDistribucion.innerText = "Cargando existencias...";
+            if (elProgreso) elProgreso.innerHTML = "<span class='text-blue-400 animate-pulse'>Sincronizando con Sheets de la Cooperativa...</span>";
+            if (elDistribucion) elDistribucion.innerHTML = "<span class='text-blue-400 animate-pulse'>Analizando Lotes...</span>";
 
             window.procesarRespuestaGoogle = function(resultado) {
                 try {
@@ -39,12 +245,8 @@
                         actualizarInterfacesProveedores();
                         renderizarTablaReportes(); 
                     }
-                } catch (err) {
-                    console.error("Error al procesar los datos recibidos:", err);
-                }
-                
-                const loader = document.getElementById('jsonp-script-loader');
-                if (loader) loader.remove();
+                } catch (err) { console.error("Error procesando datos:", err); }
+                const l = document.getElementById('jsonp-script-loader'); if (l) l.remove();
             };
 
             if (!chartsCargados) inicializarGraficos();
@@ -52,259 +254,159 @@
             const script = document.createElement('script');
             script.id = 'jsonp-script-loader';
             script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'callback=procesarRespuestaGoogle';
-            
             script.onerror = function() {
-                if (elProgreso) elProgreso.innerText = "⚠️ Error de conexión.";
+                if (elProgreso) elProgreso.innerText = "⚠️ Error de conexión con Google.";
             };
-
             document.body.appendChild(script);
         }
 
         function cambiarModulo(idModulo) {
-            const modTarget = document.getElementById(idModulo);
-            if (!modTarget) return; 
+            const target = document.getElementById(idModulo); if (!target) return;
+            document.querySelectorAll('.modulo').forEach(m => m.classList.add('hidden'));
+            target.classList.remove('hidden');
             
-            document.querySelectorAll('.modulo').forEach(function(m) { m.classList.add('hidden'); });
-            modTarget.classList.remove('hidden');
-            
-            document.querySelectorAll('aside nav button').forEach(function(b) {
-                b.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 hover:text-white text-slate-300 transition";
+            document.querySelectorAll('aside nav button').forEach(b => {
+                b.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition";
             });
+            const btn = document.getElementById('nav-' + idModulo);
+            if (btn) btn.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition";
             
-            const btnActivo = document.getElementById('nav-' + idModulo);
-            if (btnActivo) {
-                if (idModulo === 'mod-dashboard') {
-                    btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition";
-                    cargarDatos(); 
-                } else if (idModulo === 'mod-recepcion') {
-                    btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-emerald-600 text-white transition";
-                } else {
-                    btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-slate-700 text-white transition";
-                }
-            }
-            
-            const txtTitulo = document.getElementById('titulo-modulo');
-            if (txtTitulo) {
-                const titulos = { 
-                    'mod-dashboard': 'Dashboard General', 'mod-prepagos': 'Registrar Prepagos', 
-                    'mod-recepcion': 'Recepción de Carga', 'mod-proveedores': 'Ficha de Proveedores', 'mod-reportes': 'Reportes y Auditoría'
-                };
-                txtTitulo.innerText = titulos[idModulo] || 'Sistema Cooperativa';
-            }
+            const titulos = { 'mod-dashboard': 'Dashboard General', 'mod-prepagos': 'Registrar Prepagos', 'mod-recepcion': 'Recepción de Carga', 'mod-proveedores': 'Ficha de Proveedores', 'mod-reportes': 'Reportes y Auditoría' };
+            const titleDom = document.getElementById('titulo-modulo'); if (titleDom) titleDom.innerText = titulos[idModulo] || 'Sistema';
+            if (idModulo === 'mod-dashboard') cargarDatos();
         }
 
         function agregarCampoMercancia() {
-            const contenedor = document.getElementById('contenedor-mercancias');
-            if (!contenedor) return;
-            const nuevoDiv = document.createElement('div');
-            nuevoDiv.className = "flex gap-2 mt-2"; 
-            nuevoDiv.innerHTML = `
-                <input type="text" placeholder="Ej: Pasta Corta" class="input-mercancia w-full p-2 border rounded-lg" required>
-                <button type="button" onclick="this.parentElement.remove()" class="bg-red-500 text-white px-3 py-2 rounded-lg font-bold">-</button>
-            `;
-            contenedor.appendChild(nuevoDiv);
+            const div = document.createElement('div'); div.className = "flex gap-2 mt-1";
+            div.innerHTML = `<input type="text" class="input-mercancia w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white" placeholder="Producto" required><button type="button" onclick="this.parentElement.remove()" class="bg-red-900 text-red-200 px-3 rounded-lg font-bold hover:bg-red-800">-</button>`;
+            document.getElementById('contenedor-mercancias').appendChild(div);
         }
 
         function actualizarInterfacesProveedores() {
-            const selects = document.querySelectorAll('.select-proveedores');
-            selects.forEach(function(sel) {
-                const valorAnterior = sel.value; 
+            document.querySelectorAll('.select-proveedores').forEach(sel => {
+                const val = sel.value;
                 sel.innerHTML = '<option value="">-- Seleccione un proveedor --</option>';
-                cacheProveedores.forEach(function(p) { 
-                    sel.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`; 
-                });
-                if (valorAnterior) sel.value = valorAnterior;
+                cacheProveedores.forEach(p => sel.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`);
+                if (val) sel.value = val;
             });
 
-            const listaDom = document.getElementById('lista-proveedores-completa');
-            if (listaDom) {
-                listaDom.innerHTML = "";
-                cacheProveedores.forEach(function(p) {
-                    const productosLista = Array.isArray(p.productos) ? p.productos : [];
-                    const chips = productosLista.map(function(prod) { 
-                        return `<span class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full">${prod}</span>`; 
-                    }).join(' ');
-                    
-                    listaDom.innerHTML += `
-                        <div class="p-3 bg-gray-50 border rounded-lg">
-                            <p class="font-bold text-sm text-gray-800">${p.nombre}</p>
-                            <div class="flex flex-wrap gap-1 mt-1.5">${chips ? chips : '<span class="text-xs text-gray-400 italic">Sin mercancías</span>'}</div>
-                        </div>`;
+            const lista = document.getElementById('lista-proveedores-completa');
+            if (lista) {
+                lista.innerHTML = "";
+                cacheProveedores.forEach(p => {
+                    const prods = Array.isArray(p.productos) ? p.productos : [];
+                    const chips = prods.map(pr => `<span class="bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded border border-slate-700">${pr}</span>`).join(' ');
+                    lista.innerHTML += `<div class="p-3 bg-slate-900 rounded-lg border border-slate-800"><p class="font-bold text-sm text-white">${p.nombre}</p><div class="flex flex-wrap gap-1 mt-2">${chips || '<span class="text-xs text-slate-600 italic">Sin mercancía</span>'}</div></div>`;
                 });
             }
         }
 
-        function filtrarProductosPorProveedor(nombreProveedor, idSelectDestino) {
-            const selectDestino = document.getElementById(idSelectDestino);
-            if (!selectDestino) return;
-            selectDestino.innerHTML = "";
-            
-            if (!nombreProveedor) {
-                selectDestino.innerHTML = '<option value="">-- Seleccione primero un proveedor --</option>';
-                return;
-            }
-
-            const proveedorEncontrado = cacheProveedores.find(function(p) { return p.nombre === nombreProveedor; });
-            if (proveedorEncontrado && proveedorEncontrado.productos && Array.isArray(proveedorEncontrado.productos)) {
-                if (proveedorEncontrado.productos.length > 0) {
-                    selectDestino.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
-                    proveedorEncontrado.productos.forEach(function(prod) {
-                        selectDestino.innerHTML += `<option value="${prod}">${prod}</option>`;
-                    });
-                } else {
-                    selectDestino.innerHTML = '<option value="">⚠️ Sin mercancía registrada</option>';
-                }
-            }
+        function filtrarProductosPorProveedor(prov, idDestino) {
+            const dest = document.getElementById(idDestino); if (!dest) return;
+            dest.innerHTML = "";
+            if (!prov) { dest.innerHTML = '<option value="">-- Seleccione primero un proveedor --</option>'; return; }
+            const item = cacheProveedores.find(p => p.nombre === prov);
+            if (item && Array.isArray(item.productos) && item.productos.length > 0) {
+                dest.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
+                item.productos.forEach(pr => dest.innerHTML += `<option value="${pr}">${pr}</option>`);
+            } else { dest.innerHTML = '<option value="">⚠️ Sin mercancía registrada</option>'; }
         }
 
         function renderizarDashboard(data) {
-            let totalPrepagado = 0, totalPendiente = 0, totalRecibido = 0;
-            const tbody = document.getElementById("tabla-lotes"); 
-            if (tbody) tbody.innerHTML = "";
+            let p = 0, pe = 0, r = 0;
+            const tbody = document.getElementById("tabla-lotes"); if (!tbody) return;
+            tbody.innerHTML = "";
             
             if (!data.detallesLotes || data.detallesLotes.length === 0) {
-                if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-gray-400 italic">No hay lotes activos registrados</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">No hay lotes activos registrados</td></tr>`;
                 return;
             }
 
-            data.detallesLotes.forEach(function(lote) {
-                const recibido = lote.cantOriginal - lote.cantDisponible;
-                totalPrepagado += lote.cantOriginal; totalPendiente += lote.cantDisponible; totalRecibido += recibido;
-                if (tbody) {
-                    tbody.insertAdjacentHTML("beforeend", `
-                        <tr class="hover:bg-gray-50 transition border-b">
-                            <td class="px-6 py-4 font-semibold">${lote.idLote}</td>
-                            <td class="px-6 py-4">${lote.proveedor}</td>
-                            <td class="px-6 py-4">${lote.producto}</td>
-                            <td class="px-6 py-4 text-right font-mono">${lote.cantOriginal.toLocaleString()}</td>
-                            <td class="px-6 py-4 text-right font-mono font-bold text-amber-600">${lote.cantDisponible.toLocaleString()}</td>
-                        </tr>`);
-                }
+            data.detallesLotes.forEach(l => {
+                const rec = l.cantOriginal - l.cantDisponible; p += l.cantOriginal; pe += l.cantDisponible; r += rec;
+                tbody.insertAdjacentHTML("beforeend", `<tr class="hover:bg-slate-900/50 border-b border-slate-800"><td class="px-6 py-4 font-mono text-xs font-bold text-blue-400">${l.idLote}</td><td class="px-6 py-4 font-medium">${l.proveedor}</td><td class="px-6 py-4">${l.producto}</td><td class="px-6 py-4 text-right font-mono">${l.cantOriginal.toLocaleString()}</td><td class="px-6 py-4 text-right font-mono font-bold text-amber-400">${l.cantDisponible.toLocaleString()}</td></tr>`);
             });
 
-            if (document.getElementById("kpi-prepagado")) document.getElementById("kpi-prepagado").innerText = totalPrepagado.toLocaleString();
-            if (document.getElementById("kpi-recibido")) document.getElementById("kpi-recibido").innerText = totalRecibido.toLocaleString();
-            if (document.getElementById("kpi-pendiente")) document.getElementById("kpi-pendiente").innerText = totalPendiente.toLocaleString();
+            if (document.getElementById("kpi-prepagado")) document.getElementById("kpi-prepagado").innerText = p.toLocaleString();
+            if (document.getElementById("kpi-recibido")) document.getElementById("kpi-recibido").innerText = r.toLocaleString();
+            if (document.getElementById("kpi-pendiente")) document.getElementById("kpi-pendiente").innerText = pe.toLocaleString();
             
-            if (chartsCargados && data.resumenConsolidated && data.resumenConsolidated.length > 0) {
-                dibujarGraficos(data.resumenConsolidated);
-            }
+            if (chartsCargados && data.resumenConsolidated) dibujarGraficos(data.resumenConsolidated);
         }
 
         function dibujarGraficos(resumen) {
             try {
-                const elProgreso = document.getElementById('chart-progreso') || document.getElementById('progreso-grafico') || document.getElementById('chart-progresó');
-                const elDistribucion = document.getElementById('chart-distribucion') || document.getElementById('distribucion-grafico') || document.getElementById('chart-distribución');
-                if (!elProgreso || !elDistribucion) return;
+                const pDom = document.getElementById('chart-progreso');
+                const dDom = document.getElementById('chart-distribucion');
+                if (!pDom || !dDom) return;
 
-                const dataProgreso = new google.visualization.DataTable();
-                dataProgreso.addColumn('string', 'Proveedor'); 
-                dataProgreso.addColumn('number', 'Recibido'); 
-                dataProgreso.addColumn('number', 'Pendiente');
+                const dtP = new google.visualization.DataTable();
+                dtP.addColumn('string', 'Proveedor'); dtP.addColumn('number', 'Recibido'); dtP.addColumn('number', 'Pendiente');
+                const dtT = [['Proveedor', 'Pendiente']];
+                resumen.forEach(r => { dtP.addRow([r.proveedor, r.totalRecibido, r.totalPendiente]); dtT.push([r.proveedor, r.totalPendiente]); });
                 
-                const dataTorta = [['Proveedor', 'Pendiente']];
-                resumen.forEach(function(r) { 
-                    dataProgreso.addRow([r.proveedor, r.totalRecibido, r.totalPendiente]); 
-                    dataTorta.push([r.proveedor, r.totalPendiente]); 
-                });
-                
-                new google.visualization.BarChart(elProgreso).draw(dataProgreso, { isStacked: true, colors: ['#10b981', '#f59e0b'], chartArea: {width: '70%', height: '70%'} });
-                new google.visualization.PieChart(elDistribucion).draw(google.visualization.arrayToDataTable(dataTorta), { colors: ['#3b82f6', '#f59e0b', '#ef4444'], chartArea: {width: '80%', height: '80%'} });
-            } catch (err) {}
+                const opt = { backgroundColor: 'transparent', legend: {textStyle:{color:'#94a3b8'}}, chartArea: {width: '80%', height: '80%'}, hAxis:{textStyle:{color:'#64748b'}}, vAxis:{textStyle:{color:'#64748b'}} };
+                new google.visualization.BarChart(pDom).draw(dtP, { ...opt, isStacked: true, colors: ['#10b981', '#f59e0b'] });
+                new google.visualization.PieChart(dDom).draw(google.visualization.arrayToDataTable(dtT), { ...opt, colors: ['#3b82f6', '#f59e0b', '#ef4444'], pieHole: 0.4 });
+            } catch (e) {}
         }
 
         function renderizarTablaReportes() {
-            const selectProv = document.getElementById("rep-proveedor");
-            const contenedorTabla = document.getElementById("tabla-reportes-contenedor") || document.getElementById("reportes-tabla");
-            if (!contenedorTabla) return;
+            const ctx = document.getElementById("tabla-reportes-contenedor"); if (!ctx) return;
+            const prov = document.getElementById("rep-proveedor") ? document.getElementById("rep-proveedor").value : "";
+            const filtered = cacheHistorialDespachos.filter(d => !prov || d.proveedor === prov);
 
-            const proveedorFiltrado = selectProv ? selectProv.value : "";
-            const datosFiltrados = cacheHistorialDespachos.filter(function(d) {
-                return !proveedorFiltrado || d.proveedor === proveedorFiltrado;
-            });
-
-            if (datosFiltrados.length === 0) {
-                contenedorTabla.innerHTML = `<div class="p-6 text-center text-sm text-gray-400 italic bg-white">No se encontraron registros de despachos.</div>`;
-                return;
-            }
-
-            let htmlTabla = `<div class="overflow-x-auto bg-white"><table class="w-full text-left border-collapse text-sm"><thead><tr class="bg-gray-50 text-gray-400 text-xs font-bold uppercase border-b"><th class="px-6 py-3">ID Transacción</th><th class="px-6 py-3">Fecha</th><th class="px-6 py-3">Factura</th><th class="px-6 py-3">Proveedor</th><th class="px-6 py-3">Mercancía</th><th class="px-6 py-3 text-right">Cantidad</th></tr></thead><tbody class="divide-y divide-gray-100 text-gray-600">`;
-            datosFiltrados.forEach(function(d) {
-                htmlTabla += `<tr class="hover:bg-gray-50 transition"><td class="px-6 py-4 font-mono text-xs text-gray-400">${d.idDespacho}</td><td class="px-6 py-4">${d.fecha}</td><td class="px-6 py-4 font-semibold text-slate-700">#${d.factura}</td><td class="px-6 py-4">${d.proveedor}</td><td class="px-6 py-4"><span class="bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded">${d.producto}</span></td><td class="px-6 py-4 text-right font-mono font-bold text-emerald-600">${d.cantidad.toLocaleString()}</td></tr>`;
-            });
-            htmlTabla += `</tbody></table></div>`;
-            contenedorTabla.innerHTML = htmlTabla;
+            if (filtered.length === 0) { ctx.innerHTML = `<div class="p-6 text-center text-xs text-slate-500 italic">Sin registros de despachos.</div>`; return; }
+            let h = `<div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead class="bg-slate-900 text-slate-400 text-xs font-bold uppercase"><tr><th class="px-6 py-3">ID Despacho</th><th class="px-6 py-3">Fecha</th><th class="px-6 py-3">Factura</th><th class="px-6 py-3">Proveedor</th><th class="px-6 py-3">Mercancía</th><th class="px-6 py-3 text-right">Cantidad</th></tr></thead><tbody class="divide-y divide-slate-800 text-slate-300">`;
+            filtered.forEach(d => { h += `<tr class="hover:bg-slate-900/50"><td class="px-6 py-4 font-mono text-xs text-slate-500">${d.idDespacho}</td><td class="px-6 py-4">${d.fecha}</td><td class="px-6 py-4 font-bold text-slate-400">#${d.factura}</td><td class="px-6 py-4">${d.proveedor}</td><td class="px-6 py-4"><span class="bg-slate-800 px-2 py-0.5 rounded text-xs">${d.producto}</span></td><td class="px-6 py-4 text-right font-mono font-bold text-emerald-400">${d.cantidad.toLocaleString()}</td></tr>`; });
+            ctx.innerHTML = h + `</tbody></table></div>`;
         }
 
-        function enviarFormularioManual(payload, formId) {
+        function enviarFormularioManual(payload, idForm) {
             window.procesarRespuestaPost = function(res) {
                 if(res && res.status === "success") {
-                    alert("¡Registro guardado exitosamente!");
-                    const formDom = document.getElementById(formId);
-                    if (formDom) formDom.reset();
-                    setTimeout(function() { cargarDatos(); }, 1000);
-                } else {
-                    alert("Error: " + (res.message || "Desconocido"));
-                }
+                    alert("¡Acción procesada exitosamente bajo FIFO!");
+                    const f = document.getElementById(idForm); if (f) f.reset();
+                    setTimeout(cargarDatos, 500);
+                } else { alert("Error: " + (res.message || "No se pudo registrar")); }
             };
-            const scriptEnvio = document.createElement('script');
-            scriptEnvio.src = WEB_APP_URL + "?payload=" + encodeURIComponent(JSON.stringify(payload)) + "&callback=procesarRespuestaPost";
-            document.body.appendChild(scriptEnvio);
-            setTimeout(function() { scriptEnvio.remove(); }, 3000);
+            const s = document.createElement('script');
+            s.src = WEB_APP_URL + "?payload=" + encodeURIComponent(JSON.stringify(payload)) + "&callback=procesarRespuestaPost";
+            document.body.appendChild(s);
+            setTimeout(() => s.remove(), 3000);
         }
 
-        // 🛡️ CONTROL DE PROTECCIÓN: Verificamos si los formularios existen ANTES de ponerles el EventListener
-        window.addEventListener("DOMContentLoaded", function() {
+        window.addEventListener("DOMContentLoaded", () => {
             inicializarGraficos();
-
-            const formProv = document.getElementById("form-proveedor");
-            if (formProv) {
-                formProv.addEventListener("submit", function(e) {
+            
+            const fProv = document.getElementById("form-proveedor");
+            if (fProv) {
+                fProv.addEventListener("submit", (e) => {
                     e.preventDefault();
-                    const nombre = document.getElementById("prov-nombre").value;
-                    const productos = Array.from(document.querySelectorAll(".input-mercancia")).map(i => i.value).filter(v => v.trim() !== "").join(", ");
-                    enviarFormularioManual({ accion: "registrar_proveedor", data: { nombre: nombre, productos: productos } }, "form-proveedor");
+                    const n = document.getElementById("prov-nombre").value;
+                    const p = Array.from(document.querySelectorAll(".input-mercancia")).map(i => i.value).filter(v => v.trim() !== "").join(", ");
+                    enviarFormularioManual({ accion: "registrar_proveedor", data: { nombre: n, productos: p } }, "form-proveedor");
                 });
             }
 
-            const formPre = document.getElementById("form-prepago");
-            if (formPre) {
-                formPre.addEventListener("submit", function(e) {
+            const fPre = document.getElementById("form-prepago");
+            if (fPre) {
+                fPre.addEventListener("submit", (e) => {
                     e.preventDefault();
-                    enviarFormularioManual({
-                        accion: "registrar_prepago",
-                        data: {
-                            idLote: "LOTE-" + Math.floor(1000 + Math.random() * 9000),
-                            proveedor: document.getElementById("pre-proveedor").value,
-                            producto: document.getElementById("pre-producto").value,
-                            cantidadPrepagada: parseInt(document.getElementById("pre-cantidad").value),
-                            tasaCambio: parseFloat(document.getElementById("pre-tasa") ? document.getElementById("pre-tasa").value : 1)
-                        }
-                    }, "form-prepago");
+                    enviarFormularioManual({ accion: "registrar_prepago", data: { idLote: "LOTE-" + Math.floor(1000 + Math.random() * 9000), proveedor: document.getElementById("pre-proveedor").value, producto: document.getElementById("pre-producto").value, cantidadPrepagada: parseInt(document.getElementById("pre-cantidad").value), tasaCambio: parseFloat(document.getElementById("pre-tasa").value || 1) } }, "form-prepago");
                 });
             }
 
-            const formDes = document.getElementById("form-recepcion");
-            if (formDes) {
-                formDes.addEventListener("submit", function(e) {
+            const fDes = document.getElementById("form-recepcion");
+            if (fDes) {
+                fDes.addEventListener("submit", (e) => {
                     e.preventDefault();
-                    enviarFormularioManual({
-                        accion: "registrar_despacho",
-                        data: {
-                            idDespacho: "DESP-" + Math.floor(1000 + Math.random() * 9000),
-                            nroFacturaEntrega: document.getElementById("des-factura").value,
-                            proveedor: document.getElementById("des-proveedor").value,
-                            producto: document.getElementById("des-producto").value,
-                            cantidadRecibida: parseInt(document.getElementById("des-cantidad").value),
-                            tasaDiaRecepcion: parseFloat(document.getElementById("des-tasa") ? document.getElementById("des-tasa").value : 0),
-                            montoBsRecibido: parseFloat(document.getElementById("des-monto") ? document.getElementById("des-monto").value : 0)
-                        }
-                    }, "form-recepcion");
+                    enviarFormularioManual({ accion: "registrar_despacho", data: { idDespacho: "DESP-" + Math.floor(1000 + Math.random() * 9000), nroFacturaEntrega: document.getElementById("des-factura").value, proveedor: document.getElementById("des-proveedor").value, producto: document.getElementById("des-producto").value, cantidadRecibida: parseInt(document.getElementById("des-cantidad").value), tasaDiaRecepcion: parseFloat(document.getElementById("des-tasa").value || 0), montoBsRecibido: parseFloat(document.getElementById("des-monto").value || 0) } }, "form-recepcion");
                 });
             }
         });
 
-        window.addEventListener("load", function() {
-            setTimeout(cargarDatos, 300); 
-        });
+        window.addEventListener("load", () => { setTimeout(cargarDatos, 300); });
     </script>
+</body>
+</html>
