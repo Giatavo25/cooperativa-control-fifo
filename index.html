@@ -3,23 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SICOOP - Control de Mercancía FIFO</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>SICOOP - Gestión FIFO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800">
 
     <nav class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
         <h1 class="text-xl font-bold flex items-center gap-2">
-            📦 SICOOP - Control de Mercancía FIFO
+            📦 SICOOP - Sistema de Gestión FIFO
         </h1>
-        <span class="bg-blue-800 px-3 py-1 rounded-full text-xs font-semibold animate-pulse">
-            Dashboard en Vivo
+        <span class="bg-blue-800 px-3 py-1 rounded-full text-xs font-semibold">
+            Servidor Activo
         </span>
     </nav>
 
     <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         
+        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <h2 class="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">📝 Registrar Nueva Información</h2>
+            
+            <div class="flex gap-4 mb-6 border-b border-gray-200 pb-3">
+                <button id="btn-tab-prepago" onclick="cambiarTab('prepago')" class="px-4 py-2 font-bold text-sm text-blue-600 border-b-2 border-blue-600 focus:outline-none">
+                    💰 Registrar Pago/Lote
+                </button>
+                <button id="btn-tab-despacho" onclick="cambiarTab('despacho')" class="px-4 py-2 font-medium text-sm text-gray-500 hover:text-blue-600 focus:outline-none">
+                    🚚 Registrar Despacho (Factura)
+                </button>
+            </div>
+
+            <form id="form-prepago" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">ID Lote</label>
+                        <input type="text" id="p-id-lote" placeholder="Ej: L/069" class="w-full mt-1 p-2 border rounded-lg focus:ring focus:ring-blue-200" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Proveedor</label>
+                        <input type="text" id="p-proveedor" value="Fabrica de Pasta La Especial" class="w-full mt-1 p-2 border rounded-lg bg-gray-50 font-medium" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Producto</label>
+                        <select id="p-producto" class="w-full mt-1 p-2 border rounded-lg focus:ring focus:ring-blue-200" required>
+                            <option value="Pasta Larga">Pasta Larga</option>
+                            <option value="Pasta Corta">Pasta Corta</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Cantidad Prepagada (Bultos)</label>
+                        <input type="number" id="p-cantidad" placeholder="Ej: 1000" class="w-full mt-1 p-2 border rounded-lg focus:ring focus:ring-blue-200" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Costo Unitario ($)</label>
+                        <input type="number" step="0.0001" id="p-costo" placeholder="Ej: 7.1990" class="w-full mt-1 p-2 border rounded-lg focus:ring focus:ring-blue-200" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Tasa de Cambio (Ref.)</label>
+                        <input type="number" step="0.01" id="p-tasa" placeholder="Ej: 481.21" class="w-full mt-1 p-2 border rounded-lg focus:ring focus:ring-blue-200" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase">Observaciones</label>
+                    <input type="text" id="p-obs" placeholder="Algún detalle del lote..." class="w-full mt-1 p-2 border rounded-lg focus:ring focus:ring-blue-200">
+                </div>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow transition w-full md:w-auto">
+                    Guardar Lote Prepagado
+                </button>
+            </form>
+
+            <form id="form-despacho" class="space-y-4 hidden">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Nro Factura / Entrega</label>
+                        <input type="text" id="d-factura" placeholder="Ej: 135473" class="w-full mt-1 p-2 border rounded-lg focus:ring focus:ring-emerald-200" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Proveedor</label>
+                        <input type="text" id="d-proveedor" value="Fabrica de Pasta La Especial" class="w-full mt-1 p-2 border rounded-lg bg-gray-50 font-medium" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Producto</label>
+                        <select id="d-producto" class="w-full mt-1 p-2 border rounded-lg focus:ring focus:ring-emerald-200" required>
+                            <option value="Pasta Larga">Pasta Larga</option>
+                            <option value="Pasta Corta">Pasta Corta</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Cantidad Recibida (Bultos)</label>
+                        <input type="number" id="d-cantidad" placeholder="Ej: 500" class="w-full mt-1 p-2 border rounded-lg focus:ring focus:ring-emerald-200" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Monto Factura (Bs.)</label>
+                        <input type="number" step="0.01" id="d-monto-bs" placeholder="Ej: 3464767.44" class="w-full mt-1 p-2 border rounded-lg focus:ring focus:ring-emerald-200" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Ajuste / Mal Estado (Bultos)</label>
+                        <input type="number" id="d-ajuste" value="0" class="w-full mt-1 p-2 border rounded-lg focus:ring focus:ring-emerald-200">
+                    </div>
+                </div>
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-lg shadow transition w-full md:w-auto">
+                    Procesar Entrega Recibida
+                </button>
+            </form>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Prepagado (Bultos)</p>
@@ -37,13 +124,13 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-white p-6 rounded-xl shadow-sm min-h-[350px] flex flex-col">
-                <h4 class="text-md font-bold text-gray-700 mb-4">Progreso de Entrega por Proveedor</h4>
+                <h4 class="text-sm font-bold text-gray-700 mb-4">Progreso de Entrega por Proveedor</h4>
                 <div id="chart-progreso" class="w-full flex-1 flex items-center justify-center text-gray-400 text-sm italic">
                     Cargando gráfico...
                 </div>
             </div>
             <div class="bg-white p-6 rounded-xl shadow-sm min-h-[350px] flex flex-col">
-                <h4 class="text-md font-bold text-gray-700 mb-4">Distribución del Saldo Pendiente</h4>
+                <h4 class="text-sm font-bold text-gray-700 mb-4">Distribución del Saldo Pendiente</h4>
                 <div id="chart-distribucion" class="w-full flex-1 flex items-center justify-center text-gray-400 text-sm italic">
                     Procesando existencias...
                 </div>
@@ -52,7 +139,7 @@
 
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-100">
-                <h4 class="text-md font-bold text-gray-700">Monitoreo de Lotes Activos (Cola FIFO)</h4>
+                <h4 class="text-sm font-bold text-gray-700">Monitoreo de Lotes Activos (Cola FIFO)</h4>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
@@ -70,7 +157,7 @@
                     <tbody id="tabla-lotes" class="divide-y divide-gray-100 text-sm text-gray-600">
                         <tr>
                             <td colspan="7" class="px-6 py-10 text-center text-gray-400 italic">
-                                Esperando respuesta del servidor de Google Sheets...
+                                Conectando con el servidor de la cooperativa...
                             </td>
                         </tr>
                     </tbody>
@@ -80,23 +167,33 @@
     </div>
 
     <script>
-        // 🚨 REEMPLAZA ESTA URL POR LA TUYA DE GOOGLE APPS SCRIPT QUE TERMINA EN /exec
+        // 🚨 REEMPLAZA ESTA URL POR TU URL DE GOOGLE APPS SCRIPT QUE TERMINA EN /exec
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
 
         google.charts.load('current', {'packages':['corechart', 'bar']});
-        google.charts.setOnLoadCallback(inicializarDashboard);
+        google.charts.setOnLoadCallback(cargarDatos);
 
-        function inicializarDashboard() {
-            if(!WEB_APP_URL || WEB_APP_URL.includes("PASAR_AQUÍ")) {
-                document.getElementById("tabla-lotes").innerHTML = `
-                    <tr><td colspan="7" class="px-6 py-4 text-center text-red-500 font-semibold">
-                        ⚠️ Error: No has configurado la URL de tu Web App en el código index.html.
-                    </td></tr>`;
-                return;
+        // Función para cambiar de pestaña en el formulario
+        function cambiarTab(tipo) {
+            const tabPrepago = document.getElementById('btn-tab-prepago');
+            const tabDespacho = document.getElementById('btn-tab-despacho');
+            const formPrepago = document.getElementById('form-prepago');
+            const formDespacho = document.getElementById('form-despacho');
+
+            if (tipo === 'prepago') {
+                tabPrepago.className = "px-4 py-2 font-bold text-sm text-blue-600 border-b-2 border-blue-600 focus:outline-none";
+                tabDespacho.className = "px-4 py-2 font-medium text-sm text-gray-500 hover:text-blue-600 focus:outline-none";
+                formPrepago.classList.remove('hidden');
+                formDespacho.classList.add('hidden');
+            } else {
+                tabDespacho.className = "px-4 py-2 font-bold text-sm text-emerald-600 border-b-2 border-emerald-600 focus:outline-none";
+                tabPrepago.className = "px-4 py-2 font-medium text-sm text-gray-500 hover:text-blue-600 focus:outline-none";
+                formDespacho.classList.remove('hidden');
+                formPrepago.classList.add('hidden');
             }
-            cargarDatos();
         }
 
+        // LECTURA: Traer datos de Google Sheets para los gráficos y tablas
         async function cargarDatos() {
             try {
                 const response = await fetch(WEB_APP_URL);
@@ -105,32 +202,26 @@
                 if (resultado.status === "success") {
                     renderizarDashboard(resultado.data);
                 } else {
-                    mostrarError("Error en servidor: " + resultado.message);
+                    mostrarError("Error: " + resultado.message);
                 }
             } catch (error) {
-                mostrarError("No se pudo conectar con la API de Google Sheets.");
+                mostrarError("No se pudo sincronizar la información del servidor.");
                 console.error(error);
             }
         }
 
         function renderizarDashboard(data) {
-            let totalPrepagado = 0;
-            let totalPendiente = 0;
-            let totalRecibido = 0;
-            
+            let totalPrepagado = 0, totalPendiente = 0, totalRecibido = 0;
             const tbody = document.getElementById("tabla-lotes");
             tbody.innerHTML = "";
             
-            // 1. Renderizar la tabla de Lotes FIFO
             data.detallesLotes.forEach(lote => {
                 const recibido = lote.cantOriginal - lote.cantDisponible;
                 totalPrepagado += lote.cantOriginal;
                 totalPendiente += lote.cantDisponible;
                 totalRecibido += recibido;
                 
-                let estatusClass = "bg-amber-100 text-amber-800";
-                let estatusTexto = "Despachando";
-                
+                let estatusClass = "bg-amber-100 text-amber-800", estatusTexto = "Despachando";
                 if (lote.cantDisponible === 0) {
                     estatusClass = "bg-emerald-100 text-emerald-800";
                     estatusTexto = "Completado";
@@ -146,7 +237,7 @@
                         <td class="px-6 py-4">${lote.producto}</td>
                         <td class="px-6 py-4 text-right font-mono">${lote.cantOriginal.toLocaleString()}</td>
                         <td class="px-6 py-4 text-right font-mono font-bold ${lote.cantDisponible > 0 ? 'text-amber-600' : 'text-gray-400'}">${lote.cantDisponible.toLocaleString()}</td>
-                        <td class="px-6 py-4 text-right font-mono text-gray-500">${lote.tasa.toFixed(4)}</td>
+                        <td class="px-6 py-4 text-right font-mono text-gray-500">${lote.tasa.toFixed(2)}</td>
                         <td class="px-6 py-4 text-center">
                             <span class="px-2.5 py-1 rounded-full text-xs font-medium ${estatusClass}">${estatusTexto}</span>
                         </td>
@@ -154,86 +245,109 @@
                 tbody.insertAdjacentHTML("beforeend", fila);
             });
             
-            // 2. Actualizar las Tarjetas KPI
             document.getElementById("kpi-prepagado").innerText = totalPrepagado.toLocaleString();
             document.getElementById("kpi-recibido").innerText = totalRecibido.toLocaleString();
             document.getElementById("kpi-pendiente").innerText = totalPendiente.toLocaleString();
             
-            // 3. Dibujar Gráfico de Barras (Progreso)
             if(data.resumenConsolidado.length > 0) {
                 dibujarGraficos(data.resumenConsolidado);
             }
         }
 
         function dibujarGraficos(resumen) {
-            // Gráfico 1: Barras de Progreso
             const dataProgreso = new google.visualization.DataTable();
             dataProgreso.addColumn('string', 'Proveedor');
             dataProgreso.addColumn('number', 'Recibido');
             dataProgreso.addColumn('number', 'Pendiente');
             
-            // Gráfico 2: Torta de Distribución Pendiente
-            const dataTorta = [['Producto/Proveedor', 'Cantidad Pendiente']];
-            
+            const dataTorta = [['Producto', 'Cantidad Pendiente']];
             resumen.forEach(r => {
                 dataProgreso.addRow([r.proveedor, r.totalRecibido, r.totalPendiente]);
                 dataTorta.push([r.proveedor, r.totalPendiente]);
             });
             
-            const optionsBarra = {
-                isStacked: true,
-                colors: ['#10b981', '#f59e0b'],
-                chartArea: {width: '60%', height: '70%'},
-                legend: { position: 'top' }
+            new google.visualization.BarChart(document.getElementById('chart-progreso')).draw(dataProgreso, {
+                isStacked: true, colors: ['#10b981', '#f59e0b'], chartArea: {width: '60%', height: '70%'}, legend: { position: 'top' }
+            });
+            
+            new google.visualization.PieChart(document.getElementById('chart-distribucion')).draw(google.visualization.arrayToDataTable(dataTorta), {
+                colors: ['#3b82f6', '#f59e0b', '#ef4444', '#10b981'], chartArea: {width: '80%', height: '80%'}
+            });
+        }
+
+        // ESCRITURA: Capturar formulario de Prepago y enviarlo (POST)
+        document.getElementById("form-prepago").addEventListener("submit", async function(e) {
+            e.preventDefault();
+            const cant = Number(document.getElementById("p-cantidad").value);
+            const costo = Number(document.getElementById("p-costo").value);
+            const tasa = Number(document.getElementById("p-tasa").value);
+            const usd = cant * costo;
+
+            const payload = {
+                accion: "registrar_prepago",
+                data: {
+                    idLote: document.getElementById("p-id-lote").value,
+                    fechaPago: new Date().toLocaleDateString('es-ES'),
+                    proveedor: document.getElementById("p-proveedor").value,
+                    producto: document.getElementById("p-producto").value,
+                    cantidadPrepagada: cant,
+                    costoLotes: costo,
+                    montoUsd: usd,
+                    tasaChange: tasa,
+                    montoBsPagado: usd * tasa,
+                    observaciones: document.getElementById("p-obs").value
+                }
             };
-            
-            const chartBarra = new google.visualization.BarChart(document.getElementById('chart-progreso'));
-            chartBarra.draw(dataProgreso, optionsBarra);
-            
-            const optionsTorta = {
-                colors: ['#3b82f6', '#f59e0b', '#ef4444', '#10b981'],
-                chartArea: {width: '80%', height: '80%'}
+            enviarServidor(payload, "form-prepago");
+        });
+
+        // ESCRITURA: Capturar formulario de Despacho y enviarlo (POST)
+        document.getElementById("form-despacho").addEventListener("submit", async function(e) {
+            e.preventDefault();
+            const cantRecibida = Number(document.getElementById("d-cantidad").value);
+            const montoBs = Number(document.getElementById("d-monto-bs").value);
+            const tasaCalculada = cantRecibida > 0 ? (montoBs / (cantRecibida * 7.1990)) : 0; // Cálculo automático de tasa de referencia aproximada
+
+            const payload = {
+                accion: "registrar_despacho",
+                data: {
+                    idDespacho: "D-" + Date.now().toString().slice(-4),
+                    nroFacturaEntrega: document.getElementById("d-factura").value,
+                    fechaRecepcion: new Date().toLocaleDateString('es-ES'),
+                    proveedor: document.getElementById("d-proveedor").value,
+                    producto: document.getElementById("d-producto").value,
+                    cantidadRecibida: cantRecibida,
+                    tasaDiaRecepcion: tasaCalculada,
+                    montoBsRecibido: montoBs,
+                    ajusteMalEstado: Number(document.getElementById("d-ajuste").value)
+                }
             };
-            
-            const chartTorta = new google.visualization.PieChart(document.getElementById('chart-distribucion'));
-            chartTorta.draw(google.visualization.arrayToDataTable(dataTorta), optionsTorta);
+            enviarServidor(payload, "form-despacho");
+        });
+
+        // Petición POST pura hacia Google Apps Script
+        async function enviarServidor(payload, formId) {
+            try {
+                // Se usa el modo 'no-cors' para saltar restricciones de seguridad del navegador con Web Apps públicas de Google
+                await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                
+                alert("¡Transacción registrada y procesada en la cola FIFO exitosamente!");
+                document.getElementById(formId).reset();
+                setTimeout(() => { cargarDatos(); }, 1500); // Recarga los gráficos en pantalla
+            } catch (error) {
+                alert("Hubo un problema al procesar el formulario.");
+                console.error(error);
+            }
         }
 
         function mostrarError(msg) {
-            document.getElementById("tabla-lotes").innerHTML = `
-                <tr><td colspan="7" class="px-6 py-4 text-center text-red-500 font-semibold">
-                    ⚠️ ${msg}
-                </td></tr>`;
+            document.getElementById("tabla-lotes").innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-red-500 font-semibold">⚠️ ${msg}</td></tr>`;
         }
     </script>
 </body>
 </html>
-<div class="card my-4">
-  <div class="card-header bg-primary text-white"><h5>Registrar Despacho / Factura</h5></div>
-  <div class="card-body">
-    <form id="formDespacho">
-      <div class="row">
-        <div class="col-md-3 mb-3">
-          <label>Nro. Factura</label>
-          <input type="text" id="nroFactura" class="form-control" placeholder="Ej: 135473" required>
-        </div>
-        <div class="col-md-3 mb-3">
-          <label>Producto</label>
-          <select id="productoDespacho" class="form-control" required>
-            <option value="Pasta Larga">Pasta Larga</option>
-            <option value="Pasta Corta">Pasta Corta</option>
-          </select>
-        </div>
-        <div class="col-md-3 mb-3">
-          <label>Cantidad Recibida (Bultos)</label>
-          <input type="number" id="cantidadRecibida" class="form-control" placeholder="Ej: 500" required>
-        </div>
-        <div class="col-md-3 mb-3">
-          <label>Monto Factura (Bs.)</label>
-          <input type="number" step="0.01" id="montoBs" class="form-control" placeholder="Ej: 3464767.45" required>
-        </div>
-      </div>
-      <button type="submit" class="btn btn-success">Procesar e Ingresar a FIFO</button>
-    </form>
-  </div>
-</div>
