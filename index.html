@@ -36,7 +36,54 @@
             }
         }
 
+        function cambiarModulo(idModulo) {
+            // Ocultar todas las secciones modulares
+            document.querySelectorAll('.modulo').forEach(m => m.classList.add('hidden'));
+            // Mostrar el módulo seleccionado
+            document.getElementById(idModulo).classList.remove('hidden');
+            
+            // Resetear estilos visuales de todos los botones del menú lateral
+            document.querySelectorAll('aside nav button').forEach(b => {
+                b.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 hover:text-white text-slate-300 transition";
+            });
+            
+            const btnActivo = document.getElementById('nav-' + idModulo);
+            if (btnActivo) {
+                if (idModulo === 'mod-dashboard') {
+                    btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition";
+                    cargarDatos(); // Forzar recarga de datos/gráficos al volver al Dashboard principal
+                } else if (idModulo === 'mod-recepcion') {
+                    btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-emerald-600 text-white transition";
+                } else {
+                    // Estilo enfocado para Prepagos, Proveedores y el nuevo módulo de Reportes
+                    btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-slate-700 text-white transition";
+                }
+            }
+            
+            // Títulos dinámicos en la cabecera (mapeado de Reportes corregido aquí)
+            const titulos = { 
+                'mod-dashboard': 'Dashboard General', 
+                'mod-prepagos': 'Registrar Prepagos', 
+                'mod-recepcion': 'Recepción de Carga', 
+                'mod-proveedores': 'Ficha de Proveedores',
+                'mod-reportes': 'Reportes y Auditoría'
+            };
+            document.getElementById('titulo-modulo').innerText = titulos[idModulo] || 'Sistema Cooperativa';
+        }
+
+        function agregarCampoMercancia() {
+            const contenedor = document.getElementById('contenedor-mercancias');
+            const nuevoDiv = document.createElement('div');
+            nuevoDiv.className = "flex gap-2"; 
+            nuevoDiv.innerHTML = `
+                <input type="text" placeholder="Ej: Pasta Corta" class="input-mercancia w-full p-2 border rounded-lg" required>
+                <button type="button" onclick="this.parentElement.remove()" class="bg-red-500 text-white px-3 py-2 rounded-lg font-bold">-</button>
+            `;
+            contenedor.appendChild(nuevoDiv);
+        }
+
         function actualizarInterfacesProveedores() {
+            // Sincroniza dinámicamente cualquier selector con la clase .select-proveedores (incluyendo el del nuevo reporte)
             const selects = document.querySelectorAll('.select-proveedores');
             selects.forEach(sel => {
                 sel.innerHTML = '<option value="">-- Seleccione un proveedor --</option>';
@@ -63,6 +110,7 @@
 
         function filtrarProductosPorProveedor(nombreProveedor, idSelectDestino) {
             const selectDestino = document.getElementById(idSelectDestino);
+            if (!selectDestino) return;
             selectDestino.innerHTML = "";
             
             if (!nombreProveedor) {
@@ -232,28 +280,5 @@
                 alert("Error al enviar la transacción."); 
                 console.error(error);
             }
-        }
-
-        // Función auxiliar por si cambias de módulo y necesitas re-dibujar los gráficos para que no salgan aplastados
-        function cambiarModulo(idModulo) {
-            document.querySelectorAll('.modulo').forEach(m => m.classList.add('hidden'));
-            document.getElementById(idModulo).classList.remove('hidden');
-            document.querySelectorAll('aside nav button').forEach(b => {
-                b.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 hover:text-white text-slate-300 transition";
-            });
-            
-            const btnActivo = document.getElementById('nav-' + idModulo);
-            if (idModulo === 'mod-dashboard') {
-                btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition";
-                // Forzar recarga de datos/gráficos al volver al Dashboard principal
-                cargarDatos();
-            } else if (idModulo === 'mod-recepcion') {
-                btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-emerald-600 text-white transition";
-            } else {
-                btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-slate-700 text-white transition";
-            }
-            
-            const titulos = { 'mod-dashboard': 'Dashboard General', 'mod-prepagos': 'Registrar Prepagos', 'mod-recepcion': 'Recepción de Carga', 'mod-proveedores': 'Ficha de Proveedores' };
-            document.getElementById('titulo-modulo').innerText = titulos[idModulo];
         }
     </script>
