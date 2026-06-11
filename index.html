@@ -1,217 +1,39 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SICOOP - ERP Inteligente FIFO</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-</head>
-<body class="bg-gray-100 font-sans text-gray-800 flex h-screen overflow-hidden">
-
-    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shadow-xl">
-        <div>
-            <div class="p-5 bg-slate-950 flex items-center gap-3 border-b border-slate-800">
-                <span class="text-2xl">📦</span>
-                <div>
-                    <h1 class="text-white font-black text-md tracking-wider">SICOOP v2.1</h1>
-                    <p class="text-xs text-slate-500 font-medium">Filtro Dinámico Activo</p>
-                </div>
-            </div>
-            <nav class="p-4 space-y-2">
-                <button onclick="cambiarModulo('mod-dashboard')" id="nav-mod-dashboard" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition">📊 Resumen General</button>
-                <button onclick="cambiarModulo('mod-prepagos')" id="nav-mod-prepagos" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 hover:text-white transition">💰 Registrar Prepagos</button>
-                <button onclick="cambiarModulo('mod-recepcion')" id="nav-mod-recepcion" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 hover:text-white transition">🚚 Recepción de Carga</button>
-                <button onclick="cambiarModulo('mod-proveedores')" id="nav-mod-proveedores" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 hover:text-white transition">🏢 Proveedores</button>
-            </nav>
-        </div>
-        <div class="p-4 bg-slate-950 text-center text-xs text-slate-600 border-t border-slate-800 font-mono">Cooperativa © 2026</div>
-    </aside>
-
-    <main class="flex-1 flex flex-col overflow-y-auto">
-        <header class="bg-white border-b border-gray-200 p-4 px-8 flex justify-between items-center shadow-sm">
-            <h2 id="titulo-modulo" class="text-xl font-bold text-gray-800">Dashboard General</h2>
-            <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span class="text-xs font-bold text-gray-500">Relación de Filtros Inteligente</span>
-            </div>
-        </header>
-
-        <div class="p-6 max-w-7xl w-full mx-auto space-y-6 flex-1">
-            
-            <section id="mod-dashboard" class="modulo space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500"><p class="text-xs font-bold text-gray-400 uppercase">Total Prepagado</p><h3 id="kpi-prepagado" class="text-3xl font-extrabold text-gray-900 mt-1">0</h3></div>
-                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-emerald-500"><p class="text-xs font-bold text-gray-400 uppercase">Total Recibido</p><h3 id="kpi-recibido" class="text-3xl font-extrabold text-gray-900 mt-1">0</h3></div>
-                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-amber-500"><p class="text-xs font-bold text-gray-400 uppercase">Saldo Pendiente</p><h3 id="kpi-pendiente" class="text-3xl font-extrabold text-gray-900 mt-1">0</h3></div>
-                </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white p-6 rounded-xl shadow-sm min-h-[320px] flex flex-col"><h4 class="text-sm font-bold text-gray-700 mb-2">Progreso por Proveedor</h4><div id="chart-progreso" class="w-full flex-1 flex items-center justify-center text-gray-400 text-xs italic">Cargando...</div></div>
-                    <div class="bg-white p-6 rounded-xl shadow-sm min-h-[320px] flex flex-col"><h4 class="text-sm font-bold text-gray-700 mb-2">Distribución del Pendiente</h4><div id="chart-distribucion" class="w-full flex-1 flex items-center justify-center text-gray-400 text-xs italic">Procesando...</div></div>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-                    <div class="px-6 py-4 border-b border-gray-100"><h4 class="text-sm font-bold text-gray-700">Monitoreo de Lotes Activos (Cola FIFO)</h4></div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-sm">
-                            <thead>
-                                <tr class="bg-gray-50 text-gray-400 text-xs font-bold uppercase border-b border-gray-100">
-                                    <th class="px-6 py-3">ID Lote</th><th class="px-6 py-3">Proveedor</th><th class="px-6 py-3">Producto</th><th class="px-6 py-3 text-right">Original</th><th class="px-6 py-3 text-right">Disponible (FIFO)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabla-lotes" class="divide-y divide-gray-100 text-gray-600"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <section id="mod-prepagos" class="modulo hidden max-w-2xl bg-white p-6 rounded-xl shadow-sm border space-y-4">
-                <h3 class="text-lg font-bold text-gray-700 border-b pb-2">💰 Registrar Compra / Pre-pago</h3>
-                <form id="form-prepago" class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">ID Lote</label>
-                            <input type="text" id="p-id-lote" placeholder="Ej: L/070" class="w-full mt-1 p-2 border rounded-lg" required>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Proveedor</label>
-                            <select id="p-proveedor" onchange="filtrarProductosPorProveedor(this.value, 'p-producto')" class="select-proveedores w-full mt-1 p-2 border rounded-lg" required>
-                                <option value="">Cargando proveedores...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Mercancía Permitida</label>
-                            <select id="p-producto" class="w-full mt-1 p-2 border rounded-lg" required>
-                                <option value="">-- Seleccione primero un proveedor --</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Cantidad (Bultos)</label>
-                            <input type="number" id="p-cantidad" placeholder="Ej: 1000" class="w-full mt-1 p-2 border rounded-lg" required>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Costo Unitario ($)</label>
-                            <input type="number" step="0.0001" id="p-costo" placeholder="Ej: 7.19" class="w-full mt-1 p-2 border rounded-lg" required>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Tasa Oficial</label>
-                            <input type="number" step="0.01" id="p-tasa" placeholder="Ej: 485.50" class="w-full mt-1 p-2 border rounded-lg" required>
-                        </div>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg shadow">Registrar Transacción</button>
-                </form>
-            </section>
-
-            <section id="mod-recepcion" class="modulo hidden max-w-2xl bg-white p-6 rounded-xl shadow-sm border space-y-4">
-                <h3 class="text-lg font-bold text-gray-700 border-b pb-2">🚚 Recepción de Carga (Descargar FIFO)</h3>
-                <form id="form-despacho" class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Nro Factura</label>
-                            <input type="text" id="d-factura" placeholder="Ej: 135473" class="w-full mt-1 p-2 border rounded-lg" required>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Proveedor</label>
-                            <select id="d-proveedor" onchange="filtrarProductosPorProveedor(this.value, 'd-producto')" class="select-proveedores w-full mt-1 p-2 border rounded-lg" required>
-                                <option value="">Cargando proveedores...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Mercancía Entregada</label>
-                            <select id="d-producto" class="w-full mt-1 p-2 border rounded-lg" required>
-                                <option value="">-- Seleccione primero un proveedor --</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Cantidad Recibida (Bultos)</label>
-                            <input type="number" id="d-cantidad" placeholder="Ej: 500" class="w-full mt-1 p-2 border rounded-lg" required>
-                        </div>
-                        <div class="col-span-2">
-                            <label class="block text-xs font-bold text-gray-500 uppercase">Monto total (Bs.)</label>
-                            <input type="number" step="0.01" id="d-monto-bs" placeholder="Ej: 3500000.00" class="w-full mt-1 p-2 border rounded-lg" required>
-                        </div>
-                    </div>
-                    <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-lg shadow">Procesar Entrada</button>
-                </form>
-            </section>
-
-            <section id="mod-proveedores" class="modulo hidden max-w-xl bg-white p-6 rounded-xl shadow-sm border space-y-4">
-                <h3 class="text-lg font-bold text-gray-700 border-b pb-2">🏢 Registro de Proveedores y Mercancías</h3>
-                <form id="form-proveedor" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Nombre del Proveedor / Fábrica</label>
-                        <input type="text" id="prov-nombre" placeholder="Ej: Fabrica de Pasta La Especial" class="w-full mt-1 p-2 border rounded-lg" required>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Mercancías / Renglones que despacha</label>
-                        <div id="contenedor-mercancias" class="space-y-2">
-                            <div class="flex gap-2">
-                                <input type="text" placeholder="Ej: Pasta Larga" class="input-mercancia w-full p-2 border rounded-lg" required>
-                                <button type="button" onclick="agregarCampoMercancia()" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold">+</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-lg transition">Guardar Ficha Técnica</button>
-                </form>
-
-                <div class="mt-4 border-t pt-4">
-                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Proveedores en el Sistema</h4>
-                    <div id="lista-proveedores-completa" class="space-y-2 max-h-48 overflow-y-auto"></div>
-                </div>
-            </section>
-
-        </div>
-    </main>
-
-    <script>
+<script>
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
         let cacheProveedores = []; 
+        let chartsCargados = false; // Bandera de seguridad para el estado de Google Charts
 
-        google.charts.load('current', {'packages':['corechart', 'bar']});
-        google.charts.setOnLoadCallback(cargarDatos);
-
-        function cambiarModulo(idModulo) {
-            document.querySelectorAll('.modulo').forEach(m => m.classList.add('hidden'));
-            document.getElementById(idModulo).classList.remove('hidden');
-            document.querySelectorAll('aside nav button').forEach(b => {
-                b.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 hover:text-white text-slate-300 transition";
+        // Forzar la carga de Google Charts de manera segura
+        try {
+            google.charts.load('current', {'packages':['corechart', 'bar']});
+            google.charts.setOnLoadCallback(() => {
+                chartsCargados = true;
+                cargarDatos(); // Ejecutar la primera carga de datos una vez que los gráficos estén listos
             });
-            
-            const btnActivo = document.getElementById('nav-' + idModulo);
-            if (idModulo === 'mod-dashboard') {
-                btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition";
-            } else if (idModulo === 'mod-recepcion') {
-                btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-emerald-600 text-white transition";
-            } else {
-                btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-slate-700 text-white transition";
-            }
-            
-            const titulos = { 'mod-dashboard': 'Dashboard General', 'mod-prepagos': 'Registrar Prepagos', 'mod-recepcion': 'Recepción de Carga', 'mod-proveedores': 'Ficha de Proveedores' };
-            document.getElementById('titulo-modulo').innerText = titulos[idModulo];
-        }
-
-        function agregarCampoMercancia() {
-            const contenedor = document.getElementById('contenedor-mercancias');
-            const nuevoDiv = document.createElement('div');
-            nuevoDiv.className = "flex gap-2"; 
-            nuevoDiv.innerHTML = `
-                <input type="text" placeholder="Ej: Pasta Corta" class="input-mercancia w-full p-2 border rounded-lg" required>
-                <button type="button" onclick="this.parentElement.remove()" class="bg-red-500 text-white px-3 py-2 rounded-lg font-bold">-</button>
-            `;
-            contenedor.appendChild(nuevoDiv);
+        } catch (e) {
+            console.error("Error al inicializar Google Charts:", e);
+            // Si falla la librería externa, intentamos cargar los datos numéricos de todos modos
+            window.onload = cargarDatos;
         }
 
         async function cargarDatos() {
             try {
+                // Colocar textos de carga por si es una actualización
+                document.getElementById('chart-progreso').innerText = "Cargando gráficos...";
+                document.getElementById('chart-distribucion').innerText = "Procesando existencias...";
+
                 const response = await fetch(WEB_APP_URL);
                 const resultado = await response.json();
                 if (resultado.status === "success") {
                     cacheProveedores = resultado.data.proveedores || [];
                     renderizarDashboard(resultado.data);
                     actualizarInterfacesProveedores();
+                } else {
+                    console.error("El backend no devolvió un estatus de éxito:", resultado);
                 }
-            } catch (error) { console.error("Error cargando datos:", error); }
+            } catch (error) { 
+                console.error("Error crítico cargando datos desde Google Sheets:", error); 
+            }
         }
 
         function actualizarInterfacesProveedores() {
@@ -227,7 +49,6 @@
             if (listaDom) {
                 listaDom.innerHTML = "";
                 cacheProveedores.forEach(p => {
-                    // Tu .gs ya devuelve un Array, lo leemos directamente aquí
                     const productosLista = Array.isArray(p.productos) ? p.productos : [];
                     const chips = productosLista.map(prod => `<span class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full">${prod}</span>`).join(' ');
                     
@@ -240,7 +61,6 @@
             }
         }
 
-        // CORRECCIÓN CLAVE: Lee directamente el Array mapeado por tu Backend (.gs)
         function filtrarProductosPorProveedor(nombreProveedor, idSelectDestino) {
             const selectDestino = document.getElementById(idSelectDestino);
             selectDestino.innerHTML = "";
@@ -293,19 +113,47 @@
                         <td class="px-6 py-4 text-right font-mono font-bold text-amber-600">${lote.cantDisponible.toLocaleString()}</td>
                     </tr>`);
             });
+
+            // Asignar los KPIs numéricos primero de manera segura
             document.getElementById("kpi-prepagado").innerText = totalPrepagado.toLocaleString();
             document.getElementById("kpi-recibido").innerText = totalRecibido.toLocaleString();
             document.getElementById("kpi-pendiente").innerText = totalPendiente.toLocaleString();
-            if(data.resumenConsolidated && data.resumenConsolidated.length > 0) dibujarGraficos(data.resumenConsolidated);
+            
+            // Dibujar gráficos sólo si la librería ya cargó por completo
+            if (chartsCargados && data.resumenConsolidated && data.resumenConsolidated.length > 0) {
+                dibujarGraficos(data.resumenConsolidated);
+            } else if (!chartsCargados) {
+                console.warn("Los datos llegaron pero Google Charts aún no termina de cargar.");
+            }
         }
 
         function dibujarGraficos(resumen) {
-            const dataProgreso = new google.visualization.DataTable();
-            dataProgreso.addColumn('string', 'Proveedor'); dataProgreso.addColumn('number', 'Recibido'); dataProgreso.addColumn('number', 'Pendiente');
-            const dataTorta = [['Proveedor', 'Pendiente']];
-            resumen.forEach(r => { dataProgreso.addRow([r.proveedor, r.totalRecibido, r.totalPendiente]); dataTorta.push([r.proveedor, r.totalPendiente]); });
-            new google.visualization.BarChart(document.getElementById('chart-progreso')).draw(dataProgreso, { isStacked: true, colors: ['#10b981', '#f59e0b'], chartArea: {width: '60%', height: '70%'} });
-            new google.visualization.PieChart(document.getElementById('chart-distribucion')).draw(google.visualization.arrayToDataTable(dataTorta), { colors: ['#3b82f6', '#f59e0b', '#ef4444'], chartArea: {width: '80%', height: '80%'} });
+            try {
+                const dataProgreso = new google.visualization.DataTable();
+                dataProgreso.addColumn('string', 'Proveedor'); 
+                dataProgreso.addColumn('number', 'Recibido'); 
+                dataProgreso.addColumn('number', 'Pendiente');
+                
+                const dataTorta = [['Proveedor', 'Pendiente']];
+                
+                resumen.forEach(r => { 
+                    dataProgreso.addRow([r.proveedor, r.totalRecibido, r.totalPendiente]); 
+                    dataTorta.push([r.proveedor, r.totalPendiente]); 
+                });
+                
+                new google.visualization.BarChart(document.getElementById('chart-progreso')).draw(dataProgreso, { 
+                    isStacked: true, 
+                    colors: ['#10b981', '#f59e0b'], 
+                    chartArea: {width: '60%', height: '70%'} 
+                });
+                
+                new google.visualization.PieChart(document.getElementById('chart-distribucion')).draw(google.visualization.arrayToDataTable(dataTorta), { 
+                    colors: ['#3b82f6', '#f59e0b', '#ef4444'], 
+                    chartArea: {width: '80%', height: '80%'} 
+                });
+            } catch (chartError) {
+                console.error("Error controlado al renderizar los componentes gráficos:", chartError);
+            }
         }
 
         document.getElementById("form-proveedor").addEventListener("submit", function(e) {
@@ -331,14 +179,47 @@
 
         document.getElementById("form-prepago").addEventListener("submit", function(e) {
             e.preventDefault();
-            const cant = Number(document.getElementById("p-cantidad").value); const costo = Number(document.getElementById("p-costo").value); const tasa = Number(document.getElementById("p-tasa").value); const usd = cant * costo;
-            enviar({ accion: "registrar_prepago", data: { idLote: document.getElementById("p-id-lote").value, fechaPago: new Date().toLocaleDateString('es-ES'), proveedor: document.getElementById("p-proveedor").value, producto: document.getElementById("p-producto").value, cantidadPrepagada: cant, costoLotes: costo, montoUsd: usd, tasaCambio: tasa, montoBsPagado: usd * tasa, observaciones: "" } }, "form-prepago");
+            const cant = Number(document.getElementById("p-cantidad").value); 
+            const costo = Number(document.getElementById("p-costo").value); 
+            const tasa = Number(document.getElementById("p-tasa").value); 
+            const usd = cant * costo;
+            
+            enviar({ 
+                accion: "registrar_prepago", 
+                data: { 
+                    idLote: document.getElementById("p-id-lote").value, 
+                    fechaPago: new Date().toLocaleDateString('es-ES'), 
+                    proveedor: document.getElementById("p-proveedor").value, 
+                    producto: document.getElementById("p-producto").value, 
+                    cantidadPrepagada: cant, 
+                    costoLotes: costo, 
+                    montoUsd: usd, 
+                    tasaCambio: tasa, 
+                    montoBsPagado: usd * tasa, 
+                    observaciones: "" 
+                } 
+            }, "form-prepago");
         });
 
         document.getElementById("form-despacho").addEventListener("submit", function(e) {
             e.preventDefault();
-            const cant = Number(document.getElementById("d-cantidad").value); const bs = Number(document.getElementById("d-monto-bs").value);
-            enviar({ accion: "registrar_despacho", data: { idDespacho: "D-" + Date.now().toString().slice(-4), nroFacturaEntrega: document.getElementById("d-factura").value, fechaRecepcion: new Date().toLocaleDateString('es-ES'), proveedor: document.getElementById("d-proveedor").value, producto: document.getElementById("d-producto").value, cantidadRecibida: cant, tasaDiaRecepcion: cant > 0 ? (bs / (cant * 7.199)) : 0, montoBsRecibido: bs, ajusteMalEstado: 0 } }, "form-despacho");
+            const cant = Number(document.getElementById("d-cantidad").value); 
+            const bs = Number(document.getElementById("d-monto-bs").value);
+            
+            enviar({ 
+                accion: "registrar_despacho", 
+                data: { 
+                    idDespacho: "D-" + Date.now().toString().slice(-4), 
+                    nroFacturaEntrega: document.getElementById("d-factura").value, 
+                    fechaRecepcion: new Date().toLocaleDateString('es-ES'), 
+                    proveedor: document.getElementById("d-proveedor").value, 
+                    producto: document.getElementById("d-producto").value, 
+                    cantidadRecibida: cant, 
+                    tasaDiaRecepcion: cant > 0 ? (bs / (cant * 7.199)) : 0, 
+                    montoBsRecibido: bs, 
+                    ajusteMalEstado: 0 
+                } 
+            }, "form-despacho");
         });
 
         async function enviar(payload, formId) {
@@ -347,8 +228,32 @@
                 alert("¡Guardado con éxito!");
                 document.getElementById(formId).reset();
                 setTimeout(() => { cargarDatos(); }, 1000);
-            } catch (error) { alert("Error al enviar."); }
+            } catch (error) { 
+                alert("Error al enviar la transacción."); 
+                console.error(error);
+            }
+        }
+
+        // Función auxiliar por si cambias de módulo y necesitas re-dibujar los gráficos para que no salgan aplastados
+        function cambiarModulo(idModulo) {
+            document.querySelectorAll('.modulo').forEach(m => m.classList.add('hidden'));
+            document.getElementById(idModulo).classList.remove('hidden');
+            document.querySelectorAll('aside nav button').forEach(b => {
+                b.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 hover:text-white text-slate-300 transition";
+            });
+            
+            const btnActivo = document.getElementById('nav-' + idModulo);
+            if (idModulo === 'mod-dashboard') {
+                btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition";
+                // Forzar recarga de datos/gráficos al volver al Dashboard principal
+                cargarDatos();
+            } else if (idModulo === 'mod-recepcion') {
+                btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-emerald-600 text-white transition";
+            } else {
+                btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-slate-700 text-white transition";
+            }
+            
+            const titulos = { 'mod-dashboard': 'Dashboard General', 'mod-prepagos': 'Registrar Prepagos', 'mod-recepcion': 'Recepción de Carga', 'mod-proveedores': 'Ficha de Proveedores' };
+            document.getElementById('titulo-modulo').innerText = titulos[idModulo];
         }
     </script>
-</body>
-</html>
