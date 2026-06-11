@@ -1,67 +1,70 @@
 <script>
-        // 🔥 CORREGIDO: Comilla de cierre añadida y cambiado /dev por /exec para producción pública
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
+        // URL pública de ejecución de tu Google Apps Script
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby77QQlwzgH15gQh0ATeP8JkyK7o6raWye2SD4q-rII/exec";
+        
         let cacheProveedores = []; 
-        let cacheHistorialDespachos = []; // Caché global para almacenar el histórico de auditoría
-        let chartsCargados = false; // Bandera de seguridad para el estado de Google Charts
+        let cacheHistorialDespachos = []; 
+        let chartsCargados = false; 
 
-        // Forzar la carga de Google Charts de manera segura
-        try {
-            google.charts.load('current', {'packages':['corechart', 'bar']});
-            google.charts.setOnLoadCallback(() => {
-                chartsCargados = true;
-                cargarDatos(); // Ejecutar la primera carga de datos una vez que los gráficos estén listos
-            });
-        } catch (e) {
-            console.error("Error al inicializar Google Charts:", e);
-            // Si falla la librería externa, intentamos cargar los datos numéricos de todos modos
-            window.onload = cargarDatos;
+        // Intentar inicializar Google Charts de forma segura si la librería externa ya bajó
+        function inicializarGraficos() {
+            try {
+                if (typeof google !== 'undefined' && google.charts) {
+                    google.charts.load('current', {'packages':['corechart', 'bar']});
+                    google.charts.setOnLoadCallback(function() {
+                        chartsCargados = true;
+                    });
+                }
+            } catch (e) {
+                console.error("Aviso: Esperando carga completa de librerías de gráficos.");
+            }
         }
 
-        async // Reemplaza únicamente esta función en tu index.html
+        // FUNCIÓN PRINCIPAL DE CARGA (Usando JSONP nativo para saltar bloqueos de CORS)
         function cargarDatos() {
-            // Colocar textos de carga por si es una actualización visual
             if (document.getElementById('chart-progreso')) document.getElementById('chart-progreso').innerText = "Cargando gráficos...";
             if (document.getElementById('chart-distribucion')) document.getElementById('chart-distribucion').innerText = "Procesando existencias...";
 
-            // Creamos una función global temporal para recibir los datos de Google de forma segura
+            // Callback global que recibirá la respuesta desde Google Sheets
             window.procesarRespuestaGoogle = function(resultado) {
-                if (resultado.status === "success") {
+                if (resultado && resultado.status === "success") {
                     cacheProveedores = resultado.data.proveedores || [];
                     cacheHistorialDespachos = resultado.data.historialDespachos || []; 
+                    
                     renderizarDashboard(resultado.data);
                     actualizarInterfacesProveedores();
                     renderizarTablaReportes(); 
                 } else {
-                    console.error("El backend devolvió un estatus de error:", resultado.message);
+                    console.error("El backend de Google devolvió un error:", resultado);
                 }
-                // Limpieza del nodo del DOM para mantener el HTML limpio
-                document.getElementById('jsonp-script-loader').remove();
+                
+                // Limpieza del elemento inyectado
+                const loader = document.getElementById('jsonp-script-loader');
+                if (loader) loader.remove();
             };
 
-            // Inyección dinámica de script para evadir bloqueos CORS de red o navegador
+            // Intentar levantar los gráficos si no se ha hecho
+            if (!chartsCargados) inicializarGraficos();
+
+            // Inyección dinámica en el DOM
             const script = document.createElement('script');
             script.id = 'jsonp-script-loader';
-            // Añadimos el parámetro ?callback=procesarRespuestaGoogle al final de la URL
             script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'callback=procesarRespuestaGoogle';
             
             script.onerror = function() {
-                console.error("Error de red o timeout al intentar conectar con la URL de Google Apps Script.");
+                console.error("Error crítico de red o timeout al conectar con Google Apps Script.");
             };
 
             document.body.appendChild(script);
         }
 
         function cambiarModulo(idModulo) {
-            // Ocultar todas las secciones modulares
-            document.querySelectorAll('.modulo').forEach(m => m.classList.add('hidden'));
+            document.querySelectorAll('.modulo').forEach(function(m) { m.classList.add('hidden'); });
             
-            // Mostrar el módulo seleccionado si existe
             const modTarget = document.getElementById(idModulo);
             if (modTarget) modTarget.classList.remove('hidden');
             
-            // Resetear estilos visuales de todos los botones del menú lateral
-            document.querySelectorAll('aside nav button').forEach(b => {
+            document.querySelectorAll('aside nav button').forEach(function(b) {
                 b.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 hover:text-white text-slate-300 transition";
             });
             
@@ -69,7 +72,7 @@
             if (btnActivo) {
                 if (idModulo === 'mod-dashboard') {
                     btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition";
-                    cargarDatos(); // Forzar recarga de datos/gráficos al volver al Dashboard principal
+                    cargarDatos(); 
                 } else if (idModulo === 'mod-recepcion') {
                     btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-emerald-600 text-white transition";
                 } else {
@@ -77,7 +80,6 @@
                 }
             }
             
-            // Títulos dinámicos en la cabecera
             const titulos = { 
                 'mod-dashboard': 'Dashboard General', 
                 'mod-prepagos': 'Registrar Prepagos', 
@@ -103,10 +105,10 @@
 
         function actualizarInterfacesProveedores() {
             const selects = document.querySelectorAll('.select-proveedores');
-            selects.forEach(sel => {
+            selects.forEach(function(sel) {
                 const valorSeleccionadoAnterior = sel.value; 
                 sel.innerHTML = '<option value="">-- Seleccione un proveedor --</option>';
-                cacheProveedores.forEach(p => { 
+                cacheProveedores.forEach(function(p) { 
                     sel.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`; 
                 });
                 if (valorSeleccionadoAnterior) sel.value = valorSeleccionadoAnterior;
@@ -115,9 +117,11 @@
             const listaDom = document.getElementById('lista-proveedores-completa');
             if (listaDom) {
                 listaDom.innerHTML = "";
-                cacheProveedores.forEach(p => {
+                cacheProveedores.forEach(function(p) {
                     const productosLista = Array.isArray(p.productos) ? p.productos : [];
-                    const chips = productosLista.map(prod => `<span class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full">${prod}</span>`).join(' ');
+                    const chips = productosLista.map(function(prod) { 
+                        return `<span class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full">${prod}</span>`; 
+                    }).join(' ');
                     
                     listaDom.innerHTML += `
                         <div class="p-3 bg-gray-50 border rounded-lg">
@@ -138,14 +142,13 @@
                 return;
             }
 
-            const proveedorEncontrado = cacheProveedores.find(p => p.nombre === nombreProveedor);
+            const proveedorEncontrado = cacheProveedores.find(function(p) { return p.nombre === nombreProveedor; });
             
             if (proveedorEncontrado && proveedorEncontrado.productos && Array.isArray(proveedorEncontrado.productos)) {
                 const productosLista = proveedorEncontrado.productos;
-
                 if (productosLista.length > 0) {
                     selectDestino.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
-                    productosLista.forEach(prod => {
+                    productosLista.forEach(function(prod) {
                         selectDestino.innerHTML += `<option value="${prod}">${prod}</option>`;
                     });
                 } else {
@@ -169,7 +172,7 @@
                 return;
             }
 
-            data.detallesLotes.forEach(lote => {
+            data.detallesLotes.forEach(function(lote) {
                 const recibido = lote.cantOriginal - lote.cantDisponible;
                 totalPrepagado += lote.cantOriginal; totalPendiente += lote.cantDisponible; totalRecibido += recibido;
                 if (tbody) {
@@ -206,7 +209,7 @@
                 
                 const dataTorta = [['Proveedor', 'Pendiente']];
                 
-                resumen.forEach(r => { 
+                resumen.forEach(function(r) { 
                     dataProgreso.addRow([r.proveedor, r.totalRecibido, r.totalPendiente]); 
                     dataTorta.push([r.proveedor, r.totalPendiente]); 
                 });
@@ -222,7 +225,7 @@
                     chartArea: {width: '80%', height: '80%'} 
                 });
             } catch (chartError) {
-                console.error("Error al renderizar los componentes gráficos:", chartError);
+                console.error("Error al renderizar componentes gráficos:", chartError);
             }
         }
 
@@ -234,14 +237,14 @@
             const contenedorTabla = document.querySelector("#mod-reportes .border.rounded-lg");
             if (!contenedorTabla) return;
 
-            const datosFiltrados = cacheHistorialDespachos.filter(d => {
+            const datosFiltrados = cacheHistorialDespachos.filter(function(d) {
                 return !proveedorFiltrado || d.proveedor === proveedorFiltrado;
             });
 
             if (datosFiltrados.length === 0) {
                 contenedorTabla.innerHTML = `
-                    <div class="p-4 bg-gray-50 font-bold text-xs text-gray-500 uppercase tracking-wider border-b">Historial de Despachos Procesados</div>
-                    <div class="p-6 text-center text-sm text-gray-400 italic bg-white">No se encontraron registros de despachos para el filtro seleccionado.</div>`;
+                    <div class="p-4 bg-gray-50 font-bold text-xs text-gray-500 uppercase tracking-wider border-b">Historial de Despachos</div>
+                    <div class="p-6 text-center text-sm text-gray-400 italic bg-white">No se encontraron registros de despachos.</div>`;
                 return;
             }
 
@@ -259,14 +262,13 @@
                                 <th class="px-6 py-3">Factura / Control</th>
                                 <th class="px-6 py-3">Proveedor</th>
                                 <th class="px-6 py-3">Mercancía</th>
-                                <th class="px-6 py-3 text-right">Cantidad (Bultos)</th>
-                                <th class="px-6 py-3 text-right">Monto Declarado (Bs.)</th>
+                                <th class="px-6 py-3 text-right">Cantidad</th>
+                                <th class="px-6 py-3 text-right">Monto (Bs.)</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 text-gray-600">
-            `;
+                        <tbody class="divide-y divide-gray-100 text-gray-600">`;
 
-            datosFiltrados.forEach(d => {
+            datosFiltrados.forEach(function(d) {
                 htmlTabla += `
                     <tr class="hover:bg-gray-50 transition">
                         <td class="px-6 py-4 font-mono text-xs text-gray-400">${d.idDespacho}</td>
@@ -276,103 +278,33 @@
                         <td class="px-6 py-4"><span class="bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded">${d.producto}</span></td>
                         <td class="px-6 py-4 text-right font-mono font-bold text-emerald-600">${d.cantidad.toLocaleString()}</td>
                         <td class="px-6 py-4 text-right font-mono text-gray-900">${d.montoBs.toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
-                    </tr>
-                `;
+                    </tr>`;
             });
 
             htmlTabla += `</tbody></table></div>`;
             contenedorTabla.innerHTML = htmlTabla;
         }
 
-        // Configuración de Envío de Formularios con comprobación de existencia
-        if (document.getElementById("form-proveedor")) {
-            document.getElementById("form-proveedor").addEventListener("submit", function(e) {
-                e.preventDefault();
-                const inputs = document.querySelectorAll('.input-mercancia');
-                const listaProductos = [];
-                inputs.forEach(input => { if (input.value.trim() !== "") listaProductos.push(input.value.trim()); });
-
-                enviar({
-                    accion: "registrar_proveedor",
-                    data: {
-                        nombre: document.getElementById("prov-nombre").value,
-                        productos: listaProductos.join(", ")
-                    }
-                }, "form-proveedor");
-                
-                document.getElementById('contenedor-mercancias').innerHTML = `
-                    <div class="flex gap-2">
-                        <input type="text" placeholder="Ej: Pasta Larga" class="input-mercancia w-full p-2 border rounded-lg" required>
-                        <button type="button" onclick="agregarCampoMercancia()" class="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold">+</button>
-                    </div>`;
-            });
-        }
-
-        if (document.getElementById("form-prepago")) {
-            document.getElementById("form-prepago").addEventListener("submit", function(e) {
-                e.preventDefault();
-                const cant = Number(document.getElementById("p-cantidad").value); 
-                const costo = Number(document.getElementById("p-costo").value); 
-                const tasa = Number(document.getElementById("p-tasa").value); 
-                const usd = cant * costo;
-                
-                enviar({ 
-                    accion: "registrar_prepago", 
-                    data: { 
-                        idLote: document.getElementById("p-id-lote").value, 
-                        fechaPago: new Date().toLocaleDateString('es-ES'), 
-                        proveedor: document.getElementById("p-proveedor").value, 
-                        producto: document.getElementById("p-producto").value, 
-                        cantidadPrepagada: cant, 
-                        costoLotes: costo, 
-                        montoUsd: usd, 
-                        tasaCambio: tasa, 
-                        montoBsPagado: usd * tasa, 
-                        observaciones: "" 
-                    } 
-                }, "form-prepago");
-            });
-        }
-
-        if (document.getElementById("form-despacho")) {
-            document.getElementById("form-despacho").addEventListener("submit", function(e) {
-                e.preventDefault();
-                const cant = Number(document.getElementById("d-cantidad").value); 
-                const bs = Number(document.getElementById("d-monto-bs").value);
-                
-                enviar({ 
-                    accion: "registrar_despacho", 
-                    data: { 
-                        idDespacho: "D-" + Date.now().toString().slice(-4), 
-                        nroFacturaEntrega: document.getElementById("d-factura").value, 
-                        fechaRecepcion: new Date().toLocaleDateString('es-ES'), 
-                        proveedor: document.getElementById("d-proveedor").value, 
-                        producto: document.getElementById("d-producto").value, 
-                        cantidadRecibida: cant, 
-                        tasaDiaRecepcion: cant > 0 ? (bs / (cant * 7.199)) : 0, 
-                        montoBsRecibido: bs, 
-                        ajusteMalEstado: 0 
-                    } 
-                }, "form-despacho");
-            });
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            const btnAplicarFiltro = document.querySelector("#mod-reportes button.bg-blue-600");
-            if (btnAplicarFiltro) {
-                btnAplicarFiltro.addEventListener("click", renderizarTablaReportes);
-            }
-        });
-
-        async function enviar(payload, formId) {
-            try {
-                await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                alert("¡Guardado con éxito!");
+        // Envío de formularios alternativo sin Fetch clásico para asegurar compatibilidad CORS
+        function enviarFormularioManual(payload, formId) {
+            const urlEnvio = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'callback=window.procesarRespuestaPost';
+            
+            window.procesarRespuestaPost = function(res) {
+                alert("¡Transacción enviada correctamente!");
                 if (document.getElementById(formId)) document.getElementById(formId).reset();
-                setTimeout(() => { cargarDatos(); }, 1000);
-            } catch (error) { 
-                alert("Error al enviar la transacción."); 
-                console.error(error);
-            }
+                setTimeout(function() { cargarDatos(); }, 1200);
+            };
+
+            // Creamos un envío vía script temporal para peticiones cruzadas seguras
+            const scriptEnvio = document.createElement('script');
+            scriptEnvio.src = WEB_APP_URL + "?payload=" + encodeURIComponent(JSON.stringify(payload)) + "&callback=procesarRespuestaPost";
+            document.body.appendChild(scriptEnvio);
+            setTimeout(function() { scriptEnvio.remove(); }, 2000);
         }
+
+        // Disparador de arranque inicial seguro al terminar de cargar la ventana básica
+        window.addEventListener("load", function() {
+            inicializarGraficos();
+            setTimeout(cargarDatos, 500); 
+        });
     </script>
