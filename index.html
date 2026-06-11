@@ -3,183 +3,207 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Control - FIFO Cooperativa</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>SICOOP - Control de Mercancía FIFO</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 </head>
-<body class="bg-gray-100 font-sans antialiased">
+<body class="bg-gray-100 font-sans text-gray-800">
 
-    <nav class="bg-blue-600 p-4 shadow-md text-white">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-wide">📦 SICOOP - Control de Mercancía FIFO</h1>
-            <span class="text-sm bg-blue-700 px-3 py-1 rounded-full">Dashboard en Vivo</span>
-        </div>
+    <nav class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
+        <h1 class="text-xl font-bold flex items-center gap-2">
+            📦 SICOOP - Control de Mercancía FIFO
+        </h1>
+        <span class="bg-blue-800 px-3 py-1 rounded-full text-xs font-semibold animate-pulse">
+            Dashboard en Vivo
+        </span>
     </nav>
 
-    <div class="container mx-auto p-6 space-y-6">
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-blue-500">
-                <p class="text-sm text-gray-500 font-semibold uppercase">Total Prepagado (Bultos/Uds)</p>
-                <h3 id="kpi-prepagado" class="text-3xl font-bold text-gray-800 mt-1">0</h3>
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Prepagado (Bultos)</p>
+                <h3 id="kpi-prepagado" class="text-3xl font-extrabold text-gray-900 mt-1">0</h3>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-green-500">
-                <p class="text-sm text-gray-500 font-semibold uppercase">Total Recibido (Despachado)</p>
-                <h3 id="kpi-recibido" class="text-3xl font-bold text-gray-800 mt-1">0</h3>
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-emerald-500">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Recibido (Despachado)</p>
+                <h3 id="kpi-recibido" class="text-3xl font-extrabold text-gray-900 mt-1">0</h3>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-amber-500">
-                <p class="text-sm text-gray-500 font-semibold uppercase">Saldo Pendiente por Llegar</p>
-                <h3 id="kpi-pendiente" class="text-3xl font-bold text-gray-800 mt-1">0</h3>
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-amber-500">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Saldo Pendiente por Llegar</p>
+                <h3 id="kpi-pendiente" class="text-3xl font-extrabold text-gray-900 mt-1">0</h3>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="bg-white p-6 rounded-lg shadow-sm">
-                <h2 class="text-lg font-bold text-gray-700 mb-4">Progreso de Entrega por Proveedor</h2>
-                <div id="grafico_barras" class="w-full h-80 flex items-center justify-center text-gray-400">
+            <div class="bg-white p-6 rounded-xl shadow-sm min-h-[350px] flex flex-col">
+                <h4 class="text-md font-bold text-gray-700 mb-4">Progreso de Entrega por Proveedor</h4>
+                <div id="chart-progreso" class="w-full flex-1 flex items-center justify-center text-gray-400 text-sm italic">
                     Cargando gráfico...
                 </div>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-sm">
-                <h2 class="text-lg font-bold text-gray-700 mb-4">Distribución del Saldo Pendiente</h2>
-                <div id="grafico_torta" class="w-full h-80 flex items-center justify-center text-gray-400">
+            <div class="bg-white p-6 rounded-xl shadow-sm min-h-[350px] flex flex-col">
+                <h4 class="text-md font-bold text-gray-700 mb-4">Distribución del Saldo Pendiente</h4>
+                <div id="chart-distribucion" class="w-full flex-1 flex items-center justify-center text-gray-400 text-sm italic">
                     Procesando existencias...
                 </div>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-lg shadow-sm overflow-hidden">
-            <h2 class="text-lg font-bold text-gray-700 mb-4">Monitoreo de Lotes Activos (Cola FIFO)</h2>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100">
+                <h4 class="text-md font-bold text-gray-700">Monitoreo de Lotes Activos (Cola FIFO)</h4>
+            </div>
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 text-left text-sm">
-                    <thead class="bg-gray-50 text-gray-600 font-semibold uppercase tracking-wider">
-                        <tr>
-                            <th class="p-3">ID Lote</th>
-                            <th class="p-3">Proveedor</th>
-                            <th class="p-3">Producto</th>
-                            <th class="p-3">Cant. Original</th>
-                            <th class="p-3">Disponible (FIFO)</th>
-                            <th class="p-3">Tasa Ref.</th>
-                            <th class="p-3">Estatus</th>
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-400 text-xs font-bold uppercase tracking-wider border-b border-gray-100">
+                            <th class="px-6 py-3">ID Lote</th>
+                            <th class="px-6 py-3">Proveedor</th>
+                            <th class="px-6 py-3">Producto</th>
+                            <th class="px-6 py-3 text-right">Cant. Original</th>
+                            <th class="px-6 py-3 text-right">Disponible (FIFO)</th>
+                            <th class="px-6 py-3 text-right">Tasa Ref.</th>
+                            <th class="px-6 py-3 text-center">Estatus</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-fifo-body" class="divide-y divide-gray-200 text-gray-700">
+                    <tbody id="tabla-lotes" class="divide-y divide-gray-100 text-sm text-gray-600">
                         <tr>
-                            <td colspan="7" class="p-4 text-center text-gray-400">Esperando respuesta del servidor de Google Sheets...</td>
+                            <td colspan="7" class="px-6 py-10 text-center text-gray-400 italic">
+                                Esperando respuesta del servidor de Google Sheets...
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
-
     </div>
 
     <script>
-        // Pegamos tu URL de Apps Script aquí
-        const API_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
+        // 🚨 REEMPLAZA ESTA URL POR LA TUYA DE GOOGLE APPS SCRIPT QUE TERMINA EN /exec
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
 
-        // Inicializar Google Charts
         google.charts.load('current', {'packages':['corechart', 'bar']});
         google.charts.setOnLoadCallback(inicializarDashboard);
 
-        async function inicializarDashboard() {
+        function inicializarDashboard() {
+            if(!WEB_APP_URL || WEB_APP_URL.includes("PASAR_AQUÍ")) {
+                document.getElementById("tabla-lotes").innerHTML = `
+                    <tr><td colspan="7" class="px-6 py-4 text-center text-red-500 font-semibold">
+                        ⚠️ Error: No has configurado la URL de tu Web App en el código index.html.
+                    </td></tr>`;
+                return;
+            }
+            cargarDatos();
+        }
+
+        async function cargarDatos() {
             try {
-                const respuesta = await fetch(API_URL);
-                const resultado = await respuesta.json();
+                const response = await fetch(WEB_APP_URL);
+                const resultado = await response.json();
                 
                 if (resultado.status === "success") {
-                    const datos = resultado.data;
-                    
-                    // 1. Actualizar las Tarjetas KPI de la Cooperativa
-                    actualizarKPIs(datos.resumenConsolidado);
-                    
-                    // 2. Renderizar los Gráficos de Google
-                    dibujarGraficoBarras(datos.resumenConsolidado);
-                    dibujarGraficoTorta(datos.resumenConsolidado);
-                    
-                    // 3. Rellenar la Tabla de Lotes FIFO
-                    construirTablaFIFO(datos.detallesLotes);
+                    renderizarDashboard(resultado.data);
                 } else {
-                    console.error("Error en la estructura de datos:", resultado.message);
+                    mostrarError("Error en servidor: " + resultado.message);
                 }
             } catch (error) {
-                console.error("Fallo al conectar con la API de Google Sheets:", error);
+                mostrarError("No se pudo conectar con la API de Google Sheets.");
+                console.error(error);
             }
         }
 
-        function actualizarKPIs(resumen) {
-            let prepagado = 0, pendiente = 0, recibido = 0;
-            resumen.forEach(p => {
-                prepagado += p.totalPrepagado;
-                pendiente += p.totalPendiente;
-                recibido += p.totalRecibido;
+        function renderizarDashboard(data) {
+            let totalPrepagado = 0;
+            let totalPendiente = 0;
+            let totalRecibido = 0;
+            
+            const tbody = document.getElementById("tabla-lotes");
+            tbody.innerHTML = "";
+            
+            // 1. Renderizar la tabla de Lotes FIFO
+            data.detallesLotes.forEach(lote => {
+                const recibido = lote.cantOriginal - lote.cantDisponible;
+                totalPrepagado += lote.cantOriginal;
+                totalPendiente += lote.cantDisponible;
+                totalRecibido += recibido;
+                
+                let estatusClass = "bg-amber-100 text-amber-800";
+                let estatusTexto = "Despachando";
+                
+                if (lote.cantDisponible === 0) {
+                    estatusClass = "bg-emerald-100 text-emerald-800";
+                    estatusTexto = "Completado";
+                } else if (lote.cantDisponible === lote.cantOriginal) {
+                    estatusClass = "bg-blue-100 text-blue-800";
+                    estatusTexto = "Sin Despachar";
+                }
+                
+                const fila = `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 font-semibold text-gray-900">${lote.idLote}</td>
+                        <td class="px-6 py-4">${lote.proveedor}</td>
+                        <td class="px-6 py-4">${lote.producto}</td>
+                        <td class="px-6 py-4 text-right font-mono">${lote.cantOriginal.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right font-mono font-bold ${lote.cantDisponible > 0 ? 'text-amber-600' : 'text-gray-400'}">${lote.cantDisponible.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right font-mono text-gray-500">${lote.tasa.toFixed(4)}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-medium ${estatusClass}">${estatusTexto}</span>
+                        </td>
+                    </tr>`;
+                tbody.insertAdjacentHTML("beforeend", fila);
             });
-            document.getElementById('kpi-prepagado').innerText = prepagado.toLocaleString('es-VE');
-            document.getElementById('kpi-recibido').innerText = recibido.toLocaleString('es-VE');
-            document.getElementById('kpi-pendiente').innerText = pendiente.toLocaleString('es-VE');
+            
+            // 2. Actualizar las Tarjetas KPI
+            document.getElementById("kpi-prepagado").innerText = totalPrepagado.toLocaleString();
+            document.getElementById("kpi-recibido").innerText = totalRecibido.toLocaleString();
+            document.getElementById("kpi-pendiente").innerText = totalPendiente.toLocaleString();
+            
+            // 3. Dibujar Gráfico de Barras (Progreso)
+            if(data.resumenConsolidado.length > 0) {
+                dibujarGraficos(data.resumenConsolidado);
+            }
         }
 
-        function dibujarGraficoBarras(resumen) {
-            let tablaData = [['Proveedor', 'Recibido', 'Pendiente']];
-            resumen.forEach(p => {
-                tablaData.push([p.proveedor, p.totalRecibido, p.totalPendiente]);
+        function dibujarGraficos(resumen) {
+            // Gráfico 1: Barras de Progreso
+            const dataProgreso = new google.visualization.DataTable();
+            dataProgreso.addColumn('string', 'Proveedor');
+            dataProgreso.addColumn('number', 'Recibido');
+            dataProgreso.addColumn('number', 'Pendiente');
+            
+            // Gráfico 2: Torta de Distribución Pendiente
+            const dataTorta = [['Producto/Proveedor', 'Cantidad Pendiente']];
+            
+            resumen.forEach(r => {
+                dataProgreso.addRow([r.proveedor, r.totalRecibido, r.totalPendiente]);
+                dataTorta.push([r.proveedor, r.totalPendiente]);
             });
-
-            let data = google.visualization.arrayToDataTable(tablaData);
-            let opciones = {
+            
+            const optionsBarra = {
                 isStacked: true,
-                colors: ['#10B981', '#F59E0B'],
-                chartArea: {width: '60%', height: '80%'},
+                colors: ['#10b981', '#f59e0b'],
+                chartArea: {width: '60%', height: '70%'},
                 legend: { position: 'top' }
             };
-
-            let chart = new google.visualization.BarChart(document.getElementById('grafico_barras'));
-            chart.draw(data, opciones);
-        }
-
-        function dibujarGraficoTorta(resumen) {
-            let tablaData = [['Proveedor', 'Cantidad Pendiente']];
-            resumen.forEach(p => {
-                if(p.totalPendiente > 0) {
-                    tablaData.push([p.proveedor, p.totalPendiente]);
-                }
-            });
-
-            let data = google.visualization.arrayToDataTable(tablaData);
-            let opciones = {
-                pieHole: 0.4,
-                colors: ['#3B82F6', '#EF4444', '#10B981', '#F59E0B'],
-                chartArea: {width: '90%', height: '80%'}
+            
+            const chartBarra = new google.visualization.BarChart(document.getElementById('chart-progreso'));
+            chartBarra.draw(dataProgreso, optionsBarra);
+            
+            const optionsTorta = {
+                colors: ['#3b82f6', '#f59e0b', '#ef4444', '#10b981'],
+                chartArea: {width: '80%', height: '80%'}
             };
-
-            let chart = new google.visualization.PieChart(document.getElementById('grafico_torta'));
-            chart.draw(data, opciones);
+            
+            const chartTorta = new google.visualization.PieChart(document.getElementById('chart-distribucion'));
+            chartTorta.draw(google.visualization.arrayToDataTable(dataTorta), optionsTorta);
         }
 
-        function construirTablaFIFO(lotes) {
-            const tbody = document.getElementById('tabla-fifo-body');
-            tbody.innerHTML = ""; // Limpiar cargando
-
-            lotes.forEach(l => {
-                let estatusBadge = l.cantDisponible === 0 
-                    ? '<span class="px-2 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800">Agotado</span>'
-                    : l.cantDisponible < l.cantOriginal 
-                        ? '<span class="px-2 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800">Despachando</span>'
-                        : '<span class="px-2 py-1 text-xs font-bold rounded-full bg-green-100 text-green-800">Completo</span>';
-
-                let fila = `
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="p-3 font-medium text-blue-600">${l.idLote}</td>
-                        <td class="p-3">${l.proveedor}</td>
-                        <td class="p-3">${l.producto}</td>
-                        <td class="p-3 font-semibold">${l.cantOriginal.toLocaleString('es-VE')}</td>
-                        <td class="p-3 font-semibold text-amber-600">${l.cantDisponible.toLocaleString('es-VE')}</td>
-                        <td class="p-3 text-gray-500">Bs. ${l.tasa.toFixed(2)}</td>
-                        <td class="p-3">${estatusBadge}</td>
-                    </tr>
-                `;
-                tbody.innerHTML += fila;
-            });
+        function mostrarError(msg) {
+            document.getElementById("tabla-lotes").innerHTML = `
+                <tr><td colspan="7" class="px-6 py-4 text-center text-red-500 font-semibold">
+                    ⚠️ ${msg}
+                </td></tr>`;
         }
     </script>
 </body>
