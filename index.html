@@ -74,7 +74,9 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase">Proveedor</label>
-                            <select id="p-proveedor" onchange="filtrarProductosPorProveedor(this.value, 'p-producto')" class="select-proveedores w-full mt-1 p-2 border rounded-lg" required></select>
+                            <select id="p-proveedor" onchange="filtrarProductosPorProveedor(this.value, 'p-producto')" class="select-proveedores w-full mt-1 p-2 border rounded-lg" required>
+                                <option value="">Cargando proveedores...</option>
+                            </select>
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase">Mercancía Permitida</label>
@@ -109,7 +111,9 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase">Proveedor</label>
-                            <select id="d-proveedor" onchange="filtrarProductosPorProveedor(this.value, 'd-producto')" class="select-proveedores w-full mt-1 p-2 border rounded-lg" required></select>
+                            <select id="d-proveedor" onchange="filtrarProductosPorProveedor(this.value, 'd-producto')" class="select-proveedores w-full mt-1 p-2 border rounded-lg" required>
+                                <option value="">Cargando proveedores...</option>
+                            </select>
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase">Mercancía Entregada</label>
@@ -214,21 +218,19 @@
             const selects = document.querySelectorAll('.select-proveedores');
             selects.forEach(sel => {
                 sel.innerHTML = '<option value="">-- Seleccione un proveedor --</option>';
-                cacheProveedores.forEach(p => { sel.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`; });
+                cacheProveedores.forEach(p => { 
+                    sel.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`; 
+                });
             });
 
             const listaDom = document.getElementById('lista-proveedores-completa');
             if (listaDom) {
                 listaDom.innerHTML = "";
                 cacheProveedores.forEach(p => {
-                    let productosLista = [];
-                    if (typeof p.productos === 'string') {
-                        productosLista = p.productos.split(',').map(prod => prod.trim());
-                    } else if (Array.isArray(p.productos)) {
-                        productosLista = p.productos;
-                    }
-                    
+                    // Tu .gs ya devuelve un Array, lo leemos directamente aquí
+                    const productosLista = Array.isArray(p.productos) ? p.productos : [];
                     const chips = productosLista.map(prod => `<span class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full">${prod}</span>`).join(' ');
+                    
                     listaDom.innerHTML += `
                         <div class="p-3 bg-gray-50 border rounded-lg">
                             <p class="font-bold text-sm text-gray-800">${p.nombre}</p>
@@ -238,24 +240,22 @@
             }
         }
 
-        // LÓGICA CORREGIDA: Convierte texto plano de productos en Arreglo Dinámico
+        // CORRECCIÓN CLAVE: Lee directamente el Array mapeado por tu Backend (.gs)
         function filtrarProductosPorProveedor(nombreProveedor, idSelectDestino) {
             const selectDestino = document.getElementById(idSelectDestino);
             selectDestino.innerHTML = "";
             
+            if (!nombreProveedor) {
+                selectDestino.innerHTML = '<option value="">-- Seleccione primero un proveedor --</option>';
+                return;
+            }
+
             const proveedorEncontrado = cacheProveedores.find(p => p.nombre === nombreProveedor);
             
-            if (proveedorEncontrado && proveedorEncontrado.productos) {
-                let productosLista = [];
-                
-                // Si viene como Texto Plano separado por comas desde Sheets, lo pica en una lista limpia
-                if (typeof proveedorEncontrado.productos === 'string') {
-                    productosLista = proveedorEncontrado.productos.split(',').map(prod => prod.trim());
-                } else if (Array.isArray(proveedorEncontrado.productos)) {
-                    productosLista = proveedorEncontrado.productos;
-                }
+            if (proveedorEncontrado && proveedorEncontrado.productos && Array.isArray(proveedorEncontrado.productos)) {
+                const productosLista = proveedorEncontrado.productos;
 
-                if (productosLista.length > 0 && productosLista[0] !== "") {
+                if (productosLista.length > 0) {
                     selectDestino.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
                     productosLista.forEach(prod => {
                         selectDestino.innerHTML += `<option value="${prod}">${prod}</option>`;
