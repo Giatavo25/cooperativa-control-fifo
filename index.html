@@ -208,3 +208,32 @@
     </script>
 </body>
 </html>
+<div class="card my-4">
+  <div class="card-header bg-primary text-white"><h5>Registrar Despacho / Factura</h5></div>
+  <div class="card-body">
+    <form id="formDespacho">
+      <div class="row">
+        <div class="col-md-3 mb-3">
+          <label>Nro. Factura</label>
+          <input type="text" id="nroFactura" class="form-control" placeholder="Ej: 135473" required>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label>Producto</label>
+          <select id="productoDespacho" class="form-control" required>
+            <option value="Pasta Larga">Pasta Larga</option>
+            <option value="Pasta Corta">Pasta Corta</option>
+          </select>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label>Cantidad Recibida (Bultos)</label>
+          <input type="number" id="cantidadRecibida" class="form-control" placeholder="Ej: 500" required>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label>Monto Factura (Bs.)</label>
+          <input type="number" step="0.01" id="montoBs" class="form-control" placeholder="Ej: 3464767.45" required>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-success">Procesar e Ingresar a FIFO</button>
+    </form>
+  </div>
+</div>
