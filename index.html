@@ -18,26 +18,38 @@
             window.onload = cargarDatos;
         }
 
-        async function cargarDatos() {
-            try {
-                // Colocar textos de carga por si es una actualización
-                if (document.getElementById('chart-progreso')) document.getElementById('chart-progreso').innerText = "Cargando gráficos...";
-                if (document.getElementById('chart-distribucion')) document.getElementById('chart-distribucion').innerText = "Procesando existencias...";
+        async // Reemplaza únicamente esta función en tu index.html
+        function cargarDatos() {
+            // Colocar textos de carga por si es una actualización visual
+            if (document.getElementById('chart-progreso')) document.getElementById('chart-progreso').innerText = "Cargando gráficos...";
+            if (document.getElementById('chart-distribucion')) document.getElementById('chart-distribucion').innerText = "Procesando existencias...";
 
-                const response = await fetch(WEB_APP_URL);
-                const resultado = await response.json();
+            // Creamos una función global temporal para recibir los datos de Google de forma segura
+            window.procesarRespuestaGoogle = function(resultado) {
                 if (resultado.status === "success") {
                     cacheProveedores = resultado.data.proveedores || [];
-                    cacheHistorialDespachos = resultado.data.historialDespachos || []; // Guardamos el historial recibido
+                    cacheHistorialDespachos = resultado.data.historialDespachos || []; 
                     renderizarDashboard(resultado.data);
                     actualizarInterfacesProveedores();
-                    renderizarTablaReportes(); // Renderizar la tabla de auditoría con los datos frescos
+                    renderizarTablaReportes(); 
                 } else {
-                    console.error("El backend no devolvió un estatus de éxito:", resultado);
+                    console.error("El backend devolvió un estatus de error:", resultado.message);
                 }
-            } catch (error) { 
-                console.error("Error crítico cargando datos desde Google Sheets:", error); 
-            }
+                // Limpieza del nodo del DOM para mantener el HTML limpio
+                document.getElementById('jsonp-script-loader').remove();
+            };
+
+            // Inyección dinámica de script para evadir bloqueos CORS de red o navegador
+            const script = document.createElement('script');
+            script.id = 'jsonp-script-loader';
+            // Añadimos el parámetro ?callback=procesarRespuestaGoogle al final de la URL
+            script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'callback=procesarRespuestaGoogle';
+            
+            script.onerror = function() {
+                console.error("Error de red o timeout al intentar conectar con la URL de Google Apps Script.");
+            };
+
+            document.body.appendChild(script);
         }
 
         function cambiarModulo(idModulo) {
