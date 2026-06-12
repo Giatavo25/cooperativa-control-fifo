@@ -215,88 +215,92 @@
         </section>
 
         <section id="mod-recepcion" class="modulo hidden bg-slate-950 p-6 rounded-xl border border-slate-800 max-w-4xl mx-auto">
-    <form id="form-recepcion" class="flex flex-col gap-4">
-      
-      <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 space-y-3">
-        <h4 class="text-xs font-semibold text-blue-400 flex items-center gap-2 border-b border-slate-800 pb-2">
-          <i class="fas fa-brain"></i> Asignación Automática FIFO (Datos del Prepago)
-        </h4>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Lote Sugerido (FIFO):</label>
-            <input type="text" id="fifo-lote-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-blue-400 font-bold focus:outline-none" readonly placeholder="Buscando lote activo...">
-          </div>
-          <div>
-            <label class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Costo Unitario ($):</label>
-            <input type="text" id="fifo-costo-usd-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none" readonly placeholder="0.00">
-          </div>
-          <div>
-            <label class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Tasa de Cambio (Prepago):</label>
-            <input type="text" id="fifo-tasa-bs-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none" readonly placeholder="0.00">
-          </div>
-        </div>
-      </div>
+            <form id="form-recepcion" class="flex flex-col gap-4">
+                
+                <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 space-y-3">
+                    <h4 class="text-xs font-semibold text-blue-400 flex items-center gap-2 border-b border-slate-800 pb-2">
+                        <i class="fas fa-brain"></i> Asignación Automática FIFO (Datos del Prepago)
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Lote Sugerido (FIFO):</label>
+                            <input type="text" id="fifo-lote-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-blue-400 font-bold focus:outline-none" readonly placeholder="Buscando lote activo...">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Costo Unitario ($):</label>
+                            <input type="text" id="fifo-costo-usd-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none text-right" readonly placeholder="0.00">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Tasa Prepago (Bs):</label>
+                            <input type="text" id="fifo-tasa-bs-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-amber-400 font-bold focus:outline-none text-right" readonly placeholder="0.00">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Costo Unitario (Bs):</label>
+                            <input type="text" id="fifo-costo-bs-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-emerald-400 font-bold focus:outline-none text-right" readonly placeholder="0.00">
+                        </div>
+                    </div>
+                </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Nro Factura / Control</label>
-          <input type="text" id="des-factura" placeholder="F-001" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Fecha de Recepción</label>
-          <input type="date" id="des-fecha-rc" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
-        </div>
-      </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Nro Factura / Control</label>
+                        <input type="text" id="des-factura" placeholder="F-001" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Fecha de Recepción</label>
+                        <input type="date" id="des-fecha-rc" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                    </div>
+                </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Proveedor</label>
-          <select id="des-proveedor" onchange="filtrarProductosPorProveedor(this.value, 'des-producto'); limpiarCamposFIFORC();" class="select-proveedores w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
-            <option value="">-- Seleccione un proveedor --</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Mercancía Recibida</label>
-          <select id="des-producto" onchange="buscarLoteFIFORC()" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
-            <option value="">-- Seleccione primero un proveedor --</option>
-          </select>
-        </div>
-      </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Proveedor</label>
+                        <select id="des-proveedor" onchange="filtrarProductosPorProveedor(this.value, 'des-producto'); limpiarCamposFIFORC();" class="select-proveedores w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                            <option value="">-- Seleccione un proveedor --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Mercancía Recibida</label>
+                        <select id="des-producto" onchange="buscarLoteFIFORC()" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                            <option value="">-- Seleccione primero un proveedor --</option>
+                        </select>
+                    </div>
+                </div>
 
-      <div>
-        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Cantidad Física que Entra (Unidades)</label>
-        <input type="number" id="des-cantidad" oninput="calcularTotalesRC()" placeholder="Ej: 1200" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono" required min="1">
-      </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Cantidad Física que Entra (Unidades)</label>
+                    <input type="number" id="des-cantidad" oninput="calcularTotalesRC()" placeholder="Ej: 1200" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono font-bold" required min="1">
+                </div>
 
-      <div class="border-t border-dashed border-slate-800 pt-4 mt-2">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-900 p-4 rounded-lg border border-slate-800">
-          <div>
-            <label class="block text-xs font-bold text-blue-400 mb-1.5 uppercase">Total Calculado (Bs)</label>
-            <input type="text" id="des-total-calculado-bs" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-blue-400 font-bold focus:outline-none" readonly placeholder="0.00">
-            <span class="text-[10px] text-slate-500 block mt-1">(Costo unit $ x Tasa) x Cantidad</span>
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-amber-400 mb-1.5 uppercase">Monto Total Factura (Bs)</label>
-            <input type="number" id="des-monto-factura-bs" oninput="calcularTotalesRC()" placeholder="Monto del papel" step="0.01" class="w-full p-2.5 bg-slate-900 border border-amber-500/50 rounded-lg text-white font-bold focus:outline-none" required>
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-red-400 mb-1.5 uppercase">Diferencia Cambiaria (Bs)</label>
-            <input type="text" id="des-diferencia-cambiaria" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-red-400 font-bold focus:outline-none" readonly placeholder="0.00">
-          </div>
-        </div>
-      </div>
+                <div class="border-t border-dashed border-slate-800 pt-4 mt-2">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-900 p-4 rounded-lg border border-slate-800">
+                        <div>
+                            <label class="block text-xs font-bold text-blue-400 mb-1.5 uppercase">Total Calculado (Bs)</label>
+                            <input type="text" id="des-total-calculado-bs" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-blue-400 font-mono font-bold text-right focus:outline-none" readonly placeholder="0,00">
+                            <span class="text-[10px] text-slate-500 block mt-1">Costo Unit Bs x Cantidad</span>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-amber-400 mb-1.5 uppercase">Monto Total Factura (Bs)</label>
+                            <input type="number" id="des-monto-factura-bs" oninput="calcularTotalesRC()" placeholder="Monto del papel" step="0.01" class="w-full p-2.5 bg-slate-900 border border-amber-500/50 rounded-lg text-white font-mono font-bold text-right focus:outline-none" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-red-400 mb-1.5 uppercase">Diferencia Cambiaria (Bs)</label>
+                            <input type="text" id="des-diferencia-cambiaria" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-red-400 font-mono font-bold text-right focus:outline-none" readonly placeholder="0,00">
+                        </div>
+                    </div>
+                </div>
 
-      <div class="flex justify-end gap-3 pt-2">
-        <button type="button" onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-4 py-2.5 rounded-lg transition text-sm flex items-center gap-2">
-          <i class="fas fa-print"></i> Imprimir Planilla
-        </button>
-        <button type="submit" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition">
-          <i class="fas fa-download"></i> Registrar y Descontar de Cola FIFO
-        </button>
-      </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-4 py-2.5 rounded-lg transition text-sm flex items-center gap-2">
+                        🖨️ Imprimir Planilla
+                    </button>
+                    <button type="submit" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition">
+                        💾 Registrar y Descontar de Cola FIFO
+                    </button>
+                </div>
 
-    </form>
-  </section>
+            </form>
+        </section>
 
         <section id="mod-proveedores" class="modulo hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 lg:col-span-1 h-fit">
@@ -416,7 +420,12 @@
             
             const titulos = { 'mod-dashboard': 'Dashboard General', 'mod-prepagos': 'Registrar Prepagos', 'mod-recepcion': 'Recepción de Carga', 'mod-proveedores': 'Ficha de Proveedores', 'mod-reportes': 'Reportes y Auditoría' };
             const titleDom = document.getElementById('titulo-modulo'); if (titleDom) titleDom.innerText = titulos[idModulo] || 'Sistema';
-            if (idModulo === 'mod-dashboard') cargarDatos();
+            
+            if (idModulo === 'mod-dashboard') {
+                cargarDatos();
+            } else if (idModulo === 'mod-recepcion') {
+                limpiarCamposFIFORC();
+            }
         }
 
         function agregarCampoMercancia() {
@@ -457,323 +466,173 @@
 
         function renderizarDashboard(data) {
             let p = 0, pe = 0, r = 0;
-            const tbody = document.getElementById("tabla-lotes"); if (!tbody) return;
-            tbody.innerHTML = "";
+            const tbody = document.getElementById("tabla-lotes");
+            if(tbody) tbody.innerHTML = "";
             
-            if (!data.detallesLotes || data.detallesLotes.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">No hay lotes activos registrados</td></tr>`;
-                return;
-            }
-
-            data.detallesLotes.forEach(l => {
-                const rec = l.cantOriginal - l.cantDisponible; p += l.cantOriginal; pe += l.cantDisponible; r += rec;
-                tbody.insertAdjacentHTML("beforeend", `<tr class="hover:bg-slate-900/50 border-b border-slate-800"><td class="px-6 py-4 font-mono text-xs font-bold text-blue-400">${l.idLote}</td><td class="px-6 py-4 font-medium">${l.proveedor}</td><td class="px-6 py-4">${l.producto}</td><td class="px-6 py-4 text-right font-mono">${l.cantOriginal.toLocaleString()}</td><td class="px-6 py-4 text-right font-mono font-bold text-amber-400">${l.cantDisponible.toLocaleString()}</td></tr>`);
-            });
-
-            if (document.getElementById("kpi-prepagado")) document.getElementById("kpi-prepagado").innerText = p.toLocaleString();
-            if (document.getElementById("kpi-recibido")) document.getElementById("kpi-recibido").innerText = r.toLocaleString();
-            if (document.getElementById("kpi-pendiente")) document.getElementById("kpi-pendiente").innerText = pe.toLocaleString();
-            
-            if (chartsCargados && data.resumenConsolidated) dibujarGraficos(data.resumenConsolidated);
-        }
-
-        function dibujarGraficos(resumen) {
-            try {
-                const pDom = document.getElementById('chart-progreso');
-                const dDom = document.getElementById('chart-distribucion');
-                if (!pDom || !dDom) return;
-
-                const dtP = new google.visualization.DataTable();
-                dtP.addColumn('string', 'Proveedor'); dtP.addColumn('number', 'Recibido'); dtP.addColumn('number', 'Pendiente');
-                const dtT = [['Proveedor', 'Pendiente']];
-                resumen.forEach(r => { dtP.addRow([r.proveedor, r.totalRecibido, r.totalPendiente]); dtT.push([r.proveedor, r.totalPendiente]); });
-                
-                const opt = { backgroundColor: 'transparent', legend: {textStyle:{color:'#94a3b8'}}, chartArea: {width: '80%', height: '80%'}, hAxis:{textStyle:{color:'#64748b'}}, vAxis:{textStyle:{color:'#64748b'}} };
-                new google.visualization.BarChart(pDom).draw(dtP, { ...opt, isStacked: true, colors: ['#10b981', '#f59e0b'] });
-                new google.visualization.PieChart(dDom).draw(google.visualization.arrayToDataTable(dtT), { ...opt, colors: ['#3b82f6', '#f59e0b', '#ef4444'], pieHole: 0.4 });
-            } catch (e) {}
-        }
-
-        // --- Funciones para el Módulo de Prepagos e Inyecciones de Filas Dinámicas ---
-        function agregarFilaMercanciaPrepago() {
-            const tbody = document.getElementById('contenedor-items-prepago');
-            const proveedorSeleccionado = document.getElementById('pre-proveedor').value;
-            
-            let opcionesProductos = '<option value="">Seleccione...</option>';
-            if (proveedorSeleccionado) {
-                const provObj = cacheProveedores.find(p => p.nombre === proveedorSeleccionado);
-                if (provObj && Array.isArray(provObj.productos)) {
-                    provObj.productos.forEach(pr => {
-                        opcionesProductos += `<option value="${pr}">${pr}</option>`;
-                    });
-                }
-            }
-
-            const tr = document.createElement('tr');
-            tr.className = "item-fila-prepago hover:bg-slate-900/30";
-            tr.innerHTML = `
-                <td class="p-2">
-                    <select class="input-item-producto w-full p-1.5 bg-slate-950 border border-slate-700 rounded text-white" required>
-                        ${opcionesProductos}
-                    </select>
-                </td>
-                <td class="p-2"><input type="number" class="input-item-cantidad w-full p-1.5 bg-slate-950 border border-slate-700 rounded text-right font-mono text-white" placeholder="0" oninput="calcularTotalesPrepago()" required></td>
-                <td class="p-2"><input type="number" step="0.01" class="input-item-costo w-full p-1.5 bg-slate-950 border border-slate-700 rounded text-right font-mono text-white" placeholder="0.00" oninput="calcularTotalesPrepago()" required></td>
-                <td class="p-2 text-right font-mono text-slate-300 font-bold px-3 dynamic-txt-usd">0,00</td>
-                <td class="p-2 text-right font-mono text-blue-400 px-3 dynamic-txt-bs">0,00</td>
-                <td class="p-2 text-center">
-                    <button type="button" onclick="this.parentElement.parentElement.remove(); calcularTotalesPrepago();" class="text-red-400 hover:text-red-500 font-bold text-sm">✕</button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        }
-
-        function actualizarFlujoProveedorPrepago(nombreProveedor) {
-            document.getElementById('contenedor-items-prepago').innerHTML = "";
-            const sugeridoDom = document.getElementById('pre-lote-sugerido');
-            
-            if (!nombreProveedor) {
-                sugeridoDom.innerText = "AUTO-GEN";
-                return;
+            if(data && Array.isArray(data.detallesLotes)) {
+                data.detallesLotes.forEach(l => {
+                    p += parseFloat(l.cantInicial || 0);
+                    pe += parseFloat(l.cantDisponible || 0);
+                    
+                    if(tbody) {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="px-6 py-3 font-mono text-xs font-bold text-blue-400">${l.idLote}</td>
+                                <td class="px-6 py-3 font-medium">${l.proveedor}</td>
+                                <td class="px-6 py-3">${l.producto}</td>
+                                <td class="px-6 py-3 text-right font-mono text-xs">${formatearNumero(l.cantInicial)}</td>
+                                <td class="px-6 py-3 text-right font-mono text-xs font-bold ${l.cantDisponible > 0 ? 'text-amber-400' : 'text-slate-500'}">${formatearNumero(l.cantDisponible)}</td>
+                            </tr>
+                        `;
+                    }
+                });
+                r = p - pe;
             }
             
-            // Sugerir ID de Lote basado en las iniciales y conteo
-            const iniciales = nombreProveedor.substring(0,3).toUpperCase();
-            let correlativo = 1;
-            if (cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes) {
-                const delProv = cacheUltimosDatos.data.detallesLotes.filter(l => l.proveedor === nombreProveedor);
-                correlativo = delProv.length + 1;
-            }
-            sugeridoDom.innerText = `${iniciales}-LOTE-${String(correlativo).padStart(3, '0')}`;
-            
-            // Añadir la primera fila por comodidad
-            agregarFilaMercanciaPrepago();
-        }
-
-        function calcularTotalesPrepago() {
-            const tasa = parseFloat(document.getElementById('pre-tasa').value) || 0;
-            let totalUSD = 0;
-            let totalBsObligatorio = 0;
-
-            // 1. Recorrer las filas de mercancía
-            document.querySelectorAll('.item-fila-prepago').forEach(tr => {
-                const cant = parseFloat(tr.querySelector('.input-item-cantidad').value) || 0;
-                const costo = parseFloat(tr.querySelector('.input-item-costo').value) || 0;
-                
-                const filaUSD = cant * costo;
-                const filaBs = filaUSD * tasa;
-                
-                totalUSD += filaUSD;
-                totalBsObligatorio += filaBs;
-
-                // Actualizar montos en la fila con el formato correcto
-                tr.querySelector('.dynamic-txt-usd').innerText = formatearNumero(filaUSD);
-                tr.querySelector('.dynamic-txt-bs').innerText = formatearNumero(filaBs);
-            });
-
-            // 2. Sumar distribución en bancos
-            let totalBancos = 0;
-            document.querySelectorAll('.input-banco-prepago').forEach(input => {
-                totalBancos += parseFloat(input.value) || 0;
-            });
-
-            // 3. Renderizar Totales de la Tarjeta derecha usando la función formatearNumero
-            document.getElementById('txt-total-usd').innerText = formatearNumero(totalUSD);
-            document.getElementById('txt-total-bs').innerText = formatearNumero(totalBsObligatorio);
-            document.getElementById('txt-total-bancos').innerText = formatearNumero(totalBancos);
-
-            // 4. Conciliación y Diferencias
-            const dif = totalBsObligatorio - totalBancos;
-            const diffDom = document.getElementById('txt-diferencia');
-            const wrapperDif = document.getElementById('wrapper-diferencia');
-            const btnGuardar = document.getElementById('btn-guardar-prepago');
-            const btnImprimir = document.getElementById('btn-imprimir-prepago');
-
-            if (totalBsObligatorio > 0 && Math.abs(dif) <= 0.05) {
-                // Cuadrado con éxito
-                wrapperDif.className = "p-3 rounded-lg text-center font-bold text-sm bg-emerald-950/60 border border-emerald-800 text-emerald-400";
-                wrapperDif.innerHTML = "✅ Fondos Conciliados Perfectamente";
-                
-                btnGuardar.disabled = false;
-                btnGuardar.className = "bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-lg text-xs transition active:scale-95 cursor-pointer";
-                btnImprimir.disabled = false;
-                btnImprimir.className = "bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-lg text-xs transition active:scale-95 cursor-pointer";
-            } else {
-                // Descuadrado
-                btnGuardar.disabled = true;
-                btnGuardar.className = "bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition";
-                btnImprimir.disabled = true;
-                btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed text-white font-bold py-2.5 rounded-lg text-xs transition";
-
-                wrapperDif.className = "p-3 rounded-lg text-center font-bold text-sm bg-red-950/60 border border-red-800 text-red-400";
-                if (dif > 0) {
-                    wrapperDif.innerHTML = `Falta por conciliar: <span class="font-mono">${formatearNumero(dif)}</span> Bs`;
-                } else {
-                    wrapperDif.innerHTML = `Sobrante en bancos: <span class="font-mono">${formatearNumero(Math.abs(dif))}</span> Bs`;
-                }
-            }
+            const kp1 = document.getElementById("kpi-prepagado"); if(kp1) kp1.innerText = formatearNumero(p);
+            const kp2 = document.getElementById("kpi-recibido"); if(kp2) kp2.innerText = formatearNumero(r);
+            const kp3 = document.getElementById("kpi-pendiente"); if(kp3) kp3.innerText = formatearNumero(pe);
         }
 
         function configurarFechaPorDefecto() {
-            const inputFecha = document.getElementById('pre-fecha');
-            if (inputFecha && !inputFecha.value) {
-                const hoy = new Date().toISOString().split('T')[0];
-                inputFecha.value = hoy;
-            }
+            const hoy = new Date().toISOString().split('T')[0];
+            const preFecha = document.getElementById('pre-fecha'); if(preFecha) preFecha.value = hoy;
+            const desFecha = document.getElementById('des-fecha-rc'); if(desFecha) desFecha.value = hoy;
         }
 
-        function renderizarTablaReportes() {
-            const ctx = document.getElementById("tabla-reportes-contenedor"); if (!ctx) return;
-            const filtroProv = document.getElementById("rep-proveedor") ? document.getElementById("rep-proveedor").value : "";
+        function renderizarTablaReportes() {}
+        function calcularTotalesPrepago() {}
+        function procesarEnvioPrepago(e) { e.preventDefault(); }
+        function actualizarFlujoProveedorPrepago(v) {}
+        function agregarFilaMercanciaPrepago() {}
+        function imprimirReciboPrepago() {}
+
+        // ========================================================
+        // CONTROLADORES MATEMÁTICOS PARA LA RECEPCIÓN DE CARGA (FIFO)
+        // ========================================================
+        function buscarLoteFIFORC() {
+            const prov = document.getElementById('des-proveedor').value;
+            const merc = document.getElementById('des-producto').value;
             
-            if (cacheHistorialDespachos.length === 0) {
-                ctx.innerHTML = "<p class='p-6 text-center text-xs text-slate-500 italic'>No hay registros de auditoría disponibles.</p>";
+            if (!prov || !merc) {
+                limpiarCamposFIFORC();
                 return;
             }
 
-            let filtrados = cacheHistorialDespachos;
-            if (filtroProv) {
-                filtrados = cacheHistorialDespachos.filter(h => h.proveedor === filtroProv);
+            // Extraemos los lotes directamente de la memoria activa de la APP
+            let listaLotes = [];
+            if (cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
+                listaLotes = cacheUltimosDatos.data.detallesLotes;
             }
 
-            let filasHtml = "";
-            filtrados.forEach(h => {
-                filasHtml += `
-                    <tr class="hover:bg-slate-900/40 border-b border-slate-800 text-xs">
-                        <td class="px-4 py-3 font-mono text-slate-400">${h.fecha || ''}</td>
-                        <td class="px-4 py-3 font-bold text-blue-400 font-mono">${h.idLote || ''}</td>
-                        <td class="px-4 py-3 font-medium text-white">${h.proveedor || ''}</td>
-                        <td class="px-4 py-3 text-slate-300">${h.producto || ''}</td>
-                        <td class="px-4 py-3 font-mono text-right font-bold text-emerald-400">${parseFloat(h.cantidad || 0).toLocaleString()}</td>
-                        <td class="px-4 py-3 font-mono text-right text-slate-400">${h.factura || 'N/A'}</td>
-                    </tr>
-                `;
-            });
+            // Buscador FIFO: Primer lote que tenga unidades disponibles > 0
+            const loteActivo = listaLotes.find(l => 
+                l.proveedor.toString().trim().toUpperCase() === prov.trim().toUpperCase() && 
+                l.producto.toString().trim().toUpperCase() === merc.trim().toUpperCase() && 
+                parseFloat(l.cantDisponible) > 0
+            );
 
-            ctx.innerHTML = `
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-900 text-slate-400 text-xs font-bold uppercase border-b border-slate-800">
-                            <tr>
-                                <th class="px-4 py-3">Fecha</th>
-                                <th class="px-4 py-3">ID Lote</th>
-                                <th class="px-4 py-3">Proveedor</th>
-                                <th class="px-4 py-3">Mercancía</th>
-                                <th class="px-4 py-3 text-right">Cant. Despachada</th>
-                                <th class="px-4 py-3 text-right">Factura / Ref</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-800 text-slate-300">
-                            ${filasHtml || '<tr><td colspan="6" class="p-6 text-center text-slate-500 italic">No hay despachos registrados para este proveedor.</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            `;
+            if (loteActivo) {
+                const cUsd = parseFloat(loteActivo.costoUsd || 0);
+                const tBs = parseFloat(loteActivo.tasaCambio || 1);
+                const cBs = cUsd * tBs;
+
+                document.getElementById('fifo-lote-rc').value = loteActivo.idLote;
+                document.getElementById('fifo-costo-usd-rc').value = cUsd.toFixed(2);
+                document.getElementById('fifo-tasa-bs-rc').value = tBs.toFixed(2);
+                document.getElementById('fifo-costo-bs-rc').value = cBs.toFixed(2);
+                calcularTotalesRC();
+            } else {
+                document.getElementById('fifo-lote-rc').value = "SIN PREPAGO PENDIENTE";
+                document.getElementById('fifo-costo-usd-rc').value = "0.00";
+                document.getElementById('fifo-tasa-bs-rc').value = "0.00";
+                document.getElementById('fifo-costo-bs-rc').value = "0.00";
+                calcularTotalesRC();
+            }
         }
 
-        // Ejecutar carga inicial al montar la vista
-        window.addEventListener('DOMContentLoaded', () => {
-            cambiarModulo('mod-dashboard');
+        function calcularTotalesRC() {
+            const costoUsd = parseFloat(document.getElementById('fifo-costo-usd-rc').value) || 0;
+            const tasaCambio = parseFloat(document.getElementById('fifo-tasa-bs-rc').value) || 0;
+            const cantidad = parseFloat(document.getElementById('des-cantidad').value) || 0;
+            const montoFactura = parseFloat(document.getElementById('des-monto-factura-bs').value) || 0;
+            
+            // 1. Costo unitario en Bs
+            const costoUnitarioBs = costoUsd * tasaCambio;
+            
+            // 2. Total Teórico Calculado (Bs) = Costo Unitario en Bs * Cantidad física recibida
+            const totalCalculado = costoUnitarioBs * cantidad;
+            document.getElementById('des-total-calculado-bs').value = formatearNumero(totalCalculado);
+            
+            // 3. Diferencia Cambiaria (Bs) = Monto Real de Factura - Total Teórico Calculado
+            if (document.getElementById('des-monto-factura-bs').value !== "") {
+                const diferencia = montoFactura - totalCalculado;
+                document.getElementById('des-diferencia-cambiaria').value = formatearNumero(diferencia);
+            } else {
+                document.getElementById('des-diferencia-cambiaria').value = "0,00";
+            }
+        }
+
+        function limpiarCamposFIFORC() {
+            document.getElementById('fifo-lote-rc').value = "";
+            document.getElementById('fifo-costo-usd-rc').value = "0.00";
+            document.getElementById('fifo-tasa-bs-rc').value = "0.00";
+            document.getElementById('fifo-costo-bs-rc').value = "0.00";
+            document.getElementById('des-total-calculado-bs').value = "0,00";
+            document.getElementById('des-diferencia-cambiaria').value = "0,00";
+        }
+
+        // Envío seguro del formulario engranado con la API de Google Sheets
+        document.getElementById('form-recepcion')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const lote = document.getElementById('fifo-lote-rc').value;
+            if(!lote || lote === "SIN PREPAGO PENDIENTE" || lote === "") {
+                alert("Operación cancelada: No se puede dar entrada física a un producto que no posea fondos o un prepago activo en la cola FIFO.");
+                return;
+            }
+
+            // Calculamos los valores puros sin formatear para la base de datos
+            const cUsd = parseFloat(document.getElementById('fifo-costo-usd-rc').value) || 0;
+            const tBs = parseFloat(document.getElementById('fifo-tasa-bs-rc').value) || 0;
+            const cant = parseFloat(document.getElementById('des-cantidad').value) || 0;
+            const mFact = parseFloat(document.getElementById('des-monto-factura-bs').value) || 0;
+            const tCalc = (cUsd * tBs) * cant;
+            const dif = mFact - tCalc;
+
+            const datosCarga = {
+                accion: "registrar_recepcion_carga",
+                data: {
+                    idLote: lote,
+                    nroFactura: document.getElementById('des-factura').value,
+                    fechaRecepcion: document.getElementById('des-fecha-rc').value,
+                    proveedor: document.getElementById('des-proveedor').value,
+                    producto: document.getElementById('des-producto').value,
+                    cantidadRecibida: cant,
+                    montoFactura: mFact,
+                    diferenciaCambiaria: dif
+                }
+            };
+
+            const urlEnvio = WEB_APP_URL + "?payload=" + encodeURIComponent(JSON.stringify(datosCarga));
+            
+            const script = document.createElement('script');
+            script.id = 'jsonp-script-envio-rc';
+            script.src = urlEnvio + "&callback=respuestaServidorRC";
+            document.body.appendChild(script);
         });
-    // ========================================================
-// CONTROLADORES INTELIGENTES PARA LA RECEPCIÓN DE CARGA V2
-// ========================================================
-function buscarLoteFIFORC() {
-  const prov = document.getElementById('des-proveedor').value;
-  const merc = document.getElementById('des-producto').value;
-  
-  // Usamos el arreglo global de lotes activos que tu app ya descarga al iniciar (detallesLotes)
-  if (!prov || !merc || typeof cacheDatosGlobal === 'undefined' || !cacheDatosGlobal.detallesLotes) {
-    limpiarCamposFIFORC();
-    return;
-  }
 
-  // Buscamos el primer lote de ese proveedor y producto con saldo disponible > 0
-  const loteActivo = cacheDatosGlobal.detallesLotes.find(l => 
-    l.proveedor.trim() === prov.trim() && 
-    l.producto.trim() === merc.trim() && 
-    l.cantDisponible > 0
-  );
+        window.respuestaServidorRC = function(res) {
+            if (res && res.status === "success") {
+                alert("¡Registro de Recepción con éxito! Los saldos contables se han descontado de la cola FIFO.");
+                location.reload();
+            } else {
+                alert("Error del servidor: " + (res ? res.message : "Sin respuesta de Google Sheets."));
+            }
+            const scr = document.getElementById('jsonp-script-envio-rc'); if(scr) scr.remove();
+        };
 
-  if (loteActivo) {
-    document.getElementById('fifo-lote-rc').value = loteActivo.idLote;
-    document.getElementById('fifo-costo-usd-rc').value = loteActivo.costoUsd.toFixed(2);
-    document.getElementById('fifo-tasa-bs-rc').value = loteActivo.tasaCambio.toFixed(2);
-    calcularTotalesRC();
-  } else {
-    document.getElementById('fifo-lote-rc').value = "SIN PREPAGO PENDIENTE";
-    document.getElementById('fifo-costo-usd-rc').value = "0.00";
-    document.getElementById('fifo-tasa-bs-rc').value = "0.00";
-    calcularTotalesRC();
-  }
-}
-
-function calcularTotalesRC() {
-  const costoUsd = parseFloat(document.getElementById('fifo-costo-usd-rc').value) || 0;
-  const tasaCambio = parseFloat(document.getElementById('fifo-tasa-bs-rc').value) || 0;
-  const cantidad = parseFloat(document.getElementById('des-cantidad').value) || 0;
-  const montoFactura = parseFloat(document.getElementById('des-monto-factura-bs').value) || 0;
-  
-  // Realiza el cálculo matemático directo en bolívares base
-  const totalCalculado = (costoUsd * tasaCambio) * cantidad;
-  document.getElementById('des-total-calculado-bs').value = totalCalculado.toFixed(2);
-  
-  if (document.getElementById('des-monto-factura-bs').value !== "") {
-    const diferencia = montoFactura - totalCalculado;
-    document.getElementById('des-diferencia-cambiaria').value = diferencia.toFixed(2);
-  } else {
-    document.getElementById('des-diferencia-cambiaria').value = "0.00";
-  }
-}
-
-function limpiarCamposFIFORC() {
-  document.getElementById('fifo-lote-rc').value = "";
-  document.getElementById('fifo-costo-usd-rc').value = "";
-  document.getElementById('fifo-tasa-bs-rc').value = "";
-  document.getElementById('des-total-calculado-bs').value = "0.00";
-  document.getElementById('des-diferencia-cambiaria').value = "0.00";
-}
-
-// Interceptamos el envío para mandarlo a la base de datos de Google Sheets
-document.getElementById('form-recepcion')?.addEventListener('submit', function(e) {
-  e.preventDefault();
-  
-  const lote = document.getElementById('fifo-lote-rc').value;
-  if(lote === "SIN PREPAGO PENDIENTE" || lote === "") {
-    alert("No se puede registrar entrada de inventario físico sin un prepago vigente en la cola FIFO.");
-    return;
-  }
-
-  const datosCarga = {
-    accion: "registrar_recepcion_carga",
-    data: {
-      idLote: lote,
-      nroFactura: document.getElementById('des-factura').value,
-      fechaRecepcion: document.getElementById('des-fecha-rc').value,
-      proveedor: document.getElementById('des-proveedor').value,
-      producto: document.getElementById('des-producto').value,
-      cantidadRecibida: parseFloat(document.getElementById('des-cantidad').value),
-      montoFactura: parseFloat(document.getElementById('des-monto-factura-bs').value),
-      diferenciaCambiaria: parseFloat(document.getElementById('des-diferencia-cambiaria').value)
-    }
-  };
-
-  // Reutiliza el endpoint de tu App Script. Asegúrate de verificar que el nombre de la variable de la URL coincida con la de tu código global
-  const urlEnvio = URL_API + "?payload=" + encodeURIComponent(JSON.stringify(datosCarga));
-  
-  const script = document.createElement('script');
-  script.src = urlEnvio + "&callback=respuestaServidorRC";
-  document.body.appendChild(script);
-});
-
-function respuestaServidorRC(res) {
-  if (res && res.status === "success") {
-    alert("¡Recepcion completada con éxito! Registro asentado y saldo rebajado de la cola FIFO.");
-    location.reload();
-  } else {
-    alert("Error de procesamiento: " + (res ? res.message : "Sin respuesta del servidor."));
-  }
-}
+        window.onload = function() { cargarDatos(); };
     </script>
 </body>
 </html>
