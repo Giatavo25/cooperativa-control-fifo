@@ -743,13 +743,7 @@ function procesarRespuestaGoogle(resultado) {
                 });
             }
 
-            const fPre = document.getElementById("form-prepago");
-            if (fPre) {
-                fPre.addEventListener("submit", (e) => {
-                    e.preventDefault();
-                    enviarFormularioManual({ accion: "registrar_prepago", data: { idLote: "LOTE-" + Math.floor(1000 + Math.random() * 9000), proveedor: document.getElementById("pre-proveedor").value, producto: document.getElementById("pre-producto").value, cantidadPrepagada: parseInt(document.getElementById("pre-cantidad").value), tasaCambio: parseFloat(document.getElementById("pre-tasa").value || 1) } }, "form-prepago");
-                });
-            }
+        
 
             const fDes = document.getElementById("form-recepcion");
             if (fDes) {
