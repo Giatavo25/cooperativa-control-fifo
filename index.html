@@ -15,24 +15,24 @@
             <p class="text-xs text-slate-500 font-medium">Control de Inventario FIFO</p>
         </div>
         <nav class="flex flex-col gap-2 flex-1">
-            <button id="nav-mod-dashboard" onclick="cambiarModulo('mod-dashboard')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition cursor-pointer">
+            <button id="nav-mod-dashboard" onclick="cambiarModulo('mod-dashboard')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition">
                 <span>🏠 Dashboard</span>
             </button>
-            <button id="nav-mod-prepagos" onclick="cambiarModulo('mod-prepagos')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition cursor-pointer">
+            <button id="nav-mod-prepagos" onclick="cambiarModulo('mod-prepagos')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
                 <span>💳 Registrar Prepago</span>
             </button>
-            <button id="nav-mod-recepcion" onclick="cambiarModulo('mod-recepcion')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition cursor-pointer">
+            <button id="nav-mod-recepcion" onclick="cambiarModulo('mod-recepcion')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
                 <span>📦 Recepción Carga</span>
             </button>
-            <button id="nav-mod-proveedores" onclick="cambiarModulo('mod-proveedores')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition cursor-pointer">
+            <button id="nav-mod-proveedores" onclick="cambiarModulo('mod-proveedores')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
                 <span>🤝 Proveedores</span>
             </button>
-            <button id="nav-mod-reportes" onclick="cambiarModulo('mod-reportes')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition cursor-pointer">
+            <button id="nav-mod-reportes" onclick="cambiarModulo('mod-reportes')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
                 <span>📋 Reportes / Auditoría</span>
             </button>
         </nav>
         <div class="pt-4 border-t border-slate-800 text-center">
-            <button onclick="cargarDatos()" class="w-full bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs py-2 rounded-lg font-bold transition cursor-pointer">
+            <button onclick="cargarDatos()" class="w-full bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs py-2 rounded-lg font-bold transition">
                 🔄 Forzar Sincronización
             </button>
         </div>
@@ -113,24 +113,24 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-800/80">
                         <div>
                             <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Proveedor</label>
-                            <select id="pre-proveedor" onchange="actualizarFlujoProveedorPrepago(this.value)" class="select-proveedores w-full p-2.5 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm focus:border-blue-500 focus:outline-none" required>
+                            <select id="pre-proveedor" onchange="actualizarFlujoProveedorPrepago(this.value)" class="select-proveedores w-full p-2.5 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm focus:border-blue-500" required>
                                 <option value="">Seleccione proveedor...</option>
                             </select>
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Fecha del Prepago</label>
-                            <input type="date" id="pre-fecha" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm font-mono focus:border-blue-500 focus:outline-none" required>
+                            <input type="date" id="pre-fecha" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm font-mono" required>
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Tasa de Cambio ($ a Bs)</label>
-                            <input type="number" step="0.01" id="pre-tasa" placeholder="Ej: 36.50" oninput="calcularTotalesPrepago()" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm font-mono text-right font-bold text-amber-400 focus:border-amber-500 focus:outline-none" required>
+                            <input type="number" step="0.01" id="pre-tasa" placeholder="Ej: 36.50" oninput="calcularTotalesPrepago()" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm font-mono text-right font-bold text-amber-400" required>
                         </div>
                     </div>
 
                     <div class="bg-slate-900/30 p-4 rounded-xl border border-slate-800">
                         <div class="flex justify-between items-center mb-3">
                             <h4 class="text-xs font-black text-slate-300 uppercase tracking-wider">📦 Mercancías a Incluir en este Lote</h4>
-                            <button type="button" onclick="agregarFilaMercanciaPrepago()" class="text-xs bg-blue-950 hover:bg-blue-900 text-blue-400 border border-blue-800 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer">
+                            <button type="button" onclick="agregarFilaMercanciaPrepago()" class="text-xs bg-blue-950 hover:bg-blue-900 text-blue-400 border border-blue-800 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1">
                                 ➕ Añadir Mercancía
                             </button>
                         </div>
@@ -148,7 +148,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="contenedor-items-prepago" class="divide-y divide-slate-800/60">
-                                    </tbody>
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -159,23 +159,23 @@
                             <div class="grid grid-cols-1 gap-2.5">
                                 <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
                                     <span class="text-xs font-bold text-slate-400 w-24">BANESCO</span>
-                                    <input type="number" step="0.01" id="pago-banesco" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white focus:outline-none focus:border-blue-500">
+                                    <input type="number" step="0.01" id="pago-banesco" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white">
                                 </div>
                                 <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
                                     <span class="text-xs font-bold text-slate-400 w-24">MERCANTIL</span>
-                                    <input type="number" step="0.01" id="pago-mercantil" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white focus:outline-none focus:border-blue-500">
+                                    <input type="number" step="0.01" id="pago-mercantil" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white">
                                 </div>
                                 <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
                                     <span class="text-xs font-bold text-slate-400 w-24">PROVINCIAL</span>
-                                    <input type="number" step="0.01" id="pago-provincial" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white focus:outline-none focus:border-blue-500">
+                                    <input type="number" step="0.01" id="pago-provincial" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white">
                                 </div>
                                 <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
                                     <span class="text-xs font-bold text-slate-400 w-24">BANCARIBE</span>
-                                    <input type="number" step="0.01" id="pago-bancaribe" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white focus:outline-none focus:border-blue-500">
+                                    <input type="number" step="0.01" id="pago-bancaribe" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white">
                                 </div>
                                 <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
                                     <span class="text-xs font-bold text-slate-400 w-24">B. ACTIVO</span>
-                                    <input type="number" step="0.01" id="pago-activo" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white focus:outline-none focus:border-blue-500">
+                                    <input type="number" step="0.01" id="pago-activo" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white">
                                 </div>
                             </div>
                         </div>
@@ -187,11 +187,11 @@
                                     <span id="txt-total-usd" class="text-base font-mono font-bold text-white">0,00</span>
                                 </div>
                                 <div class="flex justify-between items-center border-b border-slate-900 pb-2">
-                                    <span class="text-xs font-semibold text-slate-400">Monto Obligatorio (Bs):</span>
+                                    <span class="text-xs font-semibold text-slate-400">Monto Obligatorio a Cancelar (Bs):</span>
                                     <span id="txt-total-bs" class="text-base font-mono font-bold text-blue-400">0,00</span>
                                 </div>
                                 <div class="flex justify-between items-center border-b border-slate-900 pb-2">
-                                    <span class="text-xs font-semibold text-slate-400">Total Declarado Bancos (Bs):</span>
+                                    <span class="text-xs font-semibold text-slate-400">Total Declarado en Bancos (Bs):</span>
                                     <span id="txt-total-bancos" class="text-base font-mono font-bold text-emerald-400">0,00</span>
                                 </div>
                             </div>
@@ -219,24 +219,24 @@
                 
                 <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 space-y-3">
                     <h4 class="text-xs font-semibold text-blue-400 flex items-center gap-2 border-b border-slate-800 pb-2">
-                        🔍 Asignación Automática FIFO (Datos del Lote Activo)
+                        🔍 Asignación Automática FIFO (Datos del Prepago)
                     </h4>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
-                            <label class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Lote Detectado (FIFO):</label>
+                            <label class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Lote Sugerido (FIFO):</label>
                             <input type="text" id="fifo-lote-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-blue-400 font-bold focus:outline-none" readonly placeholder="Buscando lote activo...">
                         </div>
                         <div>
                             <label class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Costo Unitario ($):</label>
-                            <input type="text" id="fifo-costo-usd-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none text-right font-mono" readonly placeholder="0.00">
+                            <input type="text" id="fifo-costo-usd-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none text-right" readonly placeholder="0.00">
                         </div>
                         <div>
                             <label class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Tasa Prepago (Bs):</label>
-                            <input type="text" id="fifo-tasa-bs-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-amber-400 font-bold focus:outline-none text-right font-mono" readonly placeholder="0.00">
+                            <input type="text" id="fifo-tasa-bs-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-amber-400 font-bold focus:outline-none text-right" readonly placeholder="0.00">
                         </div>
                         <div>
                             <label class="block text-[10px] font-medium text-slate-400 uppercase tracking-wider">Costo Unitario (Bs):</label>
-                            <input type="text" id="fifo-costo-bs-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-emerald-400 font-bold focus:outline-none text-right font-mono" readonly placeholder="0.00">
+                            <input type="text" id="fifo-costo-bs-rc" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-emerald-400 font-bold focus:outline-none text-right" readonly placeholder="0.00">
                         </div>
                     </div>
                 </div>
@@ -244,44 +244,44 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Nro Factura / Control</label>
-                        <input type="text" id="des-factura" placeholder="Ej: F-001" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500" required>
+                        <input type="text" id="des-factura" placeholder="F-001" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Fecha de Recepción</label>
-                        <input type="date" id="des-fecha-rc" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500" required>
+                        <input type="date" id="des-fecha-rc" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Proveedor</label>
-                        <select id="des-proveedor" onchange="filtrarProductosPorProveedor(this.value, 'des-producto'); limpiarCamposFIFORC();" class="select-proveedores w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500" required>
+                        <select id="des-proveedor" onchange="filtrarProductosPorProveedor(this.value, 'des-producto'); limpiarCamposFIFORC();" class="select-proveedores w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
                             <option value="">-- Seleccione un proveedor --</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Mercancía Recibida</label>
-                        <select id="des-producto" onchange="buscarLoteFIFORC()" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500" required>
+                        <select id="des-producto" onchange="buscarLoteFIFORC()" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
                             <option value="">-- Seleccione primero un proveedor --</option>
                         </select>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Cantidad Física Recibida (Unidades)</label>
-                    <input type="number" id="des-cantidad" oninput="calcularTotalesRC()" placeholder="Ej: 1200" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono font-bold focus:outline-none focus:border-blue-500" required min="1">
+                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Cantidad Física que Entra (Unidades)</label>
+                    <input type="number" id="des-cantidad" oninput="calcularTotalesRC()" placeholder="Ej: 1200" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono font-bold" required min="1">
                 </div>
 
                 <div class="border-t border-dashed border-slate-800 pt-4 mt-2">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-900 p-4 rounded-lg border border-slate-800">
                         <div>
-                            <label class="block text-xs font-bold text-blue-400 mb-1.5 uppercase">Total Según Prepago (Bs)</label>
+                            <label class="block text-xs font-bold text-blue-400 mb-1.5 uppercase">Total Calculado (Bs)</label>
                             <input type="text" id="des-total-calculado-bs" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-blue-400 font-mono font-bold text-right focus:outline-none" readonly placeholder="0,00">
                             <span class="text-[10px] text-slate-500 block mt-1">Costo Unit Bs x Cantidad</span>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-amber-400 mb-1.5 uppercase">Monto Físico Factura (Bs)</label>
-                            <input type="number" id="des-monto-factura-bs" oninput="calcularTotalesRC()" placeholder="Monto del papel" step="0.01" class="w-full p-2.5 bg-slate-900 border border-amber-500/50 rounded-lg text-white font-mono font-bold text-right focus:outline-none focus:border-amber-500" required>
+                            <label class="block text-xs font-bold text-amber-400 mb-1.5 uppercase">Monto Total Factura (Bs)</label>
+                            <input type="number" id="des-monto-factura-bs" oninput="calcularTotalesRC()" placeholder="Monto del papel" step="0.01" class="w-full p-2.5 bg-slate-900 border border-amber-500/50 rounded-lg text-white font-mono font-bold text-right focus:outline-none" required>
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-red-400 mb-1.5 uppercase">Diferencia Cambiaria (Bs)</label>
@@ -291,13 +291,14 @@
                 </div>
 
                 <div class="flex justify-end gap-3 pt-2">
-                    <button type="button" onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-4 py-2.5 rounded-lg transition text-sm flex items-center gap-2 cursor-pointer">
-                        🖨️ Imprimir Soporte
+                    <button type="button" onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-4 py-2.5 rounded-lg transition text-sm flex items-center gap-2">
+                        🖨️ Imprimir Planilla
                     </button>
-                    <button type="submit" id="btn-guardar-recepcion" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition cursor-pointer">
-                        💾 Registrar y Descontar FIFO
+                    <button type="submit" id="btn-guardar-recepcion" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition">
+                        💾 Registrar y Descontar de Cola FIFO
                     </button>
                 </div>
+
             </form>
         </section>
 
@@ -307,23 +308,22 @@
                 <form id="form-proveedor" class="flex flex-col gap-4" onsubmit="procesarEnvioProveedor(event)">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1.5">Nombre de la Empresa</label>
-                        <input type="text" id="prov-nombre" placeholder="Ej: Polar" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500" required>
+                        <input type="text" id="prov-nombre" placeholder="Ej: Polar" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1.5">Mercancías que Suministra</label>
                         <div id="contenedor-mercancias" class="flex flex-col gap-2">
-                            <input type="text" class="input-mercancia w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500" placeholder="Ej: Harina PAN" required>
+                            <input type="text" class="input-mercancia w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" placeholder="Ej: Harina PAN" required>
                         </div>
-                        <button type="button" onclick="agregarCampoMercancia()" class="text-xs text-blue-400 font-bold mt-2 hover:underline flex items-center gap-1 cursor-pointer">
+                        <button type="button" onclick="agregarCampoMercancia()" class="text-xs text-blue-400 font-bold mt-2 hover:underline flex items-center gap-1">
                             ➕ Añadir otro producto
                         </button>
                     </div>
-                    <button type="submit" id="btn-guardar-proveedor" class="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-bold text-white mt-2 transition cursor-pointer">
+                    <button type="submit" id="btn-guardar-proveedor" class="w-full bg-slate-800 hover:bg-slate-700 py-2.5 rounded-lg text-sm font-bold text-white mt-2">
                         💾 Guardar Ficha
                     </button>
                 </form>
             </div>
-            
             <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 lg:col-span-2">
                 <h3 class="text-sm font-bold text-white mb-4 uppercase">Lista de Aliados Registrados</h3>
                 <div id="lista-proveedores-completa" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -335,16 +335,15 @@
         <section id="mod-reportes" class="modulo hidden flex flex-col gap-4">
             <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-wrap gap-4 items-center justify-between">
                 <div>
-                    <h3 class="text-sm font-bold text-white">Auditoría Histórica de Recepciones / Despachos</h3>
-                    <p class="text-xs text-slate-500">Historial general de movimientos procesados bajo la cola FIFO.</p>
+                    <h3 class="text-sm font-bold text-white">Auditoría Histórica de Despachos</h3>
+                    <p class="text-xs text-slate-500">Visualiza las salidas registradas bajo el método FIFO.</p>
                 </div>
                 <div class="w-64">
-                    <select id="rep-proveedor" onchange="renderizarTablaReportes()" class="select-proveedores w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none">
+                    <select id="rep-proveedor" onchange="renderizarTablaReportes()" class="select-proveedores w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
                         <option value="">-- Todos los Proveedores --</option>
                     </select>
                 </div>
             </div>
-            
             <div id="tabla-reportes-contenedor" class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-900 text-slate-400 text-xs font-bold uppercase">
@@ -353,7 +352,7 @@
                             <th class="px-6 py-3">Factura</th>
                             <th class="px-6 py-3">Proveedor</th>
                             <th class="px-6 py-3">Producto</th>
-                            <th class="px-6 py-3 text-right">Cant. Procesada</th>
+                            <th class="px-6 py-3 text-right">Cant. Despachada</th>
                         </tr>
                     </thead>
                     <tbody id="tabla-reportes-body" class="divide-y divide-slate-800 text-slate-300">
@@ -367,33 +366,28 @@
     </main>
 
     <script>
-        // Endpoint del script de Google Apps Script de la Cooperativa
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
         
-        // Estructuras de Datos de Caché Global
         let cacheProveedores = []; 
         let cacheHistorialDespachos = []; 
         let cacheUltimosDatos = null;
         let chartsCargados = false; 
 
-        // Formateador estándar de Moneda Alemana (ideal para lecturas financieras en Venezuela)
         function formatearNumero(valor) {
             const num = parseFloat(valor);
             if (isNaN(num)) return "0,00";
             return num.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        // Inicialización del motor analítico de Google Charts
         function inicializarGraficos() {
             try {
                 if (typeof google !== 'undefined' && google.charts) {
                     google.charts.load('current', {'packages':['corechart', 'bar']});
                     google.charts.setOnLoadCallback(function() { chartsCargados = true; });
                 }
-            } catch (e) { console.warn("Google Charts no disponible en este entorno."); }
+            } catch (e) { console.warn("Google Charts no disponible."); }
         }
 
-        // Configura las fechas de los inputs dinámicamente con el día de hoy
         function configFechaPorDefecto() {
             const hoy = new Date().toISOString().split('T')[0];
             const inputPre = document.getElementById('pre-fecha');
@@ -402,7 +396,6 @@
             if (inputDes) inputDes.value = hoy;
         }
 
-        // Enrutador Principal de Carga de Datos desde Google Sheets (Mecanismo JSONP Bypass CORS)
         function cargarDatos() {
             const elProgreso = document.getElementById('chart-progreso');
             const elDistribucion = document.getElementById('chart-distribucion');
@@ -410,7 +403,6 @@
             if (elProgreso) elProgreso.innerHTML = "<span class='text-blue-400 animate-pulse'>Sincronizando con Sheets de la Cooperativa...</span>";
             if (elDistribucion) elDistribucion.innerHTML = "<span class='text-blue-400 animate-pulse'>Analizando Lotes...</span>";
 
-            // Callback Global expuesto para recibir el JSONP
             window.procesarRespuestaGoogle = function(resultado) {
                 try {
                     if (resultado && resultado.status === "success") {
@@ -418,13 +410,12 @@
                         cacheProveedores = resultado.data.proveedores || [];
                         cacheHistorialDespachos = resultado.data.detallesLotes || []; 
                         
-                        // Orquestación del renderizado de interfaces con los nuevos datos
                         renderizarDashboard(resultado.data);
                         actualizarInterfacesProveedores();
                         renderizarTablaReportes(); 
                         configFechaPorDefecto();
                     }
-                } catch (err) { console.error("Error crítico procesando datos recibidos:", err); }
+                } catch (err) { console.error("Error procesando datos:", err); }
                 const l = document.getElementById('jsonp-script-loader'); if (l) l.remove();
             };
 
@@ -434,165 +425,161 @@
             script.id = 'jsonp-script-loader';
             script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'callback=procesarRespuestaGoogle';
             script.onerror = function() {
-                if (elProgreso) elProgreso.innerText = "⚠️ Error de red o timeout con Google Sheets.";
+                if (elProgreso) elProgreso.innerText = "⚠️ Error de conexión con Google.";
             };
             document.body.appendChild(script);
         }
 
-        // Sistema de Control de Pestañas / Módulos de la SPA
         function cambiarModulo(idModulo) {
             const target = document.getElementById(idModulo); if (!target) return;
             document.querySelectorAll('.modulo').forEach(m => m.classList.add('hidden'));
             target.classList.remove('hidden');
             
             document.querySelectorAll('aside nav button').forEach(b => {
-                b.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition cursor-pointer";
+                b.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition";
             });
             const btn = document.getElementById('nav-' + idModulo);
-            if (btn) btn.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition cursor-pointer";
+            if (btn) btn.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition";
             
-            const titulos = { 
-                'mod-dashboard': 'Dashboard General', 
-                'mod-prepagos': 'Registrar Prepagos', 
-                'mod-recepcion': 'Recepción de Carga', 
-                'mod-proveedores': 'Ficha de Proveedores', 
-                'mod-reportes': 'Reportes y Auditoría' 
-            };
-            const titleDom = document.getElementById('titulo-modulo'); if (titleDom) titleDom.innerText = titulos[idModulo];
+            const titulos = { 'mod-dashboard': 'Dashboard General', 'mod-prepagos': 'Registrar Prepagos', 'mod-recepcion': 'Recepción de Carga', 'mod-proveedores': 'Ficha de Proveedores', 'mod-reportes': 'Reportes y Auditoría' };
+            const titleDom = document.getElementById('titulo-modulo'); if (titleDom) titleDom.innerText = titulos[idModulo] || 'Sistema';
+            
+            if (idModulo === 'mod-dashboard') {
+                cargarDatos();
+            } else if (idModulo === 'mod-recepcion') {
+                limpiarCamposFIFORC();
+            }
         }
 
-        // =========================================================================
-        // COMPORTAMIENTOS DINÁMICOS DE LOS MÓDULOS (PREPAGOS Y MULTIMERCANCÍAS)
-        // =========================================================================
+        function agregarCampoMercancia() {
+            const div = document.createElement('div'); div.className = "flex gap-2 mt-1";
+            div.innerHTML = `<input type="text" class="input-mercancia w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" placeholder="Producto" required><button type="button" onclick="this.parentElement.remove()" class="bg-red-900 text-red-200 px-3 rounded-lg font-bold hover:bg-red-800">-</button>`;
+            document.getElementById('contenedor-mercancias').appendChild(div);
+        }
 
-        function actualizarFlujoProveedorPrepago(proveedor) {
-            if(!proveedor) {
-                document.getElementById('pre-lote-sugerido').innerText = "AUTO-GEN";
-                document.getElementById('contenedor-items-prepago').innerHTML = "";
-                return;
+        function actualizarInterfacesProveedores() {
+            document.querySelectorAll('.select-proveedores').forEach(sel => {
+                const val = sel.value;
+                sel.innerHTML = '<option value="">-- Seleccione un proveedor --</option>';
+                cacheProveedores.forEach(p => sel.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`);
+                if (val) sel.value = val;
+            });
+
+            const lista = document.getElementById('lista-proveedores-completa');
+            if (lista) {
+                lista.innerHTML = "";
+                if (cacheProveedores.length === 0) {
+                    lista.innerHTML = `<p class="text-xs text-slate-500 italic">No hay aliados registrados.</p>`;
+                    return;
+                }
+                cacheProveedores.forEach(p => {
+                    lista.innerHTML += `
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col gap-1">
+                            <h4 class="text-sm font-bold text-blue-400">${p.nombre}</h4>
+                            <p class="text-[11px] text-slate-400 line-clamp-2">📦 Productos: ${p.productos.join(', ') || 'Ninguno'}</p>
+                        </div>`;
+                });
             }
-            // Generación de Lote en base al nombre acortado y timestamp indexado
-            const cod = proveedor.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
-            const numRandom = Math.floor(100 + Math.random() * 900);
-            document.getElementById('pre-lote-sugerido').innerText = `LOTE-${cod}-${numRandom}`;
-            
-            document.getElementById('contenedor-items-prepago').innerHTML = "";
-            agregarFilaMercanciaPrepago();
+        }
+
+        function filtrarProductosPorProveedor(provNombre, idSelectProducto) {
+            const selProd = document.getElementById(idSelectProducto);
+            if (!selProd) return;
+            selProd.innerHTML = '<option value="">-- Seleccione producto --</option>';
+            const prov = cacheProveedores.find(p => p.nombre === provNombre);
+            if (prov && prov.productos) {
+                prov.productos.forEach(prod => {
+                    selProd.innerHTML += `<option value="${prod}">${prod}</option>`;
+                });
+            }
         }
 
         function agregarFilaMercanciaPrepago() {
-            const proveedorSeleccionado = document.getElementById('pre-provider')?.value || document.getElementById('pre-proveedor').value;
-            if(!proveedorSeleccionado) {
-                alert("Por favor, elija primero el proveedor para cargar sus mercancías asociadas.");
-                return;
-            }
-
-            const pData = cacheProveedores.find(p => p.nombre === proveedorSeleccionado);
-            let optionsHtml = `<option value="">-- Elija Producto --</option>`;
-            if (pData && pData.mercancias) {
-                pData.mercancias.forEach(m => {
-                    optionsHtml += `<option value="${m}">${m}</option>`;
-                });
-            }
-
             const tbody = document.getElementById('contenedor-items-prepago');
-            const uid = 'row_' + Date.now() + '_' + Math.floor(Math.random() * 100);
+            const provSelected = document.getElementById('pre-proveedor').value;
+            if(!provSelected) { alert("Seleccione primero el proveedor"); return; }
             
             const tr = document.createElement('tr');
-            tr.id = uid;
-            tr.className = "hover:bg-slate-900/40 transition text-slate-300";
+            tr.className = "item-fila-prepago";
+            
+            const provData = cacheProveedores.find(p => p.nombre === provSelected);
+            let options = '<option value="">-- Producto --</option>';
+            if(provData && provData.productos) {
+                provData.productos.forEach(p => options += `<option value="${p}">${p}</option>`);
+            }
+
             tr.innerHTML = `
-                <td class="p-2">
-                    <select class="item-producto w-full p-2 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-blue-500" required>
-                        ${optionsHtml}
-                    </select>
-                </td>
-                <td class="p-2">
-                    <input type="number" min="1" class="item-cantidad text-right w-full p-2 bg-slate-950 border border-slate-800 rounded font-mono text-xs text-white focus:outline-none" oninput="calcularTotalesPrepago()" required>
-                </td>
-                <td class="p-2">
-                    <input type="number" step="0.01" min="0" class="item-costo text-right w-full p-2 bg-slate-950 border border-slate-800 rounded font-mono text-xs text-white focus:outline-none" oninput="calcularTotalesPrepago()" required>
-                </td>
-                <td class="p-2 text-right font-mono font-bold text-xs text-slate-400 p-3 item-total-usd">0.00</td>
-                <td class="p-2 text-right font-mono font-bold text-xs text-blue-400 p-3 item-total-bs">0.00</td>
-                <td class="p-2 text-center">
-                    <button type="button" onclick="eliminarFilaPrepago('${uid}')" class="text-red-400 hover:text-red-500 text-sm font-bold p-1 cursor-pointer">✕</button>
-                </td>
+                <td class="p-2"><select class="item-producto w-full p-2 bg-slate-950 border border-slate-700 rounded text-xs" required>${options}</select></td>
+                <td class="p-2"><input type="number" class="item-cantidad text-right w-full p-2 bg-slate-950 border border-slate-700 rounded text-xs font-mono" placeholder="0" oninput="calcularTotalesPrepago()" required min="1"></td>
+                <td class="p-2"><input type="number" step="0.01" class="item-costo text-right w-full p-2 bg-slate-950 border border-slate-700 rounded text-xs font-mono" placeholder="0.00" oninput="calcularTotalesPrepago()" required></td>
+                <td class="p-2 text-right font-mono text-xs text-slate-400 text-item-total-usd">0,00</td>
+                <td class="p-2 text-right font-mono text-xs text-blue-400 text-item-total-bs">0,00</td>
+                <td class="p-2 text-center"><button type="button" onclick="this.parentElement.parentElement.remove(); calcularTotalesPrepago();" class="text-red-400 hover:text-red-300 font-bold text-sm">✕</button></td>
             `;
             tbody.appendChild(tr);
         }
 
-        function eliminarFilaPrepago(uid) {
-            const tr = document.getElementById(uid);
-            if (tr) { tr.remove(); calcularTotalesPrepago(); }
+        function actualizarFlujoProveedorPrepago(prov) {
+            document.getElementById('contenedor-items-prepago').innerHTML = "";
+            const sugeridoDom = document.getElementById('pre-lote-sugerido');
+            if(!prov) { sugeridoDom.innerText = "AUTO-GEN"; return; }
+            
+            let contador = 1;
+            if (cacheUltimosDatos && cacheUltimosDatos.data.detallesLotes) {
+                const coincidentes = cacheUltimosDatos.data.detallesLotes.filter(l => l.proveedor.trim() === prov.trim());
+                if(coincidentes.length > 0) {
+                    const codigos = coincidentes.map(l => {
+                        const partes = l.idLote.split('-');
+                        return partes.length > 1 ? parseInt(partes[1]) : 0;
+                    }).filter(num => !isNaN(num));
+                    if(codigos.length > 0) contador = Math.max(...codigos) + 1;
+                }
+            }
+            sugeridoDom.innerText = prov.substring(0,3).toUpperCase() + "-" + String(contador).padStart(3, '0');
+            agregarFilaMercanciaPrepago();
         }
 
         function calcularTotalesPrepago() {
             const tasa = parseFloat(document.getElementById('pre-tasa').value) || 0;
-            let sumUSD = 0;
-            let sumBs = 0;
-
-            document.querySelectorAll('#contenedor-items-prepago tr').forEach(tr => {
-                const cant = parseFloat(tr.querySelector('.item-cantidad').value) || 0;
-                const costo = parseFloat(tr.querySelector('.item-costo').value) || 0;
-                
-                const totalUSD = cant * costo;
-                const totalBs = totalUSD * tasa;
-                
-                sumUSD += totalUSD;
-                sumBs += totalBs;
-
-                tr.querySelector('.item-total-usd').innerText = totalUSD.toFixed(2);
-                tr.querySelector('.item-total-bs').innerText = formatearNumero(totalBs);
-            });
-
-            // Suma de los inputs de los bancos
-            let sumBancos = 0;
-            document.querySelectorAll('.input-banco-prepago').forEach(input => {
-                sumBancos += parseFloat(input.value) || 0;
-            });
-
-            const diff = sumBs - sumBancos;
-
-            document.getElementById('txt-total-usd').innerText = formatearNumero(sumUSD);
-            document.getElementById('txt-total-bs').innerText = formatearNumero(sumBs);
-            document.getElementById('txt-total-bancos').innerText = formatearNumero(sumBancos);
-
-            const wrapperDiff = document.getElementById('wrapper-diferencia');
-            const txtDiff = document.getElementById('txt-diferencia');
-            const btnGuardar = document.getElementById('btn-guardar-prepago');
-            const btnImprimir = document.getElementById('btn-imprimir-prepago');
-
-            // Validación estricta para liberar el envío (tolerancia 1 Bs)
-            if (sumBs > 0 && Math.abs(diff) <= 1.0) {
-                wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-sm bg-emerald-950/60 border border-emerald-800 text-emerald-400";
-                wrapperDiff.innerText = "✅ Fondos Conciliados Correctamente.";
-                btnGuardar.disabled = false; btnGuardar.className = "bg-blue-600 hover:bg-blue-500 font-bold py-2.5 rounded-lg text-xs text-white transition shadow-lg cursor-pointer";
-                btnImprimir.disabled = false; btnImprimir.className = "bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-lg text-xs transition flex items-center justify-center gap-1 cursor-pointer";
-            } else {
-                wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-sm bg-red-950/60 border border-red-800 text-red-400";
-                wrapperDiff.innerHTML = `Falta por conciliar: <span class="font-mono">${formatearNumero(diff)}</span> Bs`;
-                btnGuardar.disabled = true; btnGuardar.className = "bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition";
-                btnImprimir.disabled = true; btnImprimir.className = "opacity-50 cursor-not-allowed bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-lg text-xs transition flex items-center justify-center gap-1";
-            }
-        }
-
-        // =========================================================================
-        // LOGICA DE INTEGRACION DEL MODULO DE RECEPCIÓN DE CARGA (FIFO)
-        // =========================================================================
-
-        function filtrarProductosPorProveedor(provNombre, idSelectDestino) {
-            const select = document.getElementById(idSelectDestino);
-            if (!select) return;
-            select.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
+            let totalUsd = 0;
             
-            const pData = cacheProveedores.find(p => p.nombre === provNombre);
-            if (pData && pData.mercancias) {
-                pData.mercancias.forEach(m => {
-                    const opt = document.createElement('option');
-                    opt.value = m; opt.innerText = m;
-                    select.appendChild(opt);
-                });
+            document.querySelectorAll('.item-fila-prepago').forEach(tr => {
+                const cant = parseFloat(tr.querySelector('.item-cantidad').value) || 0;
+                const cost = parseFloat(tr.querySelector('.item-costo').value) || 0;
+                const subUsd = cant * cost;
+                const subBs = subUsd * tasa;
+                totalUsd += subUsd;
+                
+                tr.querySelector('.text-item-total-usd').innerText = formatearNumero(subUsd);
+                tr.querySelector('.text-item-total-bs').innerText = formatearNumero(subBs);
+            });
+
+            const totalBsObligatorio = totalUsd * tasa;
+            
+            let totalBancos = 0;
+            document.querySelectorAll('.input-banco-prepago').forEach(input => {
+                totalBancos += parseFloat(input.value) || 0;
+            });
+
+            const diferencia = totalBsObligatorio - totalBancos;
+
+            document.getElementById('txt-total-usd').innerText = formatearNumero(totalUsd);
+            document.getElementById('txt-total-bs').innerText = formatearNumero(totalBsObligatorio);
+            document.getElementById('txt-total-bancos').innerText = formatearNumero(totalBancos);
+            
+            const wrapperDif = document.getElementById('wrapper-diferencia');
+            const txtDif = document.getElementById('txt-diferencia');
+            
+            if (Math.abs(diferencia) <= 0.05) {
+                wrapperDif.className = "p-3 rounded-lg text-center font-bold text-sm bg-emerald-950/60 border border-emerald-800 text-emerald-400";
+                wrapperDif.innerText = "✅ Cuadrado Perfecto con Bancos";
+                document.getElementById('btn-guardar-prepago').disabled = false;
+                document.getElementById('btn-guardar-prepago').classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                wrapperDif.className = "p-3 rounded-lg text-center font-bold text-sm bg-red-950/60 border border-red-800 text-red-400";
+                wrapperDif.innerHTML = `Falta por conciliar: <span class="font-mono">${formatearNumero(diferencia)}</span> Bs`;
+                document.getElementById('btn-guardar-prepago').disabled = true;
+                document.getElementById('btn-guardar-prepago').classList.add('opacity-50', 'cursor-not-allowed');
             }
         }
 
@@ -601,338 +588,317 @@
             document.getElementById('fifo-costo-usd-rc').value = "0.00";
             document.getElementById('fifo-tasa-bs-rc').value = "0.00";
             document.getElementById('fifo-costo-bs-rc').value = "0.00";
+            document.getElementById('des-cantidad').value = "";
             document.getElementById('des-total-calculado-bs').value = "0,00";
+            document.getElementById('des-monto-factura-bs').value = "";
             document.getElementById('des-diferencia-cambiaria').value = "0,00";
         }
 
         function buscarLoteFIFORC() {
             const prov = document.getElementById('des-proveedor').value;
             const prod = document.getElementById('des-producto').value;
-            
-            if(!prov || !prod || !cacheUltimosDatos?.data?.lotesActivos) {
-                limpiarCamposFIFORC(); return;
-            }
+            if(!prov || !prod) { limpiarCamposFIFORC(); return; }
 
-            // Filtra los lotes activos según las reglas de la cola FIFO para ese proveedor y mercancía
-            const lotesFiltrados = cacheUltimosDatos.data.lotesActivos.filter(l => l.proveedor === prov && l.mercancia === prod && l.disponible > 0);
-            
-            if(lotesFiltrados.length > 0) {
-                const loteActivo = lotesFiltrados[0]; // Primer elemento en cola (FIFO)
+            if(!cacheHistorialDespachos || cacheHistorialDespachos.length === 0) return;
+
+            const loteActivo = cacheHistorialDespachos.find(l => 
+                l.proveedor.trim() === prov.trim() && 
+                l.producto.trim() === prod.trim() && 
+                l.cantDisponible > 0
+            );
+
+            if(loteActivo) {
                 document.getElementById('fifo-lote-rc').value = loteActivo.idLote;
                 document.getElementById('fifo-costo-usd-rc').value = loteActivo.costoUsd.toFixed(2);
-                document.getElementById('fifo-tasa-bs-rc').value = loteActivo.tasa.toFixed(2);
+                document.getElementById('fifo-tasa-bs-rc').value = loteActivo.tasaCambio.toFixed(2);
                 
-                const costoBs = loteActivo.costoUsd * loteActivo.tasa;
+                const costoBs = loteActivo.costoUsd * loteActivo.tasaCambio;
                 document.getElementById('fifo-costo-bs-rc').value = costoBs.toFixed(2);
-                calcularTotalesRC();
             } else {
-                document.getElementById('fifo-lote-rc').value = "⚠️ NO HAY LOTES DISPONIBLES";
+                document.getElementById('fifo-lote-rc').value = "SIN PREPAGO (EXCEDENTE)";
                 document.getElementById('fifo-costo-usd-rc').value = "0.00";
                 document.getElementById('fifo-tasa-bs-rc').value = "0.00";
                 document.getElementById('fifo-costo-bs-rc').value = "0.00";
             }
+            calcularTotalesRC();
         }
 
         function calcularTotalesRC() {
-            const cant = parseFloat(document.getElementById('des-cantidad').value) || 0;
-            const costoBs = parseFloat(document.getElementById('fifo-costo-bs-rc').value) || 0;
-            const montoFacturaBs = parseFloat(document.getElementById('des-monto-factura-bs').value) || 0;
-
-            const totalCalculadoBs = cant * costoBs;
-            const diffCambiaria = montoFacturaBs - totalCalculadoBs;
-
-            document.getElementById('des-total-calculado-bs').value = formatearNumero(totalCalculadoBs);
-            document.getElementById('des-diferencia-cambiaria').value = formatearNumero(diffCambiaria);
-        }
-
-        // =========================================================================
-        // RENDERS DE COMPONENTES INTERNOS Y CATÁLOGOS VISUALES
-        // =========================================================================
-
-        function actualizarInterfacesProveedores() {
-            document.querySelectorAll('.select-proveedores').forEach(select => {
-                const valGuardado = select.value;
-                select.innerHTML = select.id === "rep-proveedor" 
-                    ? '<option value="">-- Todos los Proveedores --</option>' 
-                    : '<option value="">Seleccione proveedor...</option>';
-                
-                cacheProveedores.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = p.nombre; opt.innerText = p.nombre;
-                    select.appendChild(opt);
-                });
-                select.value = valGuardado;
-            });
-
-            // Tarjetas del Catálogo en el Módulo Proveedores
-            const contenedorCards = document.getElementById('lista-proveedores-completa');
-            if (contenedorCards) {
-                if (cacheProveedores.length === 0) {
-                    contenedorCards.innerHTML = `<p class="text-xs text-slate-500 italic col-span-2">No hay proveedores en la base de datos.</p>`;
-                    return;
-                }
-                contenedorCards.innerHTML = "";
-                cacheProveedores.forEach(p => {
-                    const div = document.createElement('div');
-                    div.className = "bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col justify-between";
-                    
-                    let badges = "";
-                    if(p.mercancias && p.mercancias.length > 0) {
-                        p.mercancias.forEach(m => {
-                            badges += `<span class="bg-slate-950 text-slate-400 px-2 py-0.5 rounded text-[10px] border border-slate-800 font-medium">${m}</span>`;
-                        });
-                    } else { badges = `<span class="text-slate-600 text-[10px]">Sin productos vinculados</span>`; }
-
-                    div.innerHTML = `
-                        <div>
-                            <h4 class="text-sm font-black text-white tracking-wide">${p.nombre}</h4>
-                            <div class="flex flex-wrap gap-1.5 mt-2.5">${badges}</div>
-                        </div>
-                    `;
-                    contenedorCards.appendChild(div);
-                });
-            }
-        }
-
-        function renderizarDashboard(data) {
-            // Seteo de KPIs Principales
-            document.getElementById('kpi-prepagado').innerText = formatearNumero(data.kpis?.totalPrepagado || 0) + " Bs";
-            document.getElementById('kpi-recibido').innerText = formatearNumero(data.kpis?.totalRecibido || 0) + " Bs";
-            document.getElementById('kpi-pendiente').innerText = formatearNumero(data.kpis?.pendienteOrigen || 0) + " Bs";
-
-            // Listado Analítico de Lotes Activos
-            const tbody = document.getElementById('tabla-lotes');
-            if(tbody) {
-                const lotes = data.lotesActivos || [];
-                if(lotes.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-6 text-center text-xs text-slate-500 italic">No existen lotes con inventario disponible en este ciclo.</td></tr>`;
-                } else {
-                    tbody.innerHTML = "";
-                    lotes.forEach(l => {
-                        const tr = document.createElement('tr');
-                        tr.className = "hover:bg-slate-900/50 transition border-b border-slate-800/60";
-                        tr.innerHTML = `
-                            <td class="px-6 py-3 font-mono font-bold text-xs text-blue-400">${l.idLote}</td>
-                            <td class="px-6 py-3 text-xs font-semibold text-white">${l.proveedor}</td>
-                            <td class="px-6 py-3 text-xs text-slate-300">${l.mercancia}</td>
-                            <td class="px-6 py-3 text-xs font-mono text-right text-slate-400">${l.cantidadInicial}</td>
-                            <td class="px-6 py-3 text-xs font-mono text-right text-emerald-400 font-bold bg-emerald-950/20">${l.disponible}</td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                }
-            }
-
-            // Motores de Gráficos de Google Analytics
-            if (chartsCargados) {
-                // 1. Gráfico de Barras: Progreso por Proveedor
-                if(data.graficoProgreso && data.graficoProgreso.length > 1) {
-                    const dtProgreso = google.visualization.arrayToDataTable(data.graficoProgreso);
-                    const optionsProgreso = {
-                        backgroundColor: 'transparent',
-                        chartArea: {width: '80%', height: '70%'},
-                        hAxis: { textStyle: {color: '#94a3b8', fontSize: 10} },
-                        vAxis: { textStyle: {color: '#94a3b8', fontSize: 10}, gridlines: {color: '#1e293b'} },
-                        legend: {position: 'top', textStyle: {color: '#cbd5e1', fontSize: 11}},
-                        colors: ['#3b82f6', '#10b981'],
-                        bar: {groupWidth: '65%'}
-                    };
-                    const chartP = new google.visualization.ColumnChart(document.getElementById('chart-progreso'));
-                    chartP.draw(dtProgreso, optionsProgreso);
-                } else {
-                    document.getElementById('chart-progreso').innerText = "Insuficientes datos para procesar barra analítica.";
-                }
-
-                // 2. Gráfico de Torta: Distribución de Existencias
-                if(data.graficoDistribucion && data.graficoDistribucion.length > 1) {
-                    const dtDistribucion = google.visualization.arrayToDataTable(data.graficoDistribucion);
-                    const optionsDistribucion = {
-                        backgroundColor: 'transparent',
-                        chartArea: {width: '90%', height: '80%'},
-                        legend: {textStyle: {color: '#cbd5e1', fontSize: 11}, position: 'right'},
-                        pieHole: 0.4,
-                        pieSliceBorderColor: '#0f172a',
-                        pieSliceTextStyle: {fontSize: 10, fontName: 'monospace'},
-                        colors: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#6366f1']
-                    };
-                    const chartD = new google.visualization.PieChart(document.getElementById('chart-distribucion'));
-                    chartD.draw(dtDistribucion, optionsDistribucion);
-                } else {
-                    document.getElementById('chart-distribucion').innerText = "Sin lotes disponibles en cola.";
-                }
-            }
-        }
-
-        function renderizarTablaReportes() {
-            const tbody = document.getElementById('tabla-reportes-body');
-            if (!tbody) return;
-
-            const filtroProv = document.getElementById('rep-proveedor').value;
-            let datosFiltrados = cacheHistorialDespachos;
-
-            if (filtroProv) {
-                datosFiltrados = cacheHistorialDespachos.filter(d => d.proveedor === filtroProv);
-            }
-
-            if (datosFiltrados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">No existen registros históricos coincidentes.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = "";
-            datosFiltrados.forEach(d => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-900/50 transition border-b border-slate-800/60";
-                tr.innerHTML = `
-                    <td class="px-6 py-3 font-mono text-xs text-blue-400 font-bold">${d.idLote}</td>
-                    <td class="px-6 py-3 font-mono text-xs text-slate-400">${d.factura}</td>
-                    <td class="px-6 py-3 text-xs font-medium text-white">${d.proveedor}</td>
-                    <td class="px-6 py-3 text-xs text-slate-300">${d.mercancia}</td>
-                    <td class="px-6 py-3 font-mono text-xs text-right text-amber-400 font-bold">${d.cantidadDespachada}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // Campo dinámico de mercancías en la Ficha de Proveedores
-        function agregarCampoMercancia() {
-            const contenedor = document.getElementById('contenedor-mercancias');
-            const input = document.createElement('input');
-            input.type = "text";
-            input.className = "input-mercancia w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white mt-1.5 focus:outline-none focus:border-blue-500";
-            input.placeholder = "Nombre de la mercancía";
-            contenedor.appendChild(input);
-        }
-
-        // =========================================================================
-        // CONTROLADORES DE ACCIÓN Y ENVÍO DE FORMULARIOS A GOOGLE APPS SCRIPT
-        // =========================================================================
-
-        function procesarEnvioPrepago(e) {
-            e.preventDefault();
+            const cantidad = parseFloat(document.getElementById('des-cantidad').value) || 0;
+            const costoUnitBs = parseFloat(document.getElementById('fifo-costo-bs-rc').value) || 0;
             
-            const btn = document.getElementById('btn-guardar-prepago');
-            btn.disabled = true; btn.innerText = "⚡ Registrando e Indexando Lote...";
+            const totalCalculadoBs = cantidad * costoUnitBs;
+            document.getElementById('des-total-calculado-bs').value = formatearNumero(totalCalculadoBs);
+            
+            const montoFacturaBs = parseFloat(document.getElementById('des-monto-factura-bs').value) || 0;
+            
+            const diferenciaCambiaria = montoFacturaBs - totalCalculadoBs;
+            document.getElementById('des-diferencia-cambiaria').value = formatearNumero(diferenciaCambiaria);
+        }
 
-            // Recolección estructurada de la matriz dinámica multimercancía
-            const items = [];
-            document.querySelectorAll('#contenedor-items-prepago tr').forEach(tr => {
-                const prod = tr.querySelector('.item-producto').value;
-                const cant = parseFloat(tr.querySelector('.item-cantidad').value) || 0;
-                const costUSD = parseFloat(tr.querySelector('.item-costo').value) || 0;
-                if(prod && cant > 0) {
-                    items.push({ producto: prod, cantidad: cant, costoUsd: costUSD });
+        // ================= BLINDAJE CONTRA DOBLE ENVÍO (RECEPCIÓN CARGA) =================
+        function procesarEnvioRecepcionCarga(event) {
+            event.preventDefault();
+            
+            const btnGuardar = document.getElementById('btn-guardar-recepcion');
+            
+            // Bloqueo inmediato para evitar doble procesamiento
+            btnGuardar.disabled = true;
+            const textoOriginal = btnGuardar.innerHTML;
+            btnGuardar.innerHTML = "⏳ Enviando al Servidor...";
+            btnGuardar.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const payload = {
+                accion: "registrar_recepcion_carga",
+                data: {
+                    idLote: document.getElementById('fifo-lote-rc').value,
+                    nroFactura: document.getElementById('des-factura').value,
+                    fechaRecepcion: document.getElementById('des-fecha-rc').value,
+                    proveedor: document.getElementById('des-proveedor').value,
+                    producto: document.getElementById('des-producto').value,
+                    cantidadRecibida: parseFloat(document.getElementById('des-cantidad').value),
+                    montoFactura: parseFloat(document.getElementById('des-monto-factura-bs').value) || 0,
+                    diferenciaCambiaria: parseFloat(document.getElementById('des-monto-factura-bs').value || 0) - (parseFloat(document.getElementById('des-cantidad').value || 0) * parseFloat(document.getElementById('fifo-costo-bs-rc').value || 0))
                 }
-            });
-
-            const payload = {
-                action: "registrarPrepago",
-                idLote: document.getElementById('pre-lote-sugerido').innerText,
-                proveedor: document.getElementById('pre-proveedor').value,
-                fecha: document.getElementById('pre-fecha').value,
-                tasa: parseFloat(document.getElementById('pre-tasa').value),
-                items: items,
-                bancos: {
-                    banesco: parseFloat(document.getElementById('pago-banesco').value) || 0,
-                    mercantil: parseFloat(document.getElementById('pago-mercantil').value) || 0,
-                    provincial: parseFloat(document.getElementById('pago-provincial').value) || 0,
-                    bancaribe: parseFloat(document.getElementById('pago-bancaribe').value) || 0,
-                    activo: parseFloat(document.getElementById('pago-activo').value) || 0
-                }
             };
 
-            ejecutarEnvioRemoto(payload, () => {
-                document.getElementById('form-prepago').reset();
-                cambiarModulo('mod-dashboard');
-                cargarDatos();
-            }, btn, "💾 Procesar Guardado");
-        }
+            window.respuestaRecepcionCarga = function(res) {
+                // Liberar botón tras respuesta
+                btnGuardar.disabled = false;
+                btnGuardar.innerHTML = textoOriginal;
+                btnGuardar.classList.remove('opacity-50', 'cursor-not-allowed');
 
-        function procesarEnvioRecepcionCarga(e) {
-            e.preventDefault();
-            const idLote = document.getElementById('fifo-lote-rc').value;
-            if(idLote.includes("⚠️") || !idLote) {
-                alert("Operación Rechazada: No puede registrar entradas físicas sin un lote activo en la cola FIFO.");
-                return;
-            }
-
-            const btn = document.getElementById('btn-guardar-recepcion');
-            btn.disabled = true; btn.innerText = "⚡ Descontando de Cola FIFO...";
-
-            const payload = {
-                action: "registrarRecepcion",
-                idLote: idLote,
-                factura: document.getElementById('des-factura').value,
-                fecha: document.getElementById('des-fecha-rc').value,
-                proveedor: document.getElementById('des-proveedor').value,
-                mercancia: document.getElementById('des-producto').value,
-                cantidad: parseFloat(document.getElementById('des-cantidad').value),
-                montoFacturaBs: parseFloat(document.getElementById('des-monto-factura-bs').value)
-            };
-
-            ejecutarEnvioRemoto(payload, () => {
-                document.getElementById('form-recepcion').reset();
-                limpiarCamposFIFORC();
-                cambiarModulo('mod-dashboard');
-                cargarDatos();
-            }, btn, "💾 Registrar y Descontar FIFO");
-        }
-
-        function procesarEnvioProveedor(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btn-guardar-proveedor');
-            btn.disabled = true; btn.innerText = "⚡ Guardando...";
-
-            const listaMercancias = [];
-            document.querySelectorAll('.input-mercancia').forEach(input => {
-                if(input.value.trim() !== "") listaMercancias.push(input.value.trim());
-            });
-
-            const payload = {
-                action: "registrarProveedor",
-                nombre: document.getElementById('prov-nombre').value.trim(),
-                mercancias: listaMercancias
-            };
-
-            ejecutarEnvioRemoto(payload, () => {
-                document.getElementById('form-proveedor').reset();
-                document.getElementById('contenedor-mercancias').innerHTML = `
-                    <input type="text" class="input-mercancia w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" placeholder="Ej: Harina PAN" required>
-                `;
-                cargarDatos();
-            }, btn, "💾 Guardar Ficha");
-        }
-
-        // Lanzador Genérico JSONP para escrituras seguras evitando CORS de origen
-        function ejecutarEnvioRemoto(payload, onSuccess, btnElement, txtOriginalBtn) {
-            window.callbackEscritura = function(res) {
-                if(res && res.status === "success") {
-                    alert("¡SICOOP: Registro procesado e indexado con éxito!");
-                    onSuccess();
+                if (res && res.status === "success") {
+                    alert("🎉 " + res.message);
+                    document.getElementById('form-recepcion').reset();
+                    limpiarCamposFIFORC();
+                    cambiarModulo('mod-dashboard');
                 } else {
-                    alert("Error devuelto por la API de Google: " + (res?.message || "Desconocido"));
-                    if(btnElement) { btnElement.disabled = false; btnElement.innerText = txtOriginalBtn; }
+                    alert("⚠️ Error: " + (res ? res.message : "Sin respuesta de la base de datos."));
                 }
-                const s = document.getElementById('jsonp-script-writer'); if(s) s.remove();
+                const l = document.getElementById('jsonp-recepcion-loader'); if (l) l.remove();
             };
 
             const script = document.createElement('script');
-            script.id = 'jsonp-script-writer';
-            const dataBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-            script.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=callbackEscritura&data=${dataBase64}`;
+            script.id = 'jsonp-recepcion-loader';
+            script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'payload=' + encodeURIComponent(JSON.stringify(payload)) + '&callback=respuestaRecepcionCarga';
             script.onerror = function() {
-                alert("⚠️ Error crítico de conexión: Imposible alcanzar el servidor de la Cooperativa.");
-                if(btnElement) { btnElement.disabled = false; btnElement.innerText = txtOriginalBtn; }
+                alert("❌ Error de red fatal. Intente de nuevo.");
+                btnGuardar.disabled = false;
+                btnGuardar.innerHTML = textoOriginal;
+                btnGuardar.classList.remove('opacity-50', 'cursor-not-allowed');
             };
             document.body.appendChild(script);
         }
 
-        // Sistema de impresión limpia para soportes físicos
-        function imprimirReciboPrepago() {
-            window.print();
+        // ================= BLINDAJE CONTRA DOBLE ENVÍO (PREPAGOS) =================
+        function procesarEnvioPrepago(event) {
+            event.preventDefault();
+            
+            const btnGuardar = document.getElementById('btn-guardar-prepago');
+            btnGuardar.disabled = true;
+            const originalText = btnGuardar.innerText;
+            btnGuardar.innerText = "Procesando...";
+            btnGuardar.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const items = [];
+            document.querySelectorAll('.item-fila-prepago').forEach(tr => {
+                items.push({
+                    producto: tr.querySelector('.item-producto').value,
+                    cantidad: parseFloat(tr.querySelector('.item-cantidad').value),
+                    costoUsd: parseFloat(tr.querySelector('.item-costo').value)
+                });
+            });
+
+            const payload = {
+                accion: "registrar_prepago_consolidado",
+                data: {
+                    idLote: document.getElementById('pre-lote-sugerido').innerText,
+                    proveedor: document.getElementById('pre-proveedor').value,
+                    fecha: document.getElementById('pre-fecha').value,
+                    tasa: parseFloat(document.getElementById('pre-tasa').value),
+                    items: items,
+                    bancos: {
+                        BANESCO: parseFloat(document.getElementById('pago-banesco').value) || 0,
+                        MERCANTIL: parseFloat(document.getElementById('pago-mercantil').value) || 0,
+                        PROVINCIAL: parseFloat(document.getElementById('pago-provincial').value) || 0,
+                        BANCARIBE: parseFloat(document.getElementById('pago-bancaribe').value) || 0,
+                        BANCO_ACTIVO: parseFloat(document.getElementById('pago-activo').value) || 0
+                    }
+                }
+            };
+
+            window.respuestaPrepago = function(res) {
+                btnGuardar.disabled = false;
+                btnGuardar.innerText = originalText;
+                btnGuardar.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                if(res && res.status === "success") {
+                    alert("💾 Guardado Exitoso: " + res.message);
+                    document.getElementById('form-prepago').reset();
+                    document.getElementById('contenedor-items-prepago').innerHTML = "";
+                    cambiarModulo('mod-dashboard');
+                } else {
+                    alert("⚠️ Error en Servidor: " + res.message);
+                }
+                const l = document.getElementById('jsonp-prepago-loader'); if (l) l.remove();
+            };
+
+            const script = document.createElement('script');
+            script.id = 'jsonp-prepago-loader';
+            script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'payload=' + encodeURIComponent(JSON.stringify(payload)) + '&callback=respuestaPrepago';
+            document.body.appendChild(script);
         }
 
-        // Disparador de Arranque Inicial del Sistema al Cargar Ventana
+        function procesarEnvioProveedor(event) {
+            event.preventDefault();
+            const btn = document.getElementById('btn-guardar-proveedor');
+            btn.disabled = true;
+            btn.innerText = "Guardando...";
+
+            const mercancias = [];
+            document.querySelectorAll('.input-mercancia').forEach(input => {
+                if(input.value.trim()) mercancias.push(input.value.trim());
+            });
+
+            const payload = {
+                accion: "registrar_proveedor",
+                data: {
+                    nombre: document.getElementById('prov-nombre').value.trim(),
+                    productos: mercancias.join(', ')
+                }
+            };
+
+            window.respuestaProveedor = function(res) {
+                btn.disabled = false;
+                btn.innerText = "💾 Guardar Ficha";
+                if(res && res.status === "success") {
+                    alert("🤝 Aliado añadido correctamente.");
+                    document.getElementById('form-proveedor').reset();
+                    document.getElementById('contenedor-mercancias').innerHTML = '<input type="text" class="input-mercancia w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" placeholder="Ej: Harina PAN" required>';
+                    cargarDatos();
+                }
+                const l = document.getElementById('jsonp-prov-loader'); if (l) l.remove();
+            };
+
+            const script = document.createElement('script');
+            script.id = 'jsonp-prov-loader';
+            script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'payload=' + encodeURIComponent(JSON.stringify(payload)) + '&callback=respuestaProveedor';
+            document.body.appendChild(script);
+        }
+
+        function renderizarDashboard(data) {
+            const tbody = document.getElementById('tabla-lotes');
+            if(!tbody) return;
+            tbody.innerHTML = "";
+
+            let totalPre = 0;
+            let totalPend = 0;
+
+            if(!data.detallesLotes || data.detallesLotes.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500">No hay lotes activos.</td></tr>`;
+                return;
+            }
+
+            data.detallesLotes.forEach(l => {
+                totalPre += l.cantOriginal;
+                totalPend += l.cantDisponible;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-900/40 transition">
+                        <td class="px-6 py-3.5 font-mono text-xs font-bold text-blue-400">${l.idLote}</td>
+                        <td class="px-6 py-3.5 text-xs">${l.proveedor}</td>
+                        <td class="px-6 py-3.5 text-xs font-semibold text-slate-200">${l.producto}</td>
+                        <td class="px-6 py-3.5 text-right font-mono text-xs">${formatearNumero(l.cantOriginal)}</td>
+                        <td class="px-6 py-3.5 text-right font-mono text-xs font-bold ${l.cantDisponible > 0 ? 'text-amber-400':'text-slate-600'}">${formatearNumero(l.cantDisponible)}</td>
+                    </tr>`;
+            });
+
+            document.getElementById('kpi-prepagado').innerText = formatearNumero(totalPre);
+            document.getElementById('kpi-pendiente').innerText = formatearNumero(totalPend);
+            document.getElementById('kpi-recibido').innerText = formatearNumero(totalPre - totalPend);
+
+            if (chartsCargados) renderizarGraficosGoogle(data);
+        }
+
+        function renderizarGraficosGoogle(data) {
+            try {
+                // Gráfico 1: Consolidados
+                const dataProgreso = [['Proveedor', 'Pendiente', 'Recibido']];
+                if(data.resumenConsolidated) {
+                    data.resumenConsolidated.forEach(r => {
+                        dataProgreso.push([r.proveedor, r.totalPendiente, r.totalRecibido]);
+                    });
+                }
+                
+                if(dataProgreso.length > 1) {
+                    const tableData = google.visualization.arrayToDataTable(dataProgreso);
+                    const chart = new google.visualization.ColumnChart(document.getElementById('chart-progreso'));
+                    chart.draw(tableData, {
+                        backgroundColor: 'transparent',
+                        legend: { position: 'top', textStyle: { color: '#94a3b8', fontSize: 10 } },
+                        colors: ['#f59e0b', '#10b981'],
+                        hAxis: { textStyle: { color: '#64748b', fontSize: 9 } },
+                        vAxis: { gridlines: { color: '#334155' }, textStyle: { color: '#64748b' } }
+                    });
+                }
+
+                // Gráfico 2: Tarta Distribución de Mercancía Activa
+                const dictProd = {};
+                data.detallesLotes.forEach(l => {
+                    if(l.cantDisponible > 0) {
+                        dictProd[l.producto] = (dictProd[l.producto] || 0) + l.cantDisponible;
+                    }
+                });
+
+                const arrPie = [['Producto', 'Unidades Disponibles']];
+                Object.keys(dictProd).forEach(k => arrPie.push([k, dictProd[k]]));
+
+                if(arrPie.length > 1) {
+                    const pieData = google.visualization.arrayToDataTable(arrPie);
+                    const pieChart = new google.visualization.PieChart(document.getElementById('chart-distribucion'));
+                    pieChart.draw(pieData, {
+                        backgroundColor: 'transparent',
+                        legend: { textStyle: { color: '#94a3b8', fontSize: 10 } },
+                        is3D: true,
+                        pieSliceBorderColor: '#0f172a'
+                    });
+                }
+            } catch(e) { console.error("Error dibujando gráficos", e); }
+        }
+
+        function renderizarTablaReportes() {
+            const tbody = document.getElementById('tabla-reportes-body');
+            if(!tbody) return;
+            tbody.innerHTML = "";
+
+            const filtroProv = document.getElementById('rep-proveedor').value;
+            let contador = 0;
+
+            if(!cacheHistorialDespachos || cacheHistorialDespachos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">No hay existencias registradas en historial para analizar.</td></tr>`;
+                return;
+            }
+
+            cacheHistorialDespachos.forEach(l => {
+                if(filtroProv && l.proveedor.trim() !== filtroProv.trim()) return;
+                contador++;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-900/40 transition">
+                        <td class="px-6 py-3 font-mono text-xs">${l.idLote}</td>
+                        <td class="px-6 py-3 text-xs font-semibold text-blue-400">P-OK</td>
+                        <td class="px-6 py-3 text-xs">${l.proveedor}</td>
+                        <td class="px-6 py-3 text-xs">${l.producto}</td>
+                        <td class="px-6 py-3 text-right font-mono text-xs font-bold text-emerald-400">${formatearNumero(l.cantOriginal - l.cantDisponible)}</td>
+                    </tr>`;
+            });
+
+            if(contador === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">Ningún lote coincide con el filtro seleccionado.</td></tr>`;
+            }
+        }
+
         window.onload = function() {
             cargarDatos();
         };
