@@ -462,283 +462,359 @@
                 const dDom = document.getElementById('chart-distribucion');
                 if (!pDom || !dDom) return;
 
-                const dtP = new google.visualization.DataTable();
-                dtP.addColumn('string', 'Proveedor'); dtP.addColumn('number', 'Recibido'); dtP.addColumn('number', 'Pendiente');
-                const dtT = [['Proveedor', 'Pendiente']];
-                resumen.forEach(r => { dtP.addRow([r.proveedor, r.totalRecibido, r.totalPendiente]); dtT.push([r.proveedor, r.totalPendiente]); });
-                
-                const opt = { backgroundColor: 'transparent', legend: {textStyle:{color:'#94a3b8'}}, chartArea: {width: '80%', height: '80%'}, hAxis:{textStyle:{color:'#64748b'}}, vAxis:{textStyle:{color:'#64748b'}} };
-                new google.visualization.BarChart(pDom).draw(dtP, { ...opt, isStacked: true, colors: ['#10b981', '#f59e0b'] });
-                new google.visualization.PieChart(dDom).draw(google.visualization.arrayToDataTable(dtT), { ...opt, colors: ['#3b82f6', '#f59e0b', '#ef4444'], pieHole: 0.4 });
-            } catch (e) {}
+                const dataProgreso = [['Proveedor', 'Prepagado', 'Recibido']];
+                const dataDistribucion = [['Producto', 'Unidades Disponibles']];
+
+                Object.keys(resumen).forEach(k => {
+                    const o = resumen[k];
+                    dataProgreso.push([k, o.prepagado, o.recibido]);
+                    o.productos.forEach(p => {
+                        if (p.disponible > 0) dataDistribucion.push([`${p.name} (${k})`, p.disponible]);
+                    });
+                });
+
+                const baseOptions = {
+                    backgroundColor: 'transparent',
+                    legend: { textStyle: { color: '#94a3b8' } },
+                    hAxis: { textStyle: { color: '#94a3b8' }, gridlines: { color: '#334155' } },
+                    vAxis: { textStyle: { color: '#94a3b8' }, gridlines: { color: '#334155' } }
+                };
+
+                if (dataProgreso.length > 1) {
+                    const chart = new google.visualization.ColumnChart(pDom);
+                    chart.draw(google.visualization.arrayToDataTable(dataProgreso), {
+                        ...baseOptions,
+                        colors: ['#3b82f6', '#10b981'],
+                        chartArea: { width: '80%', height: '70%' }
+                    });
+                } else { pDom.innerText = "No hay datos de progresión."; }
+
+                if (dataDistribucion.length > 1) {
+                    const chart = new google.visualization.PieChart(dDom);
+                    chart.draw(google.visualization.arrayToDataTable(dataDistribucion), {
+                        ...baseOptions,
+                        pieHole: 0.4,
+                        chartArea: { width: '90%', height: '80%' }
+                    });
+                } else { dDom.innerText = "No hay inventario disponible."; }
+            } catch (err) { console.error("Error en gráficos:", err); }
         }
 
         function configurarFechaPorDefecto() {
-            const el = document.getElementById("pre-fecha");
+            const el = document.getElementById('pre-fecha');
             if (el && !el.value) {
-                const hoy = new Date().toISOString().split('T')[0];
-                el.value = hoy;
+                const d = new Date();
+                el.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
             }
         }
 
         function actualizarFlujoProveedorPrepago(prov) {
-            const container = document.getElementById("contenedor-items-prepago");
+            const container = document.getElementById('contenedor-items-prepago');
+            if (!container) return;
             container.innerHTML = "";
-            
-            if (!prov) {
-                document.getElementById("pre-lote-sugerido").innerText = "AUTO-GEN";
-                return;
+
+            const sugeridoDom = document.getElementById('pre-lote-sugerido');
+            if (sugeridoDom) {
+                if (!prov) { sugeridoDom.innerText = "AUTO-GEN"; }
+                else {
+                    const siglas = prov.split(' ').map(w => w[0]).join('').toUpperCase().substring(0,3);
+                    const correlativo = (cacheUltimosDatos && cacheUltimosDatos.data.detallesLotes) ? 
+                        cacheUltimosDatos.data.detallesLotes.filter(l => l.proveedor === prov).length + 1 : 1;
+                    sugeridoDom.innerText = `${siglas}-LOTE-${String(correlativo).padStart(3, '0')}`;
+                }
             }
 
-            // Sugerir ID de Lote basado en el conteo actual
-            let correlativo = 1;
-            if (cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes) {
-                const filtrados = cacheUltimosDatos.data.detallesLotes.filter(x => x.proveedor === prov);
-                correlativo = filtrados.length + 1;
-            }
-            const iniciales = prov.substring(0, 3).toUpperCase();
-            document.getElementById("pre-lote-sugerido").innerText = `${iniciales}-${String(correlativo).padStart(3, '0')}`;
-
-            // Insertar la primera fila de mercancía de forma automática
+            if (!prov) return;
             agregarFilaMercanciaPrepago();
         }
 
         function agregarFilaMercanciaPrepago() {
-            const prov = document.getElementById("pre-proveedor").value;
-            if (!prov) { alert("Por favor, seleccione primero un proveedor."); return; }
+            const prov = document.getElementById('pre-proveedor').value;
+            if (!prov) { alert("Seleccione primero un proveedor."); return; }
+            const pItem = cacheProveedores.find(p => p.nombre === prov);
+            if (!pItem) return;
 
-            const pData = cacheProveedores.find(x => x.nombre === prov);
-            const productos = (pData && pData.productos) ? pData.productos : [];
-            
-            const tr = document.createElement('tr');
-            tr.className = "item-fila-prepago bg-slate-950/40 hover:bg-slate-900/40 transition";
-            
-            let opcionesHtml = `<option value="">Seleccione...</option>`;
-            productos.forEach(pr => opcionesHtml += `<option value="${pr}">${pr}</option>`);
+            const tbody = document.getElementById('contenedor-items-prepago');
+            const randId = 'row_' + Math.random().toString(36).substring(2, 9);
 
-            tr.innerHTML = `
-                <td class="p-2">
-                    <select class="item-producto w-full p-1.5 bg-slate-900 border border-slate-700 rounded text-xs text-white" required>
-                        ${opcionesHtml}
-                    </select>
-                </td>
-                <td class="p-2">
-                    <input type="number" step="1" class="item-cantidad w-full p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-xs text-white" placeholder="0" oninput="calcularTotalesPrepago()" required>
-                </td>
-                <td class="p-2">
-                    <input type="number" step="0.01" class="item-costo-usd w-full p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-xs text-white" placeholder="0.00" oninput="calcularTotalesPrepago()" required>
-                </td>
-                <td class="p-2 text-right font-mono text-xs text-slate-400 font-bold item-total-usd-txt">0,00</td>
-                <td class="p-2 text-right font-mono text-xs text-blue-400 font-bold item-total-bs-txt">0,00</td>
-                <td class="p-2 text-center">
-                    <button type="button" onclick="this.parentElement.parentElement.remove(); calcularTotalesPrepago();" class="text-red-500 hover:text-red-400 font-bold text-sm">✕</button>
-                </td>
-            `;
-            document.getElementById("contenedor-items-prepago").appendChild(tr);
+            let options = pItem.productos.map(pr => `<option value="${pr}">${pr}</option>`).join('');
+
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr id="${randId}" class="fila-item-prepago border-b border-slate-800/40 hover:bg-slate-900/20">
+                    <td class="p-2">
+                        <select class="item-nombre w-full p-1.5 bg-slate-950 border border-slate-700 rounded text-xs text-white" required>
+                            ${options}
+                        </select>
+                    </td>
+                    <td class="p-2">
+                        <input type="number" min="1" class="item-cantidad w-full p-1.5 bg-slate-950 border border-slate-700 rounded text-right font-mono text-xs text-white" value="100" oninput="calcularTotalesPrepago()" required>
+                    </td>
+                    <td class="p-2">
+                        <input type="number" step="0.01" min="0" class="item-costo w-full p-1.5 bg-slate-950 border border-slate-700 rounded text-right font-mono text-xs text-white" value="1.50" oninput="calcularTotalesPrepago()" required>
+                    </td>
+                    <td class="p-2 text-right font-mono text-xs text-slate-300 font-bold item-total-usd">0,00</td>
+                    <td class="p-2 text-right font-mono text-xs text-blue-400 font-bold item-total-bs">0,00</td>
+                    <td class="p-2 text-center">
+                        <button type="button" onclick="document.getElementById('${randId}').remove(); calcularTotalesPrepago();" class="text-red-500 hover:text-red-400 font-bold text-sm">✕</button>
+                    </td>
+                </tr>
+            `);
+            calcularTotalesPrepago();
         }
 
+        // FUNCIÓN CLAVE CORREGIDA: Lógica y reactividad en tiempo real garantizada
         function calcularTotalesPrepago() {
-            const tasa = parseFloat(document.getElementById("pre-tasa").value) || 0;
-            let sumatoriaUsd = 0;
+            const tasa = parseFloat(document.getElementById('pre-tasa').value) || 0;
+            let totalUSD = 0;
 
-            // Recorrer filas de mercancías
-            document.querySelectorAll(".item-fila-prepago").forEach(fila => {
-                const cant = parseFloat(fila.querySelector(".item-cantidad").value) || 0;
-                const costoUsd = parseFloat(fila.querySelector(".item-costo-usd").value) || 0;
-                
-                const tUsd = cant * costoUsd;
-                const tBs = tUsd * tasa;
-                sumatoriaUsd += tUsd;
+            document.querySelectorAll('.fila-item-prepago').forEach(row => {
+                const cant = parseFloat(row.querySelector('.item-cantidad').value) || 0;
+                const costo = parseFloat(row.querySelector('.item-costo').value) || 0;
+                const usd = cant * costo;
+                const bs = usd * tasa;
+                totalUSD += usd;
 
-                fila.querySelector(".item-total-usd-txt").innerText = formatearMonto(tUsd);
-                fila.querySelector(".item-total-bs-txt").innerText = formatearMonto(tBs);
+                row.querySelector('.item-total-usd').innerText = formatearMonto(usd);
+                row.querySelector('.item-total-bs').innerText = formatearMonto(bs);
             });
 
-            const totalBsObligatorio = sumatoriaUsd * tasa;
+            const totalBsObligatorio = totalUSD * tasa;
 
-            // Sumatoria de lo colocado en los bancos
-            let sumatoriaBancos = 0;
-            document.querySelectorAll(".input-banco-prepago").forEach(inp => {
-                sumatoriaBancos += parseFloat(inp.value) || 0;
-            });
+            // CAPTURA REAL DE BANCOS USANDO LOS IDS CORRECTOS DEL FORMULARIO
+            const banesco = parseFloat(document.getElementById('pago-banesco').value) || 0;
+            const mercantil = parseFloat(document.getElementById('pago-mercantil').value) || 0;
+            const provincial = parseFloat(document.getElementById('pago-provincial').value) || 0;
+            const bancaribe = parseFloat(document.getElementById('pago-bancaribe').value) || 0;
+            const bActivo = parseFloat(document.getElementById('pago-activo').value) || 0;
 
-            const diferencia = totalBsObligatorio - sumatoriaBancos;
+            const totalBancosDeclarado = banesco + mercantil + provincial + bancaribe + bActivo;
+            const diferencia = totalBsObligatorio - totalBancosDeclarado;
 
-            // Renderizar totales con formato numérico impecable
-            document.getElementById("txt-total-usd").innerText = formatearMonto(sumatoriaUsd);
-            document.getElementById("txt-total-bs").innerText = formatearMonto(totalBsObligatorio);
-            document.getElementById("txt-total-bancos").innerText = formatearMonto(sumatoriaBancos);
-            document.getElementById("txt-diferencia").innerText = formatearMonto(Math.abs(diferencia));
+            // ACTUALIZACIÓN DE TEXTOS EN VISTA
+            document.getElementById('txt-total-usd').innerText = formatearMonto(totalUSD);
+            document.getElementById('txt-total-bs').innerText = formatearMonto(totalBsObligatorio);
+            document.getElementById('txt-total-bancos').innerText = formatearMonto(totalBancosDeclarado);
 
-            const wrapperDiff = document.getElementById("wrapper-diferencia");
-            const btnGuardar = document.getElementById("btn-guardar-prepago");
-            const btnImprimir = document.getElementById("btn-imprimir-prepago");
+            const wrapper = document.getElementById('wrapper-diferencia');
+            const btnImprimir = document.getElementById('btn-imprimir-prepago');
+            const btnGuardar = document.getElementById('btn-guardar-prepago');
 
-            // Tolerancia de 1 unidad por decimales flotantes
-            if (totalBsObligatorio > 0 && Math.abs(diferencia) <= 1) {
-                wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-sm bg-emerald-950/60 border border-emerald-800 text-emerald-400";
-                wrapperDiff.innerText = "✅ Cuadrado / Conciliación Bancaria Exitosa";
+            // COMPARACIÓN EXACTA CON TOLERANCIA DECIMAL MENOR A 1 CENTAVO
+            if (Math.abs(diferencia) < 0.01 && totalBsObligatorio > 0) {
+                // CAMBIO A VERDE - CONCILIADO EXITOSAMENTE
+                wrapper.className = "p-3 rounded-lg text-center font-bold text-sm bg-emerald-950 text-emerald-400 border border-emerald-500 animate-bounce";
+                wrapper.innerHTML = "<strong>✓ Conciliación Perfecta Cuadrada</strong>";
                 
-                btnGuardar.disabled = false; btnGuardar.className = "bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
-                btnImprimir.disabled = false; btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full";
+                // Habilitar controles de acción
+                btnImprimir.disabled = false;
+                btnImprimir.className = "bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-lg text-xs transition flex items-center justify-center gap-1 cursor-pointer";
+                btnGuardar.disabled = false;
+                btnGuardar.className = "bg-blue-600 hover:bg-blue-500 font-bold py-2.5 rounded-lg text-xs text-white transition cursor-pointer";
             } else {
-                wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-sm bg-red-950/60 border border-red-800 text-red-400";
-                wrapperDiff.innerHTML = `Falta por conciliar: <span class="font-mono">${formatearMonto(diferencia)}</span> Bs`;
+                // MANTENER EN ROJO/MARRÓN - DESCUADRADO
+                wrapper.className = "p-3 rounded-lg text-center font-bold text-sm bg-red-950/60 border border-red-800 text-red-400";
+                wrapper.innerHTML = `Falta por conciliar: <span id="txt-diferencia" class="font-mono">${formatearMonto(diferencia)}</span> Bs`;
                 
-                btnGuardar.disabled = true; btnGuardar.className = "bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
-                btnImprimir.disabled = true; btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
+                // Deshabilitar controles de acción
+                btnImprimir.disabled = true;
+                btnImprimir.className = "opacity-50 cursor-not-allowed bg-slate-800 text-white font-bold py-2.5 rounded-lg text-xs transition flex items-center justify-center gap-1";
+                btnGuardar.disabled = true;
+                btnGuardar.className = "bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition";
             }
         }
 
         function imprimirReciboPrepago() {
-            const prov = document.getElementById("pre-proveedor").value;
-            const lote = document.getElementById("pre-lote-sugerido").innerText;
-            const tasa = document.getElementById("pre-tasa").value;
-            const fecha = document.getElementById("pre-fecha").value;
-            
-            let htmlItems = "";
-            document.querySelectorAll(".item-fila-prepago").forEach(fila => {
-                const prod = fila.querySelector(".item-producto").value;
-                const cant = fila.querySelector(".item-cantidad").value;
-                const cost = fila.querySelector(".item-costo-usd").value;
-                const totUsd = parseFloat(cant) * parseFloat(cost);
-                htmlItems += `${prod.substring(0,18).padEnd(18)} ${cant.padStart(5)} ${formatearMonto(totUsd).padStart(10)}\n`;
+            const prov = document.getElementById('pre-proveedor').value;
+            const lote = document.getElementById('pre-lote-sugerido').innerText;
+            const tasa = document.getElementById('pre-tasa').value;
+            const fecha = document.getElementById('pre-fecha').value;
+            if(!prov || !lote) return;
+
+            let filasHTML = "";
+            document.querySelectorAll('.fila-item-prepago').forEach(row => {
+                const n = row.querySelector('.item-nombre').value;
+                const c = row.querySelector('.item-cantidad').value;
+                const cos = row.querySelector('.item-costo').value;
+                filasHTML += `<tr><td>${n}</td><td style="text-align:right">${c}</td><td style="text-align:right">${cos}$</td></tr>`;
             });
 
-            let htmlBancos = "";
-            const bBanesco = parseFloat(document.getElementById("pago-banesco").value) || 0; if(bBanesco>0) htmlBancos += `BANESCO:    ${formatearMonto(bBanesco).padStart(15)} Bs\n`;
-            const bMercantil = parseFloat(document.getElementById("pago-mercantil").value) || 0; if(bMercantil>0) htmlBancos += `MERCANTIL:  ${formatearMonto(bMercantil).padStart(15)} Bs\n`;
-            const bProvincial = parseFloat(document.getElementById("pago-provincial").value) || 0; if(bProvincial>0) htmlBancos += `PROVINCIAL: ${formatearMonto(bProvincial).padStart(15)} Bs\n`;
-            const bBancaribe = parseFloat(document.getElementById("pago-bancaribe").value) || 0; if(bBancaribe>0) htmlBancos += `BANCARIBE:  ${formatearMonto(bBancaribe).padStart(15)} Bs\n`;
-            const bActivo = parseFloat(document.getElementById("pago-activo").value) || 0; if(bActivo>0) htmlBancos += `B. ACTIVO:  ${formatearMonto(bActivo).padStart(15)} Bs\n`;
+            const tUsd = document.getElementById('txt-total-usd').innerText;
+            const tBs = document.getElementById('txt-total-bs').innerText;
 
-            const tUsd = document.getElementById("txt-total-usd").innerText;
-            const tBs = document.getElementById("txt-total-bs").innerText;
-
-            const tkt = document.getElementById("ticket-impresion");
-            tkt.innerHTML = `
-<pre style="margin:0; font-family:monospace; font-size:12px; color:black; background:white;">
-========================================
-         SICOOP COOPERATIVA             
-    COMPROBANTE DE COMPRA / PREPAGO     
-========================================
-LOTE:    ${lote}
-PROV:    ${prov}
-FECHA:   ${fecha}
-TASA:    ${formatearMonto(tasa)} Bs/$
-----------------------------------------
-PRODUCTO           CANT.     TOTAL USD
-----------------------------------------
-${htmlItems}----------------------------------------
-TOTAL MATERIALES:       ${tUsd} USD
-TOTAL COMPROMISO:       ${tBs} BS
-----------------------------------------
-DISTRIBUCIÓN DEL DESEMBOLSO:
-${htmlBancos}========================================
-        CONTROL DE OPERACIONES          
-          MÉTODO INVENTARIO FIFO        
-========================================
-</pre>
+            const ticket = document.getElementById('ticket-impresion');
+            ticket.innerHTML = `
+                <div style="text-align:center; font-family:monospace; color:black;">
+                    <h3>SICOOP COOPERATIVA</h3>
+                    <p>Barquisimeto, Edo. Lara</p>
+                    <hr>
+                    <p style="text-align:left"><b>LOTE:</b> ${lote}<br><b>PROV:</b> ${prov}<br><b>FECHA:</b> ${fecha}<br><b>TASA:</b> ${tasa} Bs/$</p>
+                    <hr>
+                    <table style="width:100%; font-size:12px;">
+                        <thead><tr><th>Desc</th><th style="text-align:right">Cant</th><th style="text-align:right">Cost</th></tr></thead>
+                        <tbody>${filasHTML}</tbody>
+                    </table>
+                    <hr>
+                    <p style="text-align:right"><b>TOTAL USD:</b> ${tUsd} $<br><span style="color:blue"><b>TOTAL OBLIG. BS:</b> ${tBs} Bs</span></p>
+                    <hr>
+                    <p style="font-size:10px;">Comprobante de Entrada Digital FIFO.<br>Listado para conciliación bancaria.</p>
+                </div>
             `;
             window.print();
         }
 
         function procesarEnvioPrepago(e) {
             e.preventDefault();
-            const btn = document.getElementById("btn-guardar-prepago");
-            btn.disabled = true; btn.innerText = "⏳ Guardando en Servidor...";
+            const prov = document.getElementById('pre-proveedor').value;
+            const lote = document.getElementById('pre-lote-sugerido').innerText;
+            const tasa = parseFloat(document.getElementById('pre-tasa').value);
+            const fecha = document.getElementById('pre-fecha').value;
 
             const items = [];
-            document.querySelectorAll(".item-fila-prepago").forEach(fila => {
+            document.querySelectorAll('.fila-item-prepago').forEach(row => {
                 items.push({
-                    producto: fila.querySelector(".item-producto").value,
-                    cantidad: parseFloat(fila.querySelector(".item-cantidad").value) || 0,
-                    costoUsd: parseFloat(fila.querySelector(".item-costo-usd").value) || 0
+                    producto: row.querySelector('.item-nombre').value,
+                    cantidad: parseFloat(row.querySelector('.item-cantidad').value),
+                    costo: parseFloat(row.querySelector('.item-costo').value)
                 });
             });
 
-            const payload = {
-                accion: "registrar_prepago_consolidado",
-                data: {
-                    idLote: document.getElementById("pre-lote-sugerido").innerText,
-                    proveedor: document.getElementById("pre-proveedor").value,
-                    fecha: document.getElementById("pre-fecha").value,
-                    tasa: parseFloat(document.getElementById("pre-tasa").value) || 1,
-                    items: items,
-                    bancos: {
-                        BANESCO: parseFloat(document.getElementById("pago-banesco").value) || 0,
-                        MERCANTIL: parseFloat(document.getElementById("pago-mercantil").value) || 0,
-                        PROVINCIAL: parseFloat(document.getElementById("pago-provincial").value) || 0,
-                        BANCARIBE: parseFloat(document.getElementById("pago-bancaribe").value) || 0,
-                        BANCO_ACTIVO: parseFloat(document.getElementById("pago-activo").value) || 0
-                    }
-                }
+            const bancos = {
+                banesco: parseFloat(document.getElementById('pago-banesco').value) || 0,
+                mercantil: parseFloat(document.getElementById('pago-mercantil').value) || 0,
+                provincial: parseFloat(document.getElementById('pago-provincial').value) || 0,
+                bancaribe: parseFloat(document.getElementById('pago-bancaribe').value) || 0,
+                activo: parseFloat(document.getElementById('pago-activo').value) || 0
             };
 
-            // Ejecución segura del guardado vía POST alternativo / FormUrlEncoded estándar
-            fetch(WEB_APP_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: JSON.stringify(payload)
-            }).then(() => {
-                alert(`🚀 Lote ${payload.data.idLote} registrado y procesado exitosamente.`);
-                document.getElementById("form-prepago").reset();
-                document.getElementById("contenedor-items-prepago").innerHTML = "";
-                cambiarModulo("mod-dashboard");
-            }).catch(err => {
-                alert("Error al comunicar con la base de datos.");
-                console.error(err);
-                btn.disabled = false; btn.innerText = "💾 Procesar Guardado";
+            const payload = {
+                action: "registrarPrepago",
+                lote: lote,
+                proveedor: prov,
+                fecha: fecha,
+                tasa: tasa,
+                items: items,
+                bancos: bancos
+            };
+
+            ejecutarJsonpGoogle(payload, function(res) {
+                if(res.status === "success") {
+                    alert(`✓ Prepago Guardado de forma exitosa en la Cola FIFO.\nLote generado: ${lote}`);
+                    document.getElementById('form-prepago').reset();
+                    document.getElementById('contenedor-items-prepago').innerHTML = "";
+                    cambiarModulo('mod-dashboard');
+                } else { alert("⚠️ Error: " + res.message); }
             });
+        }
+
+        function ejecutarJsonpGoogle(payload, callbackFn) {
+            const callbackName = 'jsonp_cb_' + Math.random().toString(36).substring(2,9);
+            window[callbackName] = function(res) {
+                callbackFn(res);
+                document.getElementById(callbackName + '_script').remove();
+                delete window[callbackName];
+            };
+            const script = document.createElement('script');
+            script.id = callbackName + '_script';
+            script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + `payload=${encodeURIComponent(JSON.stringify(payload))}&callback=${callbackName}`;
+            document.body.appendChild(script);
         }
 
         function renderizarTablaReportes() {
-            const ctx = document.getElementById("tabla-reportes-contenedor"); if (!ctx) return;
-            const provFiltro = document.getElementById("rep-proveedor") ? document.getElementById("rep-proveedor").value : "";
-            
-            ctx.innerHTML = "";
-            let filtrados = cacheHistorialDespachos;
-            if (provFiltro) { filtrados = cacheHistorialDespachos.filter(x => x.proveedor === provFiltro); }
+            const filter = document.getElementById('rep-proveedor').value;
+            const container = document.getElementById('tabla-reportes-contenedor');
+            if(!container) return;
 
-            if (filtrados.length === 0) {
-                ctx.innerHTML = `<p class="p-6 text-center text-slate-500 text-xs italic">No hay historial de auditoría bajo este criterio.</p>`;
+            let filtered = cacheHistorialDespachos;
+            if (filter) filtered = cacheHistorialDespachos.filter(d => d.proveedor === filter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="p-6 text-center text-slate-500 text-xs italic">No se han registrado despachos físicos bajo este criterio.</p>`;
                 return;
             }
 
-            let html = `
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-900 text-slate-400 text-xs font-bold uppercase">
-                        <tr>
-                            <th class="px-6 py-3">Fecha Recepción</th>
-                            <th class="px-6 py-3">ID Lote</th>
-                            <th class="px-6 py-3">Proveedor</th>
-                            <th class="px-6 py-3">Mercancía</th>
-                            <th class="px-6 py-3 text-right">Cant. Despachada</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-800 text-slate-300">
+            let rows = filtered.map(r => `
+                <tr class="hover:bg-slate-900/40 border-b border-slate-800/80 text-xs">
+                    <td class="px-4 py-3 font-mono font-medium">${r.fecha || ''}</td>
+                    <td class="px-4 py-3 font-mono text-blue-400 font-bold">${r.idLote || ''}</td>
+                    <td class="px-4 py-3 font-semibold text-white">${r.proveedor || ''}</td>
+                    <td class="px-4 py-3">${r.producto || ''}</td>
+                    <td class="px-4 py-3 text-right font-mono font-bold text-emerald-400">${formatearMonto(r.cantidadSacada)}</td>
+                    <td class="px-4 py-3 text-slate-400 font-mono text-xs">${r.facturaTarget || ''}</td>
+                </tr>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-900 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                            <tr>
+                                <th class="px-4 py-2.5">Fecha Despacho</th>
+                                <th class="px-4 py-2.5">Lote Origen</th>
+                                <th class="px-4 py-2.5">Proveedor</th>
+                                <th class="px-4 py-2.5">Mercancía</th>
+                                <th class="px-4 py-2.5 text-right">Cant. Despachada</th>
+                                <th class="px-4 py-2.5">Factura / Control</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800 text-slate-300">${rows}</tbody>
+                    </table>
+                </div>
             `;
-
-            filtrados.forEach(x => {
-                html += `
-                    <tr class="hover:bg-slate-900/40">
-                        <td class="px-6 py-3 font-mono text-xs">${x.fechaDespacho || 'N/A'}</td>
-                        <td class="px-6 py-3 font-mono text-xs text-blue-400 font-bold">${x.idLote}</td>
-                        <td class="px-6 py-3 font-medium">${x.proveedor}</td>
-                        <td class="px-6 py-3">${x.producto}</td>
-                        <td class="px-6 py-3 text-right font-mono font-bold text-emerald-400">${formatearMonto(x.cantidadDespachada)}</td>
-                    </tr>
-                `;
-            });
-
-            html += `</tbody></table>`;
-            ctx.innerHTML = html;
         }
 
-        // Inicialización automática
-        window.addEventListener("DOMContentLoaded", () => {
+        // Configuración inicial del formulario de descarga/recepción
+        document.getElementById('form-recepcion').onsubmit = function(e) {
+            e.preventDefault();
+            const payload = {
+                action: "registrarRecepcion",
+                factura: document.getElementById('des-factura').value,
+                proveedor: document.getElementById('des-proveedor').value,
+                producto: document.getElementById('des-producto').value,
+                cantidad: parseFloat(document.getElementById('des-cantidad').value),
+                tasa: parseFloat(document.getElementById('des-tasa').value) || 0,
+                montoBs: parseFloat(document.getElementById('des-monto').value) || 0
+            };
+
+            ejecutarJsonpGoogle(payload, function(res) {
+                if(res.status === "success") {
+                    alert(`📥 Carga procesada exitosamente en Cola FIFO.\nSe descontaron ${payload.cantidad} unidades del lote correspondiente.`);
+                    document.getElementById('form-recepcion').reset();
+                    cambiarModulo('mod-dashboard');
+                } else { alert("⚠️ Error en asignación FIFO: " + res.message); }
+            });
+        };
+
+        // Configuración inicial del formulario de proveedores
+        document.getElementById('form-proveedor').onsubmit = function(e) {
+            e.preventDefault();
+            const prods = [];
+            document.querySelectorAll('.input-mercancia').forEach(i => { if(i.value.trim()) prods.push(i.value.trim()); });
+
+            const payload = {
+                action: "registrarProveedor",
+                nombre: document.getElementById('prov-nombre').value.trim(),
+                productos: prods
+            };
+
+            ejecutarJsonpGoogle(payload, function(res) {
+                if(res.status === "success") {
+                    alert(`🤝 Proveedor "${payload.nombre}" añadido al catálogo operacional.`);
+                    document.getElementById('form-proveedor').reset();
+                    document.getElementById('contenedor-mercancias').innerHTML = '<input type="text" class="input-mercancia w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" placeholder="Ej: Harina PAN" required>';
+                    cargarDatos();
+                } else { alert("⚠️ Error: " + res.message); }
+            });
+        };
+
+        // Arranque automatizado del ecosistema SICOOP
+        window.addEventListener('DOMContentLoaded', () => {
             cargarDatos();
+            // Asegurar que los inputs bancarios ejecuten la validación si se cargan datos almacenados
+            const camposBancos = ["pago-banesco", "pago-mercantil", "pago-provincial", "pago-bancaribe", "pago-activo"];
+            camposBancos.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener("input", calcularTotalesPrepago);
+            });
         });
     </script>
 </body>
