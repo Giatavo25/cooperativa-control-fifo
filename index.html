@@ -215,11 +215,11 @@
         </section>
 
         <section id="mod-recepcion" class="modulo hidden bg-slate-950 p-6 rounded-xl border border-slate-800 max-w-4xl mx-auto">
-            <form id="form-recepcion" class="flex flex-col gap-4">
+            <form id="form-recepcion" class="flex flex-col gap-4" onsubmit="procesarEnvioRecepcionCarga(event)">
                 
                 <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 space-y-3">
                     <h4 class="text-xs font-semibold text-blue-400 flex items-center gap-2 border-b border-slate-800 pb-2">
-                        <i class="fas fa-brain"></i> Asignación Automática FIFO (Datos del Prepago)
+                        🔍 Asignación Automática FIFO (Datos del Prepago)
                     </h4>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
@@ -294,7 +294,7 @@
                     <button type="button" onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-4 py-2.5 rounded-lg transition text-sm flex items-center gap-2">
                         🖨️ Imprimir Planilla
                     </button>
-                    <button type="submit" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition">
+                    <button type="submit" id="btn-guardar-recepcion" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition">
                         💾 Registrar y Descontar de Cola FIFO
                     </button>
                 </div>
@@ -305,7 +305,7 @@
         <section id="mod-proveedores" class="modulo hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 lg:col-span-1 h-fit">
                 <h3 class="text-sm font-bold text-white mb-4 uppercase">Nuevo Proveedor</h3>
-                <form id="form-proveedor" class="flex flex-col gap-4">
+                <form id="form-proveedor" class="flex flex-col gap-4" onsubmit="procesarEnvioProveedor(event)">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 mb-1.5">Nombre de la Empresa</label>
                         <input type="text" id="prov-nombre" placeholder="Ej: Polar" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
@@ -319,7 +319,7 @@
                             ➕ Añadir otro producto
                         </button>
                     </div>
-                    <button type="submit" class="w-full bg-slate-800 hover:bg-slate-700 py-2.5 rounded-lg text-sm font-bold text-white mt-2">
+                    <button type="submit" id="btn-guardar-proveedor" class="w-full bg-slate-800 hover:bg-slate-700 py-2.5 rounded-lg text-sm font-bold text-white mt-2">
                         💾 Guardar Ficha
                     </button>
                 </form>
@@ -345,6 +345,22 @@
                 </div>
             </div>
             <div id="tabla-reportes-contenedor" class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-900 text-slate-400 text-xs font-bold uppercase">
+                        <tr>
+                            <th class="px-6 py-3">ID Lote</th>
+                            <th class="px-6 py-3">Factura</th>
+                            <th class="px-6 py-3">Proveedor</th>
+                            <th class="px-6 py-3">Producto</th>
+                            <th class="px-6 py-3 text-right">Cant. Despachada</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-reportes-body" class="divide-y divide-slate-800 text-slate-300">
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">No hay registros para mostrar</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </section>
     </main>
@@ -357,7 +373,6 @@
         let cacheUltimosDatos = null;
         let chartsCargados = false; 
 
-        // Función clave para formatear números al estándar nacional (Miles: . Decimales: ,)
         function formatearNumero(valor) {
             const num = parseFloat(valor);
             if (isNaN(num)) return "0,00";
@@ -373,6 +388,14 @@
             } catch (e) { console.warn("Google Charts no disponible."); }
         }
 
+        function configFechaPorDefecto() {
+            const hoy = new Date().toISOString().split('T')[0];
+            const inputPre = document.getElementById('pre-fecha');
+            const inputDes = document.getElementById('des-fecha-rc');
+            if (inputPre) inputPre.value = hoy;
+            if (inputDes) inputDes.value = hoy;
+        }
+
         function cargarDatos() {
             const elProgreso = document.getElementById('chart-progreso');
             const elDistribucion = document.getElementById('chart-distribucion');
@@ -385,12 +408,12 @@
                     if (resultado && resultado.status === "success") {
                         cacheUltimosDatos = resultado;
                         cacheProveedores = resultado.data.proveedores || [];
-                        cacheHistorialDespachos = resultado.data.historialDespachos || []; 
+                        cacheHistorialDespachos = resultado.data.detallesLotes || []; 
                         
                         renderizarDashboard(resultado.data);
                         actualizarInterfacesProveedores();
                         renderizarTablaReportes(); 
-                        configurarFechaPorDefecto();
+                        configFechaPorDefecto();
                     }
                 } catch (err) { console.error("Error procesando datos:", err); }
                 const l = document.getElementById('jsonp-script-loader'); if (l) l.remove();
@@ -430,7 +453,7 @@
 
         function agregarCampoMercancia() {
             const div = document.createElement('div'); div.className = "flex gap-2 mt-1";
-            div.innerHTML = `<input type="text" class="input-mercancia w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white" placeholder="Producto" required><button type="button" onclick="this.parentElement.remove()" class="bg-red-900 text-red-200 px-3 rounded-lg font-bold hover:bg-red-800">-</button>`;
+            div.innerHTML = `<input type="text" class="input-mercancia w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" placeholder="Producto" required><button type="button" onclick="this.parentElement.remove()" class="bg-red-900 text-red-200 px-3 rounded-lg font-bold hover:bg-red-800">-</button>`;
             document.getElementById('contenedor-mercancias').appendChild(div);
         }
 
@@ -445,131 +468,118 @@
             const lista = document.getElementById('lista-proveedores-completa');
             if (lista) {
                 lista.innerHTML = "";
+                if (cacheProveedores.length === 0) {
+                    lista.innerHTML = `<p class="text-xs text-slate-500 italic">No hay aliados registrados.</p>`;
+                    return;
+                }
                 cacheProveedores.forEach(p => {
-                    const prods = Array.isArray(p.productos) ? p.productos : [];
-                    const chips = prods.map(pr => `<span class="bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded border border-slate-700">${pr}</span>`).join(' ');
-                    lista.innerHTML += `<div class="p-3 bg-slate-900 rounded-lg border border-slate-800"><p class="font-bold text-sm text-white">${p.nombre}</p><div class="flex flex-wrap gap-1 mt-2">${chips || '<span class="text-xs text-slate-600 italic">Sin mercancía</span>'}</div></div>`;
+                    lista.innerHTML += `
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col gap-1">
+                            <h4 class="text-sm font-bold text-blue-400">${p.nombre}</h4>
+                            <p class="text-[11px] text-slate-400 line-clamp-2">📦 Productos: ${p.productos.join(', ') || 'Ninguno'}</p>
+                        </div>`;
                 });
             }
         }
 
-        function filtrarProductosPorProveedor(prov, idDestino) {
-            const dest = document.getElementById(idDestino); if (!dest) return;
-            dest.innerHTML = "";
-            if (!prov) { dest.innerHTML = '<option value="">-- Seleccione primero un proveedor --</option>'; return; }
-            const item = cacheProveedores.find(p => p.nombre === prov);
-            if (item && Array.isArray(item.productos) && item.productos.length > 0) {
-                dest.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
-                item.productos.forEach(pr => dest.innerHTML += `<option value="${pr}">${pr}</option>`);
-            } else { dest.innerHTML = '<option value="">⚠️ Sin mercancía registrada</option>'; }
-        }
-
-        function renderizarDashboard(data) {
-            let p = 0, pe = 0, r = 0;
-            const tbody = document.getElementById("tabla-lotes");
-            if(tbody) tbody.innerHTML = "";
-            
-            if(data && Array.isArray(data.detallesLotes)) {
-                data.detallesLotes.forEach(l => {
-                    p += parseFloat(l.cantInicial || 0);
-                    pe += parseFloat(l.cantDisponible || 0);
-                    
-                    if(tbody) {
-                        tbody.innerHTML += `
-                            <tr>
-                                <td class="px-6 py-3 font-mono text-xs font-bold text-blue-400">${l.idLote}</td>
-                                <td class="px-6 py-3 font-medium">${l.proveedor}</td>
-                                <td class="px-6 py-3">${l.producto}</td>
-                                <td class="px-6 py-3 text-right font-mono text-xs">${formatearNumero(l.cantInicial)}</td>
-                                <td class="px-6 py-3 text-right font-mono text-xs font-bold ${l.cantDisponible > 0 ? 'text-amber-400' : 'text-slate-500'}">${formatearNumero(l.cantDisponible)}</td>
-                            </tr>
-                        `;
-                    }
+        function filtrarProductosPorProveedor(provNombre, idSelectProducto) {
+            const selProd = document.getElementById(idSelectProducto);
+            if (!selProd) return;
+            selProd.innerHTML = '<option value="">-- Seleccione producto --</option>';
+            const prov = cacheProveedores.find(p => p.nombre === provNombre);
+            if (prov && prov.productos) {
+                prov.productos.forEach(prod => {
+                    selProd.innerHTML += `<option value="${prod}">${prod}</option>`;
                 });
-                r = p - pe;
             }
-            
-            const kp1 = document.getElementById("kpi-prepagado"); if(kp1) kp1.innerText = formatearNumero(p);
-            const kp2 = document.getElementById("kpi-recibido"); if(kp2) kp2.innerText = formatearNumero(r);
-            const kp3 = document.getElementById("kpi-pendiente"); if(kp3) kp3.innerText = formatearNumero(pe);
         }
 
-        function configurarFechaPorDefecto() {
-            const hoy = new Date().toISOString().split('T')[0];
-            const preFecha = document.getElementById('pre-fecha'); if(preFecha) preFecha.value = hoy;
-            const desFecha = document.getElementById('des-fecha-rc'); if(desFecha) desFecha.value = hoy;
+        function agregarFilaMercanciaPrepago() {
+            const tbody = document.getElementById('contenedor-items-prepago');
+            const provSelected = document.getElementById('pre-proveedor').value;
+            if(!provSelected) { alert("Seleccione primero el proveedor"); return; }
+            
+            const tr = document.createElement('tr');
+            tr.className = "item-fila-prepago";
+            
+            const provData = cacheProveedores.find(p => p.nombre === provSelected);
+            let options = '<option value="">-- Producto --</option>';
+            if(provData && provData.productos) {
+                provData.productos.forEach(p => options += `<option value="${p}">${p}</option>`);
+            }
+
+            tr.innerHTML = `
+                <td class="p-2"><select class="item-producto w-full p-2 bg-slate-950 border border-slate-700 rounded text-xs" required>${options}</select></td>
+                <td class="p-2"><input type="number" class="item-cantidad text-right w-full p-2 bg-slate-950 border border-slate-700 rounded text-xs font-mono" placeholder="0" oninput="calcularTotalesPrepago()" required min="1"></td>
+                <td class="p-2"><input type="number" step="0.01" class="item-costo text-right w-full p-2 bg-slate-950 border border-slate-700 rounded text-xs font-mono" placeholder="0.00" oninput="calcularTotalesPrepago()" required></td>
+                <td class="p-2 text-right font-mono text-xs text-slate-400 text-item-total-usd">0,00</td>
+                <td class="p-2 text-right font-mono text-xs text-blue-400 text-item-total-bs">0,00</td>
+                <td class="p-2 text-center"><button type="button" onclick="this.parentElement.parentElement.remove(); calcularTotalesPrepago();" class="text-red-400 hover:text-red-300 font-bold text-sm">✕</button></td>
+            `;
+            tbody.appendChild(tr);
         }
 
-        function renderizarTablaReportes() {}
-        function calcularTotalesPrepago() {}
-        function procesarEnvioPrepago(e) { e.preventDefault(); }
-        function actualizarFlujoProveedorPrepago(v) {}
-        function agregarFilaMercanciaPrepago() {}
-        function imprimirReciboPrepago() {}
-
-        // ========================================================
-        // CONTROLADORES MATEMÁTICOS PARA LA RECEPCIÓN DE CARGA (FIFO)
-        // ========================================================
-        function buscarLoteFIFORC() {
-            const prov = document.getElementById('des-proveedor').value;
-            const merc = document.getElementById('des-producto').value;
+        function actualizarFlujoProveedorPrepago(prov) {
+            document.getElementById('contenedor-items-prepago').innerHTML = "";
+            const sugeridoDom = document.getElementById('pre-lote-sugerido');
+            if(!prov) { sugeridoDom.innerText = "AUTO-GEN"; return; }
             
-            if (!prov || !merc) {
-                limpiarCamposFIFORC();
-                return;
+            let contador = 1;
+            if (cacheUltimosDatos && cacheUltimosDatos.data.detallesLotes) {
+                const coincidentes = cacheUltimosDatos.data.detallesLotes.filter(l => l.proveedor.trim() === prov.trim());
+                if(coincidentes.length > 0) {
+                    const codigos = coincidentes.map(l => {
+                        const partes = l.idLote.split('-');
+                        return partes.length > 1 ? parseInt(partes[1]) : 0;
+                    }).filter(num => !isNaN(num));
+                    if(codigos.length > 0) contador = Math.max(...codigos) + 1;
+                }
             }
+            sugeridoDom.innerText = prov.substring(0,3).toUpperCase() + "-" + String(contador).padStart(3, '0');
+            agregarFilaMercanciaPrepago();
+        }
 
-            // Extraemos los lotes directamente de la memoria activa de la APP
-            let listaLotes = [];
-            if (cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
-                listaLotes = cacheUltimosDatos.data.detallesLotes;
-            }
+        function calcularTotalesPrepago() {
+            const tasa = parseFloat(document.getElementById('pre-tasa').value) || 0;
+            let totalUsd = 0;
+            
+            document.querySelectorAll('.item-fila-prepago').forEach(tr => {
+                const cant = parseFloat(tr.querySelector('.item-cantidad').value) || 0;
+                const cost = parseFloat(tr.querySelector('.item-costo').value) || 0;
+                const subUsd = cant * cost;
+                const subBs = subUsd * tasa;
+                totalUsd += subUsd;
+                
+                tr.querySelector('.text-item-total-usd').innerText = formatearNumero(subUsd);
+                tr.querySelector('.text-item-total-bs').innerText = formatearNumero(subBs);
+            });
 
-            // Buscador FIFO: Primer lote que tenga unidades disponibles > 0
-            const loteActivo = listaLotes.find(l => 
-                l.proveedor.toString().trim().toUpperCase() === prov.trim().toUpperCase() && 
-                l.producto.toString().trim().toUpperCase() === merc.trim().toUpperCase() && 
-                parseFloat(l.cantDisponible) > 0
-            );
+            const totalBsObligatorio = totalUsd * tasa;
+            
+            let totalBancos = 0;
+            document.querySelectorAll('.input-banco-prepago').forEach(input => {
+                totalBancos += parseFloat(input.value) || 0;
+            });
 
-            if (loteActivo) {
-                const cUsd = parseFloat(loteActivo.costoUsd || 0);
-                const tBs = parseFloat(loteActivo.tasaCambio || 1);
-                const cBs = cUsd * tBs;
+            const diferencia = totalBsObligatorio - totalBancos;
 
-                document.getElementById('fifo-lote-rc').value = loteActivo.idLote;
-                document.getElementById('fifo-costo-usd-rc').value = cUsd.toFixed(2);
-                document.getElementById('fifo-tasa-bs-rc').value = tBs.toFixed(2);
-                document.getElementById('fifo-costo-bs-rc').value = cBs.toFixed(2);
-                calcularTotalesRC();
+            document.getElementById('txt-total-usd').innerText = formatearNumero(totalUsd);
+            document.getElementById('txt-total-bs').innerText = formatearNumero(totalBsObligatorio);
+            document.getElementById('txt-total-bancos').innerText = formatearNumero(totalBancos);
+            
+            const wrapperDif = document.getElementById('wrapper-diferencia');
+            const txtDif = document.getElementById('txt-diferencia');
+            
+            if (Math.abs(diferencia) <= 0.05) {
+                wrapperDif.className = "p-3 rounded-lg text-center font-bold text-sm bg-emerald-950/60 border border-emerald-800 text-emerald-400";
+                wrapperDif.innerText = "✅ Cuadrado Perfecto con Bancos";
+                document.getElementById('btn-guardar-prepago').disabled = false;
+                document.getElementById('btn-guardar-prepago').classList.remove('opacity-50', 'cursor-not-allowed');
             } else {
-                document.getElementById('fifo-lote-rc').value = "SIN PREPAGO PENDIENTE";
-                document.getElementById('fifo-costo-usd-rc').value = "0.00";
-                document.getElementById('fifo-tasa-bs-rc').value = "0.00";
-                document.getElementById('fifo-costo-bs-rc').value = "0.00";
-                calcularTotalesRC();
-            }
-        }
-
-        function calcularTotalesRC() {
-            const costoUsd = parseFloat(document.getElementById('fifo-costo-usd-rc').value) || 0;
-            const tasaCambio = parseFloat(document.getElementById('fifo-tasa-bs-rc').value) || 0;
-            const cantidad = parseFloat(document.getElementById('des-cantidad').value) || 0;
-            const montoFactura = parseFloat(document.getElementById('des-monto-factura-bs').value) || 0;
-            
-            // 1. Costo unitario en Bs
-            const costoUnitarioBs = costoUsd * tasaCambio;
-            
-            // 2. Total Teórico Calculado (Bs) = Costo Unitario en Bs * Cantidad física recibida
-            const totalCalculado = costoUnitarioBs * cantidad;
-            document.getElementById('des-total-calculado-bs').value = formatearNumero(totalCalculado);
-            
-            // 3. Diferencia Cambiaria (Bs) = Monto Real de Factura - Total Teórico Calculado
-            if (document.getElementById('des-monto-factura-bs').value !== "") {
-                const diferencia = montoFactura - totalCalculado;
-                document.getElementById('des-diferencia-cambiaria').value = formatearNumero(diferencia);
-            } else {
-                document.getElementById('des-diferencia-cambiaria').value = "0,00";
+                wrapperDif.className = "p-3 rounded-lg text-center font-bold text-sm bg-red-950/60 border border-red-800 text-red-400";
+                wrapperDif.innerHTML = `Falta por conciliar: <span class="font-mono">${formatearNumero(diferencia)}</span> Bs`;
+                document.getElementById('btn-guardar-prepago').disabled = true;
+                document.getElementById('btn-guardar-prepago').classList.add('opacity-50', 'cursor-not-allowed');
             }
         }
 
@@ -578,61 +588,320 @@
             document.getElementById('fifo-costo-usd-rc').value = "0.00";
             document.getElementById('fifo-tasa-bs-rc').value = "0.00";
             document.getElementById('fifo-costo-bs-rc').value = "0.00";
+            document.getElementById('des-cantidad').value = "";
             document.getElementById('des-total-calculado-bs').value = "0,00";
+            document.getElementById('des-monto-factura-bs').value = "";
             document.getElementById('des-diferencia-cambiaria').value = "0,00";
         }
 
-        // Envío seguro del formulario engranado con la API de Google Sheets
-        document.getElementById('form-recepcion')?.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const lote = document.getElementById('fifo-lote-rc').value;
-            if(!lote || lote === "SIN PREPAGO PENDIENTE" || lote === "") {
-                alert("Operación cancelada: No se puede dar entrada física a un producto que no posea fondos o un prepago activo en la cola FIFO.");
-                return;
+        function buscarLoteFIFORC() {
+            const prov = document.getElementById('des-proveedor').value;
+            const prod = document.getElementById('des-producto').value;
+            if(!prov || !prod) { limpiarCamposFIFORC(); return; }
+
+            if(!cacheHistorialDespachos || cacheHistorialDespachos.length === 0) return;
+
+            const loteActivo = cacheHistorialDespachos.find(l => 
+                l.proveedor.trim() === prov.trim() && 
+                l.producto.trim() === prod.trim() && 
+                l.cantDisponible > 0
+            );
+
+            if(loteActivo) {
+                document.getElementById('fifo-lote-rc').value = loteActivo.idLote;
+                document.getElementById('fifo-costo-usd-rc').value = loteActivo.costoUsd.toFixed(2);
+                document.getElementById('fifo-tasa-bs-rc').value = loteActivo.tasaCambio.toFixed(2);
+                
+                const costoBs = loteActivo.costoUsd * loteActivo.tasaCambio;
+                document.getElementById('fifo-costo-bs-rc').value = costoBs.toFixed(2);
+            } else {
+                document.getElementById('fifo-lote-rc').value = "SIN PREPAGO (EXCEDENTE)";
+                document.getElementById('fifo-costo-usd-rc').value = "0.00";
+                document.getElementById('fifo-tasa-bs-rc').value = "0.00";
+                document.getElementById('fifo-costo-bs-rc').value = "0.00";
             }
+            calcularTotalesRC();
+        }
 
-            // Calculamos los valores puros sin formatear para la base de datos
-            const cUsd = parseFloat(document.getElementById('fifo-costo-usd-rc').value) || 0;
-            const tBs = parseFloat(document.getElementById('fifo-tasa-bs-rc').value) || 0;
-            const cant = parseFloat(document.getElementById('des-cantidad').value) || 0;
-            const mFact = parseFloat(document.getElementById('des-monto-factura-bs').value) || 0;
-            const tCalc = (cUsd * tBs) * cant;
-            const dif = mFact - tCalc;
+        function calcularTotalesRC() {
+            const cantidad = parseFloat(document.getElementById('des-cantidad').value) || 0;
+            const costoUnitBs = parseFloat(document.getElementById('fifo-costo-bs-rc').value) || 0;
+            
+            const totalCalculadoBs = cantidad * costoUnitBs;
+            document.getElementById('des-total-calculado-bs').value = formatearNumero(totalCalculadoBs);
+            
+            const montoFacturaBs = parseFloat(document.getElementById('des-monto-factura-bs').value) || 0;
+            
+            const diferenciaCambiaria = montoFacturaBs - totalCalculadoBs;
+            document.getElementById('des-diferencia-cambiaria').value = formatearNumero(diferenciaCambiaria);
+        }
 
-            const datosCarga = {
+        // ================= BLINDAJE CONTRA DOBLE ENVÍO (RECEPCIÓN CARGA) =================
+        function procesarEnvioRecepcionCarga(event) {
+            event.preventDefault();
+            
+            const btnGuardar = document.getElementById('btn-guardar-recepcion');
+            
+            // Bloqueo inmediato para evitar doble procesamiento
+            btnGuardar.disabled = true;
+            const textoOriginal = btnGuardar.innerHTML;
+            btnGuardar.innerHTML = "⏳ Enviando al Servidor...";
+            btnGuardar.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const payload = {
                 accion: "registrar_recepcion_carga",
                 data: {
-                    idLote: lote,
+                    idLote: document.getElementById('fifo-lote-rc').value,
                     nroFactura: document.getElementById('des-factura').value,
                     fechaRecepcion: document.getElementById('des-fecha-rc').value,
                     proveedor: document.getElementById('des-proveedor').value,
                     producto: document.getElementById('des-producto').value,
-                    cantidadRecibida: cant,
-                    montoFactura: mFact,
-                    diferenciaCambiaria: dif
+                    cantidadRecibida: parseFloat(document.getElementById('des-cantidad').value),
+                    montoFactura: parseFloat(document.getElementById('des-monto-factura-bs').value) || 0,
+                    diferenciaCambiaria: parseFloat(document.getElementById('des-monto-factura-bs').value || 0) - (parseFloat(document.getElementById('des-cantidad').value || 0) * parseFloat(document.getElementById('fifo-costo-bs-rc').value || 0))
                 }
             };
 
-            const urlEnvio = WEB_APP_URL + "?payload=" + encodeURIComponent(JSON.stringify(datosCarga));
-            
+            window.respuestaRecepcionCarga = function(res) {
+                // Liberar botón tras respuesta
+                btnGuardar.disabled = false;
+                btnGuardar.innerHTML = textoOriginal;
+                btnGuardar.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                if (res && res.status === "success") {
+                    alert("🎉 " + res.message);
+                    document.getElementById('form-recepcion').reset();
+                    limpiarCamposFIFORC();
+                    cambiarModulo('mod-dashboard');
+                } else {
+                    alert("⚠️ Error: " + (res ? res.message : "Sin respuesta de la base de datos."));
+                }
+                const l = document.getElementById('jsonp-recepcion-loader'); if (l) l.remove();
+            };
+
             const script = document.createElement('script');
-            script.id = 'jsonp-script-envio-rc';
-            script.src = urlEnvio + "&callback=respuestaServidorRC";
+            script.id = 'jsonp-recepcion-loader';
+            script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'payload=' + encodeURIComponent(JSON.stringify(payload)) + '&callback=respuestaRecepcionCarga';
+            script.onerror = function() {
+                alert("❌ Error de red fatal. Intente de nuevo.");
+                btnGuardar.disabled = false;
+                btnGuardar.innerHTML = textoOriginal;
+                btnGuardar.classList.remove('opacity-50', 'cursor-not-allowed');
+            };
             document.body.appendChild(script);
-        });
+        }
 
-        window.respuestaServidorRC = function(res) {
-            if (res && res.status === "success") {
-                alert("¡Registro de Recepción con éxito! Los saldos contables se han descontado de la cola FIFO.");
-                location.reload();
-            } else {
-                alert("Error del servidor: " + (res ? res.message : "Sin respuesta de Google Sheets."));
+        // ================= BLINDAJE CONTRA DOBLE ENVÍO (PREPAGOS) =================
+        function procesarEnvioPrepago(event) {
+            event.preventDefault();
+            
+            const btnGuardar = document.getElementById('btn-guardar-prepago');
+            btnGuardar.disabled = true;
+            const originalText = btnGuardar.innerText;
+            btnGuardar.innerText = "Procesando...";
+            btnGuardar.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const items = [];
+            document.querySelectorAll('.item-fila-prepago').forEach(tr => {
+                items.push({
+                    producto: tr.querySelector('.item-producto').value,
+                    cantidad: parseFloat(tr.querySelector('.item-cantidad').value),
+                    costoUsd: parseFloat(tr.querySelector('.item-costo').value)
+                });
+            });
+
+            const payload = {
+                accion: "registrar_prepago_consolidado",
+                data: {
+                    idLote: document.getElementById('pre-lote-sugerido').innerText,
+                    proveedor: document.getElementById('pre-proveedor').value,
+                    fecha: document.getElementById('pre-fecha').value,
+                    tasa: parseFloat(document.getElementById('pre-tasa').value),
+                    items: items,
+                    bancos: {
+                        BANESCO: parseFloat(document.getElementById('pago-banesco').value) || 0,
+                        MERCANTIL: parseFloat(document.getElementById('pago-mercantil').value) || 0,
+                        PROVINCIAL: parseFloat(document.getElementById('pago-provincial').value) || 0,
+                        BANCARIBE: parseFloat(document.getElementById('pago-bancaribe').value) || 0,
+                        BANCO_ACTIVO: parseFloat(document.getElementById('pago-activo').value) || 0
+                    }
+                }
+            };
+
+            window.respuestaPrepago = function(res) {
+                btnGuardar.disabled = false;
+                btnGuardar.innerText = originalText;
+                btnGuardar.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                if(res && res.status === "success") {
+                    alert("💾 Guardado Exitoso: " + res.message);
+                    document.getElementById('form-prepago').reset();
+                    document.getElementById('contenedor-items-prepago').innerHTML = "";
+                    cambiarModulo('mod-dashboard');
+                } else {
+                    alert("⚠️ Error en Servidor: " + res.message);
+                }
+                const l = document.getElementById('jsonp-prepago-loader'); if (l) l.remove();
+            };
+
+            const script = document.createElement('script');
+            script.id = 'jsonp-prepago-loader';
+            script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'payload=' + encodeURIComponent(JSON.stringify(payload)) + '&callback=respuestaPrepago';
+            document.body.appendChild(script);
+        }
+
+        function procesarEnvioProveedor(event) {
+            event.preventDefault();
+            const btn = document.getElementById('btn-guardar-proveedor');
+            btn.disabled = true;
+            btn.innerText = "Guardando...";
+
+            const mercancias = [];
+            document.querySelectorAll('.input-mercancia').forEach(input => {
+                if(input.value.trim()) mercancias.push(input.value.trim());
+            });
+
+            const payload = {
+                accion: "registrar_proveedor",
+                data: {
+                    nombre: document.getElementById('prov-nombre').value.trim(),
+                    productos: mercancias.join(', ')
+                }
+            };
+
+            window.respuestaProveedor = function(res) {
+                btn.disabled = false;
+                btn.innerText = "💾 Guardar Ficha";
+                if(res && res.status === "success") {
+                    alert("🤝 Aliado añadido correctamente.");
+                    document.getElementById('form-proveedor').reset();
+                    document.getElementById('contenedor-mercancias').innerHTML = '<input type="text" class="input-mercancia w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" placeholder="Ej: Harina PAN" required>';
+                    cargarDatos();
+                }
+                const l = document.getElementById('jsonp-prov-loader'); if (l) l.remove();
+            };
+
+            const script = document.createElement('script');
+            script.id = 'jsonp-prov-loader';
+            script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'payload=' + encodeURIComponent(JSON.stringify(payload)) + '&callback=respuestaProveedor';
+            document.body.appendChild(script);
+        }
+
+        function renderizarDashboard(data) {
+            const tbody = document.getElementById('tabla-lotes');
+            if(!tbody) return;
+            tbody.innerHTML = "";
+
+            let totalPre = 0;
+            let totalPend = 0;
+
+            if(!data.detallesLotes || data.detallesLotes.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500">No hay lotes activos.</td></tr>`;
+                return;
             }
-            const scr = document.getElementById('jsonp-script-envio-rc'); if(scr) scr.remove();
-        };
 
-        window.onload = function() { cargarDatos(); };
+            data.detallesLotes.forEach(l => {
+                totalPre += l.cantOriginal;
+                totalPend += l.cantDisponible;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-900/40 transition">
+                        <td class="px-6 py-3.5 font-mono text-xs font-bold text-blue-400">${l.idLote}</td>
+                        <td class="px-6 py-3.5 text-xs">${l.proveedor}</td>
+                        <td class="px-6 py-3.5 text-xs font-semibold text-slate-200">${l.producto}</td>
+                        <td class="px-6 py-3.5 text-right font-mono text-xs">${formatearNumero(l.cantOriginal)}</td>
+                        <td class="px-6 py-3.5 text-right font-mono text-xs font-bold ${l.cantDisponible > 0 ? 'text-amber-400':'text-slate-600'}">${formatearNumero(l.cantDisponible)}</td>
+                    </tr>`;
+            });
+
+            document.getElementById('kpi-prepagado').innerText = formatearNumero(totalPre);
+            document.getElementById('kpi-pendiente').innerText = formatearNumero(totalPend);
+            document.getElementById('kpi-recibido').innerText = formatearNumero(totalPre - totalPend);
+
+            if (chartsCargados) renderizarGraficosGoogle(data);
+        }
+
+        function renderizarGraficosGoogle(data) {
+            try {
+                // Gráfico 1: Consolidados
+                const dataProgreso = [['Proveedor', 'Pendiente', 'Recibido']];
+                if(data.resumenConsolidated) {
+                    data.resumenConsolidated.forEach(r => {
+                        dataProgreso.push([r.proveedor, r.totalPendiente, r.totalRecibido]);
+                    });
+                }
+                
+                if(dataProgreso.length > 1) {
+                    const tableData = google.visualization.arrayToDataTable(dataProgreso);
+                    const chart = new google.visualization.ColumnChart(document.getElementById('chart-progreso'));
+                    chart.draw(tableData, {
+                        backgroundColor: 'transparent',
+                        legend: { position: 'top', textStyle: { color: '#94a3b8', fontSize: 10 } },
+                        colors: ['#f59e0b', '#10b981'],
+                        hAxis: { textStyle: { color: '#64748b', fontSize: 9 } },
+                        vAxis: { gridlines: { color: '#334155' }, textStyle: { color: '#64748b' } }
+                    });
+                }
+
+                // Gráfico 2: Tarta Distribución de Mercancía Activa
+                const dictProd = {};
+                data.detallesLotes.forEach(l => {
+                    if(l.cantDisponible > 0) {
+                        dictProd[l.producto] = (dictProd[l.producto] || 0) + l.cantDisponible;
+                    }
+                });
+
+                const arrPie = [['Producto', 'Unidades Disponibles']];
+                Object.keys(dictProd).forEach(k => arrPie.push([k, dictProd[k]]));
+
+                if(arrPie.length > 1) {
+                    const pieData = google.visualization.arrayToDataTable(arrPie);
+                    const pieChart = new google.visualization.PieChart(document.getElementById('chart-distribucion'));
+                    pieChart.draw(pieData, {
+                        backgroundColor: 'transparent',
+                        legend: { textStyle: { color: '#94a3b8', fontSize: 10 } },
+                        is3D: true,
+                        pieSliceBorderColor: '#0f172a'
+                    });
+                }
+            } catch(e) { console.error("Error dibujando gráficos", e); }
+        }
+
+        function renderizarTablaReportes() {
+            const tbody = document.getElementById('tabla-reportes-body');
+            if(!tbody) return;
+            tbody.innerHTML = "";
+
+            const filtroProv = document.getElementById('rep-proveedor').value;
+            let contador = 0;
+
+            if(!cacheHistorialDespachos || cacheHistorialDespachos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">No hay existencias registradas en historial para analizar.</td></tr>`;
+                return;
+            }
+
+            cacheHistorialDespachos.forEach(l => {
+                if(filtroProv && l.proveedor.trim() !== filtroProv.trim()) return;
+                contador++;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-900/40 transition">
+                        <td class="px-6 py-3 font-mono text-xs">${l.idLote}</td>
+                        <td class="px-6 py-3 text-xs font-semibold text-blue-400">P-OK</td>
+                        <td class="px-6 py-3 text-xs">${l.proveedor}</td>
+                        <td class="px-6 py-3 text-xs">${l.producto}</td>
+                        <td class="px-6 py-3 text-right font-mono text-xs font-bold text-emerald-400">${formatearNumero(l.cantOriginal - l.cantDisponible)}</td>
+                    </tr>`;
+            });
+
+            if(contador === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">Ningún lote coincide con el filtro seleccionado.</td></tr>`;
+            }
+        }
+
+        window.onload = function() {
+            cargarDatos();
+        };
     </script>
 </body>
 </html>
