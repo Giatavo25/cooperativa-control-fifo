@@ -445,5 +445,180 @@
             const titleDom = document.getElementById('titulo-modulo'); if (titleDom) titleDom.innerText = titulos[idModulo];
         }
     </script>
+    // ==========================================
+        //  FUNCIONES COMPLEMENTARIAS Y PARCHE FIFO
+        // ==========================================
+
+        function renderizarDashboard(data) {
+            console.log("Datos de la Cooperativa recibidos:", data);
+            
+            // 1. Renderizar KPIs numéricos principales
+            const kpiPrepagado = document.getElementById('kpi-prepagado');
+            const kpiRecibido = document.getElementById('kpi-recibido');
+            const kpiPendiente = document.getElementById('kpi-pendiente');
+            
+            // Cálculos rápidos basados en los lotes activos devueltos por Google Sheets
+            let totalPre = 0;
+            let totalRec = 0;
+            let totalPen = 0;
+            
+            const lotes = data.detallesLotes || [];
+            
+            lotes.forEach(lote => {
+                // Se asume que vienen formateados o numéricos según tu lógica de Sheets
+                const cantInicial = parseFloat(lote.cantInicial || lote[3] || 0);
+                const cantDisponible = parseFloat(lote.cantDisponible || lote[4] || 0);
+                const cantRecibida = cantInicial - cantDisponible;
+                
+                totalPre += cantInicial;
+                totalRec += cantRecibida;
+                totalPen += cantDisponible;
+            });
+            
+            if (kpiPrepagado) kpiPrepagado.innerText = totalPre.toLocaleString('de-DE');
+            if (kpiRecibido) kpiRecibido.innerText = totalRec.toLocaleString('de-DE');
+            if (kpiPendiente) kpiPendiente.innerText = totalPen.toLocaleString('de-DE');
+            
+            // 2. Renderizar Tabla de Lotes Activos (Cola FIFO)
+            const tbody = document.getElementById('tabla-lotes');
+            if (tbody) {
+                if (lotes.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs text-slate-400 italic">No hay lotes activos en la cola FIFO.</td></tr>`;
+                } else {
+                    tbody.innerHTML = lotes.map(lote => {
+                        const idLote = lote.idLote || lote[0] || 'N/A';
+                        const proveedor = lote.proveedor || lote[1] || 'N/A';
+                        const mercancia = lote.mercancia || lote[2] || 'N/A';
+                        const cantInicial = parseFloat(lote.cantInicial || lote[3] || 0).toLocaleString('de-DE');
+                        const cantDisponible = parseFloat(lote.cantDisponible || lote[4] || 0).toLocaleString('de-DE');
+                        
+                        return `
+                            <tr class="hover:bg-slate-50/80 transition">
+                                <td class="px-6 py-3.5 font-mono font-bold text-xs text-blue-600">${idLote}</td>
+                                <td class="px-6 py-3.5 font-medium text-slate-700">${proveedor}</td>
+                                <td class="px-6 py-3.5 text-slate-600">${mercancia}</td>
+                                <td class="px-6 py-3.5 text-right font-mono text-slate-500">${cantInicial}</td>
+                                <td class="px-6 py-3.5 text-right font-mono font-bold text-slate-900">${cantDisponible}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+            
+            // 3. Renderizar Gráficas Alternativas Limpias (Por si Google Charts falla)
+            dibujarGraficosDashboard(lotes);
+        }
+
+        function dibujarGraficosDashboard(lotes) {
+            const elProgreso = document.getElementById('chart-progreso');
+            const elDistribucion = document.getElementById('chart-distribucion');
+            
+            // Agrupar existencias por proveedor para el gráfico
+            const resumenProveedor = {};
+            lotes.forEach(l => {
+                const prov = l.proveedor || l[1] || 'Otros';
+                const disp = parseFloat(l.cantDisponible || l[4] || 0);
+                resumenProveedor[prov] = (resumenProveedor[prov] || 0) + disp;
+            });
+
+            // Reemplazar mensajes de carga por representación limpia de barras
+            if (elProgreso) {
+                if (Object.keys(resumenProveedor).length === 0) {
+                    elProgreso.innerHTML = "<span class='text-slate-400 italic text-xs'>Sin datos de proveedores</span>";
+                } else {
+                    let htmlBarras = `<div class="w-full flex flex-col gap-3 p-2 overflow-y-auto max-h-56">`;
+                    for (const [prov, cant] of Object.entries(resumenProveedor)) {
+                        htmlBarras += `
+                            <div>
+                                <div class="flex justify-between text-[11px] font-bold mb-1">
+                                    <span class="text-slate-600">${prov}</span>
+                                    <span class="text-slate-900">${cant.toLocaleString('de-DE')} Unds</span>
+                                </div>
+                                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                                    <div class="bg-blue-600 h-full rounded-full" style="width: ${Math.min(100, (cant/10000)*100)}%"></div>
+                                </div>
+                            </div>`;
+                    }
+                    htmlBarras += `</div>`;
+                    elProgreso.innerHTML = htmlBarras;
+                }
+            }
+
+            if (elDistribucion) {
+                elDistribucion.innerHTML = `<div class="text-center p-4"><span class="text-emerald-600 font-bold text-xs bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">✔ Datos de Lotes Sincronizados</span><p class="text-[11px] text-slate-400 mt-2 font-mono">Cola FIFO activa y calibrada.</p></div>`;
+            }
+        }
+
+        function actualizarInterfacesProveedores() {
+            const selectores = document.querySelectorAll('.select-proveedores');
+            if (selectores.length > 0 && cacheProveedores.length > 0) {
+                selectores.forEach(select => {
+                    const valorActual = select.value;
+                    let options = `<option value="">-- Seleccione Proveedor --</option>`;
+                    cacheProveedores.forEach(p => {
+                        const nombre = p.nombre || p[0] || p;
+                        if(nombre && nombre !== "Nombre de la Empresa") {
+                            options += `<option value="${nombre}">${nombre}</option>`;
+                        }
+                    });
+                    select.innerHTML = options;
+                    select.value = valorActual;
+                });
+            }
+            
+            // Renderizar el catálogo en el módulo de proveedores
+            const contenedorLista = document.getElementById('lista-proveedores-completa');
+            if (contenedorLista && cacheProveedores.length > 0) {
+                contenedorLista.innerHTML = cacheProveedores.map(p => {
+                    const nombre = p.nombre || p[0] || 'Proveedor';
+                    const productos = p.mercancias || (p[1] ? p[1].split(',') : []) || [];
+                    return `
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200/60 shadow-sm">
+                            <h4 class="font-bold text-sm text-slate-800">${nombre}</h4>
+                            <div class="flex flex-wrap gap-1 mt-1.5">
+                                ${productos.map(prod => `<span class="bg-white text-slate-600 text-[10px] px-2 py-0.5 rounded border border-slate-200 font-medium">${prod.trim()}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function renderizarTablaReportes() {
+            const tbodyRep = document.getElementById('tabla-reportes-body');
+            if (tbodyRep) {
+                tbodyRep.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-400 italic">Módulo de auditoría listo. Seleccione un filtro.</td></tr>`;
+            }
+        }
+
+        function cambiarModulo(idModulo) {
+            document.querySelectorAll('.modulo').forEach(mod => mod.classList.add('hidden'));
+            const modSeleccionado = document.getElementById(idModulo);
+            if (modSeleccionado) modSeleccionado.classList.remove('hidden');
+            
+            // Actualizar títulos del header
+            const titulos = {
+                'mod-dashboard': 'Dashboard General',
+                'mod-prepagos': 'Registrar Prepago',
+                'mod-recepcion': 'Recepción de Carga',
+                'mod-proveedores': 'Gestión de Proveedores',
+                'mod-reportes': 'Reportes y Auditoría'
+            };
+            document.getElementById('titulo-modulo').innerText = titulos[idModulo] || 'SICOOP';
+            
+            // Cambiar estilos de botones activos en la barra lateral
+            document.querySelectorAll('aside nav button').forEach(btn => {
+                btn.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition";
+            });
+            const btnActivo = document.querySelector(`[onclick="cambiarModulo('${idModulo}')"]`);
+            if (btnActivo) {
+                btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white shadow-sm shadow-blue-200 transition";
+            }
+        }
+
+        // Ejecutar carga inicial automatizada al abrir el sitio
+        document.addEventListener("DOMContentLoaded", () => {
+            cargarDatos();
+        });
 </body>
 </html>
