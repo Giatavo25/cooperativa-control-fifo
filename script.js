@@ -239,7 +239,6 @@ function calcularTotalesPrepago() {
     const totalBsObligatorio = sumatoriaUsd * tasa;
 
     let sumatoriaBancos = 0;
-    // Agregamos listeners dinámicos para recalcular en tiempo real al escribir en los recuadros bancarios
     document.querySelectorAll(".input-banco-prepago").forEach(inp => {
         if (!inp.dataset.listenerAsignado) {
             inp.addEventListener("input", calcularTotalesPrepago);
@@ -254,7 +253,6 @@ function calcularTotalesPrepago() {
     document.getElementById("txt-total-bs").innerText = formatearMonto(totalBsObligatorio);
     document.getElementById("txt-total-bancos").innerText = formatearMonto(sumatoriaBancos);
     
-    // Verificamos si existe el nodo txt-diferencia antes de asignarle valor
     const txtDiffEl = document.getElementById("txt-diferencia");
     if (txtDiffEl) txtDiffEl.innerText = formatearMonto(Math.abs(diferencia));
 
@@ -262,7 +260,6 @@ function calcularTotalesPrepago() {
     const btnGuardar = document.getElementById("btn-guardar-prepago");
     const btnImprimir = document.getElementById("btn-imprimir-prepago");
 
-    // Condición de conciliación: Si hay un compromiso y la diferencia absoluta es insignificante (< 1 Bolívar para tolerar decimales)
     if (totalBsObligatorio > 0 && Math.abs(diferencia) <= 1) {
         wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-sm bg-emerald-950/60 border border-emerald-800 text-emerald-400";
         wrapperDiff.innerText = "✅ Cuadrado / Conciliación Bancaria Exitosa";
@@ -289,6 +286,7 @@ function calcularTotalesPrepago() {
     }
 }
 
+// SOLUCIÓN AL TICKET EN BLANCO: Generación en ventana emergente limpia e independiente de impresión
 function imprimirReciboPrepago() {
     const prov = document.getElementById("pre-proveedor").value;
     const lote = document.getElementById("pre-lote-sugerido").innerText;
@@ -314,11 +312,19 @@ function imprimirReciboPrepago() {
     const tUsd = document.getElementById("txt-total-usd").innerText;
     const tBs = document.getElementById("txt-total-bs").innerText;
 
-    const tkt = document.getElementById("ticket-impresion");
-    if (!tkt) return; // Validación de seguridad por si el nodo de impresión cambia de ID
-    
-    tkt.innerHTML = `
-<pre style="margin:0; font-family:monospace; font-size:12px; color:black; background:white;">
+    // Abrimos una ventana temporal del navegador dedicada exclusivamente para la impresión
+    const ventanaImpresion = window.open('', '_blank', 'width=400,height=600');
+    ventanaImpresion.document.write(`
+        <html>
+        <head>
+            <title>Ticket SICOOP - ${lote}</title>
+            <style>
+                body { margin: 10px; font-family: monospace; font-size: 12px; color: black; background: white; }
+                pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
+            </style>
+        </head>
+        <body>
+<pre>
 ========================================
          SICOOP COOPERATIVA             
     COMPROBANTE DE COMPRA / PREPAGO     
@@ -340,10 +346,19 @@ ${htmlBancos}========================================
           MÉTODO INVENTARIO FIFO        
 ========================================
 </pre>
-    `;
-    window.print();
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() { window.close(); }, 500);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    ventanaImpresion.document.close();
 }
 
+// SOLUCIÓN A GOOGLE SHEETS VACÍO: Quitamos el modo no-cors y usamos URLSearchParams estructurado para POST seguro
 function procesarEnvioPrepago(e) {
     e.preventDefault();
     const btn = document.getElementById("btn-guardar-prepago");
@@ -376,24 +391,28 @@ function procesarEnvioPrepago(e) {
         }
     };
 
+    // Usamos URLSearchParams para asegurar el traspaso correcto de datos hacia Google Apps Script sin bloqueos CORS
+    const datosEnvio = new URLSearchParams();
+    datosEnvio.append("raw", JSON.stringify(payload));
+
     fetch(WEB_APP_URL, {
         method: "POST",
-        mode: "no-cors",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: JSON.stringify(payload)
-    }).then(() => {
-        // DISPARO AUTOMÁTICO DE IMPRESIÓN AL GUARDAR
+        body: datosEnvio.toString()
+    })
+    .then(res => {
+        // Ejecución inmediata del ticket de soporte e interfaz
         imprimirReciboPrepago();
         
-        alert(`🚀 Lote ${payload.data.idLote} registrado y procesado exitosamente.`);
+        alert(`🚀 Lote ${payload.data.idLote} registrado y procesado exitosamente en Google Sheets.`);
         document.getElementById("form-prepago").reset();
         document.getElementById("contenedor-items-prepago").innerHTML = "";
         
-        // Forzamos el recálculo inicial tras limpiar los campos para restablecer estados visuales
         calcularTotalesPrepago();
         cambiarModulo("mod-dashboard");
-    }).catch(err => {
-        alert("Error al comunicar con la base de datos.");
+    })
+    .catch(err => {
+        alert("⚠️ Error al comunicar con Google Sheets. Verifique la consola.");
         console.error(err);
         btn.disabled = false; btn.innerText = "💾 Procesar Guardado";
     });
