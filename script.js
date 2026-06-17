@@ -286,66 +286,159 @@ function calcularTotalesPrepago() {
     }
 }
 
-// SOLUCIÓN AL TICKET EN BLANCO: Generación en ventana emergente limpia e independiente de impresión
+// NUEVO: Soporte Corporativo Profesional tipo Factura / Carta Ejecutiva Completa
 function imprimirReciboPrepago() {
     const prov = document.getElementById("pre-proveedor").value;
     const lote = document.getElementById("pre-lote-sugerido").innerText;
-    const tasa = document.getElementById("pre-tasa").value;
+    const tasa = parseFloat(document.getElementById("pre-tasa").value) || 1;
     const fecha = document.getElementById("pre-fecha").value;
     
     let htmlItems = "";
     document.querySelectorAll(".item-fila-prepago").forEach(fila => {
         const prod = fila.querySelector(".item-producto").value;
-        const cant = fila.querySelector(".item-cantidad").value;
-        const cost = fila.querySelector(".item-costo-usd").value;
-        const totUsd = parseFloat(cant) * parseFloat(cost);
-        htmlItems += `${prod.substring(0,18).padEnd(18)} ${cant.padStart(5)} ${formatearMonto(totUsd).padStart(10)}\n`;
+        const cant = parseFloat(fila.querySelector(".item-cantidad").value) || 0;
+        const cost = parseFloat(fila.querySelector(".item-costo-usd").value) || 0;
+        const totUsd = cant * cost;
+        const totBs = totUsd * tasa;
+        htmlItems += `
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px 8px; text-align: left; color: #334155;">${prod}</td>
+                <td style="padding: 10px 8px; text-align: center; font-family: monospace;">${cant}</td>
+                <td style="padding: 10px 8px; text-align: right; font-family: monospace;">$${formatearMonto(cost)}</td>
+                <td style="padding: 10px 8px; text-align: right; font-family: monospace; font-weight: bold; color: #1e293b;">$${formatearMonto(totUsd)}</td>
+                <td style="padding: 10px 8px; text-align: right; font-family: monospace; color: #2563eb;">Bs. ${formatearMonto(totBs)}</td>
+            </tr>`;
     });
 
     let htmlBancos = "";
-    const bBanesco = parseFloat(document.getElementById("pago-banesco").value) || 0; if(bBanesco>0) htmlBancos += `BANESCO:    ${formatearMonto(bBanesco).padStart(15)} Bs\n`;
-    const bMercantil = parseFloat(document.getElementById("pago-mercantil").value) || 0; if(bMercantil>0) htmlBancos += `MERCANTIL:  ${formatearMonto(bMercantil).padStart(15)} Bs\n`;
-    const bProvincial = parseFloat(document.getElementById("pago-provincial").value) || 0; if(bProvincial>0) htmlBancos += `PROVINCIAL: ${formatearMonto(bProvincial).padStart(15)} Bs\n`;
-    const bBancaribe = parseFloat(document.getElementById("pago-bancaribe").value) || 0; if(bBancaribe>0) htmlBancos += `BANCARIBE:  ${formatearMonto(bBancaribe).padStart(15)} Bs\n`;
-    const bActivo = parseFloat(document.getElementById("pago-activo").value) || 0; if(bActivo>0) htmlBancos += `B. ACTIVO:  ${formatearMonto(bActivo).padStart(15)} Bs\n`;
+    const bancosMapeados = [
+        { id: "pago-banesco", label: "BANESCO" },
+        { id: "pago-mercantil", label: "MERCANTIL" },
+        { id: "pago-provincial", label: "PROVINCIAL" },
+        { id: "pago-bancaribe", label: "BANCARIBE" },
+        { id: "pago-activo", label: "BANCO ACTIVO" }
+    ];
+
+    bancosMapeados.forEach(b => {
+        const val = parseFloat(document.getElementById(b.id).value) || 0;
+        if (val > 0) {
+            htmlBancos += `
+                <tr>
+                    <td style="padding: 6px 0; color: #475569; font-size: 13px;">• Debito cuenta ${b.label}:</td>
+                    <td style="padding: 6px 0; text-align: right; font-family: monospace; font-weight: bold; color: #0f766e; font-size: 13px;">Bs. ${formatearMonto(val)}</td>
+                </tr>`;
+        }
+    });
 
     const tUsd = document.getElementById("txt-total-usd").innerText;
     const tBs = document.getElementById("txt-total-bs").innerText;
 
-    // Abrimos una ventana temporal del navegador dedicada exclusivamente para la impresión
-    const ventanaImpresion = window.open('', '_blank', 'width=400,height=600');
+    const ventanaImpresion = window.open('', '_blank', 'width=850,height=1100');
     ventanaImpresion.document.write(`
         <html>
         <head>
-            <title>Ticket SICOOP - ${lote}</title>
+            <title>Soporte Operacional - Lote ${lote}</title>
             <style>
-                body { margin: 10px; font-family: monospace; font-size: 12px; color: black; background: white; }
-                pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
+                @page { size: letter; margin: 45px; }
+                body { font-family: 'Segoe UI', system-ui, Arial, sans-serif; color: #1e293b; background: white; margin: 0; padding: 0; font-size: 14px; }
+                .wrapper { width: 100%; max-width: 750px; margin: 0 auto; }
+                .table-info { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+                .info-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; width: 48%; vertical-align: top; }
+                .table-main { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                .table-main th { background: #1e3a8a; color: white; padding: 10px 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+                .firma-linea { border-top: 1px solid #94a3b8; width: 200px; margin-top: 50px; text-align: center; font-size: 12px; color: #64748b; }
             </style>
         </head>
         <body>
-<pre>
-========================================
-         SICOOP COOPERATIVA             
-    COMPROBANTE DE COMPRA / PREPAGO     
-========================================
-LOTE:    ${lote}
-PROV:    ${prov}
-FECHA:   ${fecha}
-TASA:    ${formatearMonto(tasa)} Bs/$
-----------------------------------------
-PRODUCTO           CANT.     TOTAL USD
-----------------------------------------
-${htmlItems}----------------------------------------
-TOTAL MATERIALES:       ${tUsd} USD
-TOTAL COMPROMISO:       ${tBs} BS
-----------------------------------------
-DISTRIBUCIÓN DEL DESEMBOLSO:
-${htmlBancos}========================================
-         CONTROL DE OPERACIONES          
-          MÉTODO INVENTARIO FIFO        
-========================================
-</pre>
+            <div class="wrapper">
+                <table style="width:100%; border-collapse:collapse; margin-bottom: 20px;">
+                    <tr>
+                        <td>
+                            <h2 style="margin:0; color:#1e3a8a; font-size:26px; font-weight:800; letter-spacing:-0.5px;">SICOOP COOPERATIVA</h2>
+                            <p style="margin:2px 0 0 0; color:#64748b; font-size:11px; text-transform:uppercase; font-weight:600; letter-spacing:1px;">Gestión y Control de Inventarios Indexados</p>
+                        </td>
+                        <td style="text-align: right; vertical-align: middle;">
+                            <div style="border: 2px solid #1e3a8a; padding: 10px 20px; border-radius: 6px; display: inline-block; background:#f0f4ff;">
+                                <span style="display:block; font-size:10px; color:#1e3a8a; font-weight:700; text-align:center; text-transform:uppercase;">Comprobante de Movimiento</span>
+                                <span style="font-family:monospace; font-size:16px; font-weight:bold; color:#111827;">LOTE: ${lote}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <hr style="border:0; border-top: 1px solid #e2e8f0; margin-bottom:25px;">
+
+                <table class="table-info">
+                    <tr>
+                        <td class="info-card">
+                            <h4 style="margin:0 0 8px 0; color:#1e3a8a; font-size:12px; text-transform:uppercase; border-bottom:2px solid #e2e8f0; padding-bottom:3px;">Información del Proveedor</h4>
+                            <table style="width:100%; font-size:13px; line-height:1.8;">
+                                <tr><td style="color:#64748b;">Razón Social:</td><td style="font-weight:700; color:#0f172a;">${prov}</td></tr>
+                                <tr><td style="color:#64748b;">Estatus Lote:</td><td><span style="background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">Pre-pagado Activo</span></td></tr>
+                            </table>
+                        </td>
+                        <td style="width:4%;"></td>
+                        <td class="info-card">
+                            <h4 style="margin:0 0 8px 0; color:#1e3a8a; font-size:12px; text-transform:uppercase; border-bottom:2px solid #e2e8f0; padding-bottom:3px;">Datos de Auditoría</h4>
+                            <table style="width:100%; font-size:13px; line-height:1.8;">
+                                <tr><td style="color:#64748b;">Fecha Emisión:</td><td style="font-weight:600;">${fecha}</td></tr>
+                                <tr><td style="color:#64748b;">Tasa Fiscal Ref:</td><td style="font-weight:bold; font-family:monospace;">Bs. ${formatearMonto(tasa)}</td></tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+                <h3 style="font-size:13px; color:#475569; text-transform:uppercase; margin-bottom:8px; letter-spacing:0.5px;">1. Desglose Computado de Bienes Adquiridos</h3>
+                <table class="table-main">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left; border-top-left-radius:4px;">Descripción del Item</th>
+                            <th style="width:10%; text-align:center;">Cant.</th>
+                            <th style="width:16%; text-align:right;">Costo Unit ($)</th>
+                            <th style="width:18%; text-align:right;">Total Neto ($)</th>
+                            <th style="width:22%; text-align:right; border-top-right-radius:4px;">Equiv. Líquido (Bs.)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${htmlItems}
+                    </tbody>
+                </table>
+
+                <table style="width:40%; margin-left:auto; border-collapse:collapse; margin-top:15px; margin-bottom:30px;">
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-size:13px;">Valor FOB Total ($):</td>
+                        <td style="padding: 6px 0; text-align: right; font-family: monospace; font-weight: 600;">$${tUsd}</td>
+                    </tr>
+                    <tr style="border-top: 1px dashed #cbd5e1;">
+                        <td style="padding: 8px 0; color: #1e3a8a; font-weight: bold; font-size:14px;">Total en Bolívares:</td>
+                        <td style="padding: 8px 0; text-align: right; font-family: monospace; font-weight: bold; color: #2563eb; font-size:15px;">Bs. ${tBs}</td>
+                    </tr>
+                </table>
+
+                <h3 style="font-size:13px; color:#475569; text-transform:uppercase; margin-bottom:8px; letter-spacing:0.5px;">2. Origen de Fondos y Conciliación Bancaria</h3>
+                <table style="width: 50%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 6px; background:#fafafa;">
+                    <tr style="background:#e2e8f0; color:#334155; font-size:11px; font-weight:bold; text-transform:uppercase;">
+                        <td style="padding:8px; text-align:left;">Banco Emisor</td>
+                        <td style="padding:8px; text-align:right;">Monto Debitado</td>
+                    </tr>
+                    ${htmlBancos}
+                </table>
+
+                <table style="width:100%; margin-top:80px; border-collapse:collapse;">
+                    <tr>
+                        <td style="width:50%; align:center;">
+                            <div class="firma-linea" style="margin: 0 auto;">Preparado por: Control Operativo</div>
+                        </td>
+                        <td style="width:50%; align:center;">
+                            <div class="firma-linea" style="margin: 0 auto;">Recibido Conforme / Proveedor</div>
+                        </td>
+                    </tr>
+                </table>
+
+                <div style="margin-top:70px; border-top:1px solid #e2e8f0; padding-top:10px; text-align:center; font-size:11px; color:#94a3b8;">
+                    SICOOP Web Corporativo v2.5 • Este comprobante ratifica el desglose del prepago para la carga en inventario mediante asignación por lote FIFO.
+                </div>
+            </div>
             <script>
                 window.onload = function() {
                     window.print();
@@ -358,11 +451,12 @@ ${htmlBancos}========================================
     ventanaImpresion.document.close();
 }
 
-// SOLUCIÓN A GOOGLE SHEETS VACÍO: Quitamos el modo no-cors y usamos URLSearchParams estructurado para POST seguro
+// NUEVO: Guardado robusto libre de bloqueos CORS usando Inyección Dinámica Script JSONP
 function procesarEnvioPrepago(e) {
     e.preventDefault();
     const btn = document.getElementById("btn-guardar-prepago");
-    btn.disabled = true; btn.innerText = "⏳ Guardando en Servidor...";
+    btn.disabled = true; 
+    btn.innerText = "⏳ Guardando en Servidor...";
 
     const items = [];
     document.querySelectorAll(".item-fila-prepago").forEach(fila => {
@@ -391,31 +485,49 @@ function procesarEnvioPrepago(e) {
         }
     };
 
-    // Usamos URLSearchParams para asegurar el traspaso correcto de datos hacia Google Apps Script sin bloqueos CORS
-    const datosEnvio = new URLSearchParams();
-    datosEnvio.append("raw", JSON.stringify(payload));
+    // Callback global temporal para capturar la respuesta exitosa del Servidor de Hojas de Cálculo
+    window.respuestaGuardadoGoogle = function(res) {
+        if (res && res.status === "success") {
+            // 1. Lanzamos el nuevo e impecable formato carta de soporte corporativo
+            imprimirReciboPrepago();
+            
+            // 2. Avisamos al usuario e interactuamos con la UI
+            alert(`🚀 Transmisión limpia: Lote ${payload.data.idLote} guardado con éxito en las tablas de Google Sheets.`);
+            
+            // 3. Reseteamos el formulario de la aplicación
+            document.getElementById("form-prepago").reset();
+            document.getElementById("contenedor-items-prepago").innerHTML = "";
+            calcularTotalesPrepago();
+            
+            // 4. Mandamos al usuario al inicio y recargamos los gráficos
+            cambiarModulo("mod-dashboard");
+        } else {
+            alert("⚠️ El servidor procesó los datos pero devolvió una alerta no controlada.");
+            btn.disabled = false; btn.innerText = "💾 Procesar Guardado";
+        }
+        
+        // Limpieza del elemento inyectado
+        const loader = document.getElementById('jsonp-guardar-loader');
+        if (loader) loader.remove();
+    };
 
-    fetch(WEB_APP_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: datosEnvio.toString()
-    })
-    .then(res => {
-        // Ejecución inmediata del ticket de soporte e interfaz
-        imprimirReciboPrepago();
-        
-        alert(`🚀 Lote ${payload.data.idLote} registrado y procesado exitosamente en Google Sheets.`);
-        document.getElementById("form-prepago").reset();
-        document.getElementById("contenedor-items-prepago").innerHTML = "";
-        
-        calcularTotalesPrepago();
-        cambiarModulo("mod-dashboard");
-    })
-    .catch(err => {
-        alert("⚠️ Error al comunicar con Google Sheets. Verifique la consola.");
-        console.error(err);
+    // SOLUCIÓN AL ERROR CORS: Codificamos el payload y lo pasamos por JSONP de forma nativa e indetectable para bloqueos de red
+    const scriptEnvio = document.createElement('script');
+    scriptEnvio.id = 'jsonp-guardar-loader';
+    
+    // Convertimos a base64 seguro o texto URI para pasar el bloque de datos por la URL sin truncados
+    const datosSerializados = encodeURIComponent(JSON.stringify(payload));
+    scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaGuardadoGoogle&raw=${datosSerializados}`;
+    
+    scriptEnvio.onerror = function() {
+        alert("❌ Error crítico en el canal de datos JSONP. El servidor no respondió.");
         btn.disabled = false; btn.innerText = "💾 Procesar Guardado";
-    });
+        const loader = document.getElementById('jsonp-guardar-loader');
+        if (loader) loader.remove();
+    };
+
+    // Agregamos al documento para gatillar el guardado inmediato en Sheets
+    document.body.appendChild(scriptEnvio);
 }
 
 function renderizarTablaReportes() {
