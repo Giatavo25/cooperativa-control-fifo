@@ -1,0 +1,23 @@
+/* Estilos optimizados para impresión limpia de tickets */
+@media print {
+    body * { 
+        visibility: hidden; 
+    }
+    #ticket-impresion, #ticket-impresion * { 
+        visibility: visible; 
+    }
+    #ticket-impresion { 
+        position: absolute; 
+        left: 0; 
+        top: 0; 
+        width: 100%; 
+        max-width: 80mm; 
+        background: white; 
+        color: black; 
+        font-family: monospace; 
+        padding: 10px; 
+    }
+    main, aside, header { 
+        display: none !important; 
+    }
+}
