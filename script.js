@@ -217,6 +217,7 @@ function agregarFilaMercanciaPrepago() {
         </td>
     `;
     document.getElementById("contenedor-items-prepago").appendChild(tr);
+    calcularTotalesPrepago();
 }
 
 function calcularTotalesPrepago() {
@@ -238,7 +239,12 @@ function calcularTotalesPrepago() {
     const totalBsObligatorio = sumatoriaUsd * tasa;
 
     let sumatoriaBancos = 0;
+    // Agregamos listeners dinámicos para recalcular en tiempo real al escribir en los recuadros bancarios
     document.querySelectorAll(".input-banco-prepago").forEach(inp => {
+        if (!inp.dataset.listenerAsignado) {
+            inp.addEventListener("input", calcularTotalesPrepago);
+            inp.dataset.listenerAsignado = "true";
+        }
         sumatoriaBancos += parseFloat(inp.value) || 0;
     });
 
@@ -247,24 +253,39 @@ function calcularTotalesPrepago() {
     document.getElementById("txt-total-usd").innerText = formatearMonto(sumatoriaUsd);
     document.getElementById("txt-total-bs").innerText = formatearMonto(totalBsObligatorio);
     document.getElementById("txt-total-bancos").innerText = formatearMonto(sumatoriaBancos);
-    document.getElementById("txt-diferencia").innerText = formatearMonto(Math.abs(diferencia));
+    
+    // Verificamos si existe el nodo txt-diferencia antes de asignarle valor
+    const txtDiffEl = document.getElementById("txt-diferencia");
+    if (txtDiffEl) txtDiffEl.innerText = formatearMonto(Math.abs(diferencia));
 
     const wrapperDiff = document.getElementById("wrapper-diferencia");
     const btnGuardar = document.getElementById("btn-guardar-prepago");
     const btnImprimir = document.getElementById("btn-imprimir-prepago");
 
+    // Condición de conciliación: Si hay un compromiso y la diferencia absoluta es insignificante (< 1 Bolívar para tolerar decimales)
     if (totalBsObligatorio > 0 && Math.abs(diferencia) <= 1) {
         wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-sm bg-emerald-950/60 border border-emerald-800 text-emerald-400";
         wrapperDiff.innerText = "✅ Cuadrado / Conciliación Bancaria Exitosa";
         
-        btnGuardar.disabled = false; btnGuardar.className = "bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
-        btnImprimir.disabled = false; btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full";
+        btnGuardar.disabled = false; 
+        btnGuardar.className = "bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
+        
+        btnImprimir.disabled = false; 
+        btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full";
     } else {
         wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-sm bg-red-950/60 border border-red-800 text-red-400";
-        wrapperDiff.innerHTML = `Falta por conciliar: <span class="font-mono">${formatearMonto(diferencia)}</span> Bs`;
         
-        btnGuardar.disabled = true; btnGuardar.className = "bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
-        btnImprimir.disabled = true; btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
+        if (diferencia >= 0) {
+            wrapperDiff.innerHTML = `Falta por conciliar: <span class="font-mono">${formatearMonto(diferencia)}</span> Bs`;
+        } else {
+            wrapperDiff.innerHTML = `Monto excedido en bancos: <span class="font-mono">${formatearMonto(Math.abs(diferencia))}</span> Bs`;
+        }
+        
+        btnGuardar.disabled = true; 
+        btnGuardar.className = "bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
+        
+        btnImprimir.disabled = true; 
+        btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
     }
 }
 
@@ -294,6 +315,8 @@ function imprimirReciboPrepago() {
     const tBs = document.getElementById("txt-total-bs").innerText;
 
     const tkt = document.getElementById("ticket-impresion");
+    if (!tkt) return; // Validación de seguridad por si el nodo de impresión cambia de ID
+    
     tkt.innerHTML = `
 <pre style="margin:0; font-family:monospace; font-size:12px; color:black; background:white;">
 ========================================
@@ -313,7 +336,7 @@ TOTAL COMPROMISO:       ${tBs} BS
 ----------------------------------------
 DISTRIBUCIÓN DEL DESEMBOLSO:
 ${htmlBancos}========================================
-        CONTROL DE OPERACIONES          
+         CONTROL DE OPERACIONES          
           MÉTODO INVENTARIO FIFO        
 ========================================
 </pre>
@@ -359,9 +382,15 @@ function procesarEnvioPrepago(e) {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: JSON.stringify(payload)
     }).then(() => {
+        // DISPARO AUTOMÁTICO DE IMPRESIÓN AL GUARDAR
+        imprimirReciboPrepago();
+        
         alert(`🚀 Lote ${payload.data.idLote} registrado y procesado exitosamente.`);
         document.getElementById("form-prepago").reset();
         document.getElementById("contenedor-items-prepago").innerHTML = "";
+        
+        // Forzamos el recálculo inicial tras limpiar los campos para restablecer estados visuales
+        calcularTotalesPrepago();
         cambiarModulo("mod-dashboard");
     }).catch(err => {
         alert("Error al comunicar con la base de datos.");
