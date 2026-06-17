@@ -286,7 +286,7 @@ function calcularTotalesPrepago() {
     }
 }
 
-// NUEVO: Soporte Corporativo Profesional tipo Factura / Carta Ejecutiva Completa
+// Soporte Corporativo Profesional tipo Factura / Carta Ejecutiva Completa
 function imprimirReciboPrepago() {
     const prov = document.getElementById("pre-proveedor").value;
     const lote = document.getElementById("pre-lote-sugerido").innerText;
@@ -451,7 +451,7 @@ function imprimirReciboPrepago() {
     ventanaImpresion.document.close();
 }
 
-// NUEVO: Guardado robusto libre de bloqueos CORS usando Inyección Dinámica Script JSONP
+// CORREGIDO: Guardado robusto sincronizado con la propiedad 'payload' del Servidor
 function procesarEnvioPrepago(e) {
     e.preventDefault();
     const btn = document.getElementById("btn-guardar-prepago");
@@ -511,13 +511,12 @@ function procesarEnvioPrepago(e) {
         if (loader) loader.remove();
     };
 
-    // SOLUCIÓN AL ERROR CORS: Codificamos el payload y lo pasamos por JSONP de forma nativa e indetectable para bloqueos de red
+    // SOLUCIÓN AL ERROR CORS: Se cambió 'raw=' por 'payload=' para acoplarse con Código.gs
     const scriptEnvio = document.createElement('script');
     scriptEnvio.id = 'jsonp-guardar-loader';
     
-    // Convertimos a base64 seguro o texto URI para pasar el bloque de datos por la URL sin truncados
     const datosSerializados = encodeURIComponent(JSON.stringify(payload));
-    scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaGuardadoGoogle&raw=${datosSerializados}`;
+    scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaGuardadoGoogle&payload=${datosSerializados}`;
     
     scriptEnvio.onerror = function() {
         alert("❌ Error crítico en el canal de datos JSONP. El servidor no respondió.");
