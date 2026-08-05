@@ -4,16 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SICOOP - Control de Inventario FIFO</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Charts -->
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        /* Estilos específicos para impresión de recibos */
+        @media print {
+            aside, header, button, .no-print {
+                display: none !important;
+            }
+            body, main {
+                background: #ffffff !important;
+                color: #000000 !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+        }
+    </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex antialiased">
 
     <!-- PANEL LATERAL DE NAVEGACIÓN -->
-    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between p-4 shrink-0">
+    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between p-4 shrink-0 h-screen sticky top-0">
         <div>
             <div class="flex items-center gap-3 px-2 py-4 border-b border-slate-800 mb-6">
-                <div class="bg-blue-600 text-white font-black p-2 rounded-lg text-lg">📊</div>
+                <div class="bg-blue-600 text-white font-black p-2 rounded-lg text-lg flex items-center justify-center w-10 h-10">📊</div>
                 <div>
                     <h1 class="font-bold text-white text-base tracking-wide">SICOOP</h1>
                     <p class="text-xs text-slate-400">Control de Inventario FIFO</p>
@@ -47,7 +66,7 @@
     <!-- CONTENIDO PRINCIPAL -->
     <main class="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         <!-- BARRA SUPERIOR -->
-        <header class="bg-slate-900/50 border-b border-slate-800 px-8 py-4 flex items-center justify-between backdrop-blur">
+        <header class="bg-slate-900/50 border-b border-slate-800 px-8 py-4 flex items-center justify-between backdrop-blur sticky top-0 z-10">
             <h2 id="titulo-modulo" class="text-xl font-bold text-white">Dashboard General</h2>
             <span class="text-xs bg-blue-950 text-blue-300 border border-blue-800 px-3 py-1 rounded-full font-mono">Barquisimeto Online</span>
         </header>
@@ -110,7 +129,7 @@
 
             <!-- MÓDULO 2: REGISTRAR PREPAGO -->
             <section id="mod-prepagos" class="modulo hidden space-y-6">
-                <form id="form-prepago" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <form id="form-prepago" autocomplete="off" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 space-y-6">
                         <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
                             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -121,18 +140,18 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-400 mb-1">PROVEEDOR</label>
-                                    <select id="pre-proveedor" onchange="actualizarFlujoProveedorPrepago(this.value)" class="select-proveedores w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" required>
+                                    <label for="pre-proveedor" class="block text-xs font-semibold text-slate-400 mb-1">PROVEEDOR</label>
+                                    <select id="pre-proveedor" onchange="actualizarFlujoProveedorPrepago(this.value)" class="select-proveedores w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500" required>
                                         <option value="">-- Seleccione --</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-400 mb-1">FECHA</label>
-                                    <input type="date" id="pre-fecha" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" required>
+                                    <label for="pre-fecha" class="block text-xs font-semibold text-slate-400 mb-1">FECHA</label>
+                                    <input type="date" id="pre-fecha" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500" required>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-400 mb-1">TASA BVC (Bs/$)</label>
-                                    <input type="number" step="0.01" id="pre-tasa" oninput="calcularTotalesPrepago()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white" placeholder="0.00" required>
+                                    <label for="pre-tasa" class="block text-xs font-semibold text-slate-400 mb-1">TASA BVC (Bs/$)</label>
+                                    <input type="number" step="0.01" min="0" id="pre-tasa" oninput="calcularTotalesPrepago()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-blue-500" placeholder="0.00" required>
                                 </div>
                             </div>
                         </div>
@@ -140,7 +159,7 @@
                         <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
                             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                                 <h3 class="font-bold text-white text-sm">Detalle de Mercancía Comprada</h3>
-                                <button type="button" onclick="agregarFilaMercanciaPrepago()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold">+ Agregar Item</button>
+                                <button type="button" onclick="agregarFilaMercanciaPrepago()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold transition">+ Agregar Item</button>
                             </div>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-xs">
@@ -166,24 +185,24 @@
                             <h3 class="font-bold text-white text-sm border-b border-slate-800 pb-3">Pagos Emitidos por Banco (Bs.)</h3>
                             <div class="space-y-3 text-xs">
                                 <div>
-                                    <label class="text-slate-400">BANESCO</label>
-                                    <input type="number" step="0.01" id="pago-banesco" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1" placeholder="0.00">
+                                    <label for="pago-banesco" class="text-slate-400">BANESCO</label>
+                                    <input type="number" step="0.01" min="0" id="pago-banesco" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1 focus:outline-none focus:border-blue-500" placeholder="0.00">
                                 </div>
                                 <div>
-                                    <label class="text-slate-400">MERCANTIL</label>
-                                    <input type="number" step="0.01" id="pago-mercantil" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1" placeholder="0.00">
+                                    <label for="pago-mercantil" class="text-slate-400">MERCANTIL</label>
+                                    <input type="number" step="0.01" min="0" id="pago-mercantil" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1 focus:outline-none focus:border-blue-500" placeholder="0.00">
                                 </div>
                                 <div>
-                                    <label class="text-slate-400">PROVINCIAL</label>
-                                    <input type="number" step="0.01" id="pago-provincial" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1" placeholder="0.00">
+                                    <label for="pago-provincial" class="text-slate-400">PROVINCIAL</label>
+                                    <input type="number" step="0.01" min="0" id="pago-provincial" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1 focus:outline-none focus:border-blue-500" placeholder="0.00">
                                 </div>
                                 <div>
-                                    <label class="text-slate-400">BANCARIBE</label>
-                                    <input type="number" step="0.01" id="pago-bancaribe" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1" placeholder="0.00">
+                                    <label for="pago-bancaribe" class="text-slate-400">BANCARIBE</label>
+                                    <input type="number" step="0.01" min="0" id="pago-bancaribe" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1 focus:outline-none focus:border-blue-500" placeholder="0.00">
                                 </div>
                                 <div>
-                                    <label class="text-slate-400">BANCO ACTIVO</label>
-                                    <input type="number" step="0.01" id="pago-activo" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1" placeholder="0.00">
+                                    <label for="pago-activo" class="text-slate-400">BANCO ACTIVO</label>
+                                    <input type="number" step="0.01" min="0" id="pago-activo" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1 focus:outline-none focus:border-blue-500" placeholder="0.00">
                                 </div>
                             </div>
                         </div>
@@ -208,37 +227,37 @@
             <!-- MÓDULO 3: RECEPCCIÓN DE CARGA (DESPACHO FIFO) -->
             <section id="mod-recepcion" class="modulo hidden space-y-6">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <form id="form-recepcion" class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
+                    <form id="form-recepcion" autocomplete="off" class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
                         <h3 class="font-bold text-white text-sm border-b border-slate-800 pb-3">Registro de Carga Física</h3>
                         
                         <div>
-                            <label class="block text-xs font-semibold text-slate-400 mb-1">NRO FACTURA / CONTROL</label>
-                            <input type="text" id="rec-guia" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono" placeholder="00000000" required>
+                            <label for="rec-guia" class="block text-xs font-semibold text-slate-400 mb-1">NRO FACTURA / CONTROL</label>
+                            <input type="text" id="rec-guia" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-blue-500" placeholder="00000000" required>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-400 mb-1">PROVEEDOR</label>
-                            <select id="rec-proveedor" onchange="actualizarFlujoProveedorRecepcion(this.value)" class="select-proveedores w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" required>
+                            <label for="rec-proveedor" class="block text-xs font-semibold text-slate-400 mb-1">PROVEEDOR</label>
+                            <select id="rec-proveedor" onchange="actualizarFlujoProveedorRecepcion(this.value)" class="select-proveedores w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500" required>
                                 <option value="">-- Seleccione un proveedor --</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-400 mb-1">MERCANCÍA RECIBIDA</label>
-                            <select id="rec-producto" onchange="actualizarTablaRecepcionCascada()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" required>
+                            <label for="rec-producto" class="block text-xs font-semibold text-slate-400 mb-1">MERCANCÍA RECIBIDA</label>
+                            <select id="rec-producto" onchange="actualizarTablaRecepcionCascada()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500" required>
                                 <option value="">-- Seleccione primero un proveedor --</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-400 mb-1">CANTIDAD FÍSICA QUE ENTRA (UNIDADES)</label>
-                            <input type="number" step="1" id="rec-cantidad" oninput="actualizarTablaRecepcionCascada()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white" placeholder="0" required>
+                            <label for="rec-cantidad" class="block text-xs font-semibold text-slate-400 mb-1">CANTIDAD FÍSICA QUE ENTRA (UNIDADES)</label>
+                            <input type="number" step="1" min="1" id="rec-cantidad" oninput="actualizarTablaRecepcionCascada()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-blue-500" placeholder="0" required>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="block text-xs font-semibold text-slate-400 mb-1">FECHA RECEP.</label>
-                                <input type="date" id="rec-fecha" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" required>
+                                <label for="rec-fecha" class="block text-xs font-semibold text-slate-400 mb-1">FECHA RECEP.</label>
+                                <input type="date" id="rec-fecha" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500" required>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-slate-400 mb-1">TASA DEL DÍA (Bs/$)</label>
-                                <input type="number" step="0.01" id="rec-tasa" oninput="actualizarTablaRecepcionCascada()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white" placeholder="0.00" required>
+                                <label for="rec-tasa" class="block text-xs font-semibold text-slate-400 mb-1">TASA DEL DÍA (Bs/$)</label>
+                                <input type="number" step="0.01" min="0" id="rec-tasa" oninput="actualizarTablaRecepcionCascada()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-blue-500" placeholder="0.00" required>
                             </div>
                         </div>
 
@@ -301,11 +320,11 @@
             <!-- MÓDULO 4: PROVEEDORES -->
             <section id="mod-proveedores" class="modulo hidden space-y-6">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <form id="form-proveedor" class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
+                    <form id="form-proveedor" autocomplete="off" class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
                         <h3 class="font-bold text-white text-sm border-b border-slate-800 pb-3">Nuevo Proveedor / Mercancía</h3>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE / RAZÓN SOCIAL</label>
-                            <input type="text" id="prov-nombre" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" placeholder="Ej: ALIMENTOS DOÑA EMILIA, S.A." required>
+                            <label for="prov-nombre" class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE / RAZÓN SOCIAL</label>
+                            <input type="text" id="prov-nombre" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500" placeholder="Ej: ALIMENTOS DOÑA EMILIA, S.A." required>
                         </div>
                         <div>
                             <div class="flex justify-between items-center mb-1">
@@ -314,7 +333,7 @@
                             </div>
                             <div id="contenedor-mercancias" class="space-y-2">
                                 <div class="flex gap-2">
-                                    <input type="text" class="input-mercancia w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" placeholder="Producto" required>
+                                    <input type="text" class="input-mercancia w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500" placeholder="Producto" required>
                                 </div>
                             </div>
                         </div>
@@ -336,7 +355,7 @@
                     <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
                         <h3 class="text-sm font-bold text-slate-200">Histórico de Despachos y Auditoría FIFO</h3>
                         <div class="w-64">
-                            <select id="reporte-filtro-proveedor" onchange="renderizarTablaReportes()" class="select-proveedores w-full p-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+                            <select id="reporte-filtro-proveedor" onchange="renderizarTablaReportes()" class="select-proveedores w-full p-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500">
                                 <option value="">-- Todos los Proveedores --</option>
                             </select>
                         </div>
