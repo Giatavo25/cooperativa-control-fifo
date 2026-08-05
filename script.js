@@ -524,7 +524,7 @@ function procesarEnvioPrepago(e) {
     document.body.appendChild(scriptEnvio);
 }
 
-// RECEPCCIÓN DE CARGA Y MOTOR FIFO CASCADA
+// RECEPCIÓN DE CARGA Y MOTOR FIFO CASCADA
 function actualizarFlujoProveedorRecepcion(prov) {
     filtrarProductosPorProveedor(prov, "rec-producto");
     actualizarTablaRecepcionCascada();
@@ -644,6 +644,7 @@ function resetearKPIsRecepcion() {
     }
 }
 
+// FUNCIÓN CORREGIDA PARA RECEPCIÓN DE CARGA
 function procesarEnvioRecepcion(e) {
     e.preventDefault();
     const btn = document.getElementById("btn-guardar-recepcion") || e.target.querySelector('button[type="submit"]');
@@ -652,15 +653,18 @@ function procesarEnvioRecepcion(e) {
         btn.innerText = "⏳ Descargando de cola FIFO...";
     }
 
+    // Mapeo flexible para obtener el input de número de factura / guía
+    const numFacturaInput = document.getElementById("rec-guia") || document.getElementById("rec-factura") || document.querySelector('input[placeholder*="FACTURA"]');
+
     const payload = {
-        accion: "registrar_recepcion_carga",
+        accion: "registrar_despacho", // <-- CORREGIDO: Coincide exactamente con la acción en Código.gs
         data: {
             proveedor: document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "",
             producto: document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "",
             cantidad: parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0,
             fecha: document.getElementById("rec-fecha") ? document.getElementById("rec-fecha").value : new Date().toISOString().split('T')[0],
             tasaRecepcion: parseFloat(document.getElementById("rec-tasa") ? document.getElementById("rec-tasa").value : 1) || 1,
-            guiaTransporte: document.getElementById("rec-guia") ? document.getElementById("rec-guia").value : ""
+            nroFactura: numFacturaInput ? numFacturaInput.value : "N/A" // <-- CORREGIDO: Propiedad esperada por Código.gs
         }
     };
 
