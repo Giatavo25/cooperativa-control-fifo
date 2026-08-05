@@ -611,19 +611,37 @@ function actualizarTablaRecepcionCascada() {
     }
 
     const btnProcesar = document.getElementById("btn-guardar-recepcion");
-    if (btnProcesar) {
-        if (remanentePorDespachar > 0) {
+    const btnImprimir = document.getElementById("btn-imprimir-recepcion");
+
+    if (remanentePorDespachar > 0) {
+        if (btnProcesar) {
             btnProcesar.disabled = true;
             btnProcesar.className = "bg-amber-600/50 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
             btnProcesar.innerText = `⚠️ Stock insuficiente (Faltan: ${formatearMonto(remanentePorDespachar)} und)`;
-        } else if (cantRecepcion > 0) {
+        }
+        if (btnImprimir) {
+            btnImprimir.disabled = true;
+            btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
+        }
+    } else if (cantRecepcion > 0) {
+        if (btnProcesar) {
             btnProcesar.disabled = false;
             btnProcesar.className = "bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
             btnProcesar.innerText = "📦 Confirmar Recepción de Carga";
-        } else {
+        }
+        if (btnImprimir) {
+            btnImprimir.disabled = false;
+            btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full";
+        }
+    } else {
+        if (btnProcesar) {
             btnProcesar.disabled = true;
             btnProcesar.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
             btnProcesar.innerText = "📦 Confirmar Recepción de Carga";
+        }
+        if (btnImprimir) {
+            btnImprimir.disabled = true;
+            btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
         }
     }
 }
@@ -642,9 +660,176 @@ function resetearKPIsRecepcion() {
         btn.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
         btn.innerText = "📦 Confirmar Recepción de Carga";
     }
+    const btnImp = document.getElementById("btn-imprimir-recepcion");
+    if (btnImp) {
+        btnImp.disabled = true;
+        btnImp.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
+    }
 }
 
-// FUNCIÓN CORREGIDA PARA RECEPCIÓN DE CARGA
+// IMPRESIÓN COMPROBANTE RECEPCIÓN DE CARGA
+function imprimirComprobanteRecepcion() {
+    const prov = document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "";
+    const prod = document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "";
+    const cant = parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0;
+    const fecha = document.getElementById("rec-fecha") ? document.getElementById("rec-fecha").value : new Date().toISOString().split('T')[0];
+    const tasaActual = parseFloat(document.getElementById("rec-tasa") ? document.getElementById("rec-tasa").value : 1) || 1;
+    
+    const numFacturaInput = document.getElementById("rec-guia") || document.getElementById("rec-factura") || document.querySelector('input[placeholder*="FACTURA"]');
+    const factura = numFacturaInput ? numFacturaInput.value : "N/A";
+
+    const kpiUsd = document.getElementById("rec-kpi-usd") ? document.getElementById("rec-kpi-usd").innerText : "0,00";
+    const kpiBsOrigen = document.getElementById("rec-kpi-bs-origen") ? document.getElementById("rec-kpi-bs-origen").innerText : "0,00";
+    const kpiBsActual = document.getElementById("rec-kpi-bs-actual") ? document.getElementById("rec-kpi-bs-actual").innerText : "0,00";
+    const kpiAjuste = document.getElementById("rec-kpi-ajuste") ? document.getElementById("rec-kpi-ajuste").innerText : "0,00 Bs";
+
+    let htmlFilasFifo = "";
+    const tbody = document.getElementById("rec-tabla-lotes-body");
+    if (tbody) {
+        const trs = tbody.querySelectorAll("tr");
+        trs.forEach(tr => {
+            const cols = tr.querySelectorAll("td");
+            if (cols.length >= 8) {
+                const idLote = cols[0].innerText;
+                const cantTomada = cols[2].innerText;
+                const costoUsd = cols[3].innerText;
+                const totalUsd = cols[4].innerText;
+                const tasaOrigen = cols[5].innerText;
+                const totalBsOrigen = cols[6].innerText;
+                const totalBsActual = cols[7].innerText;
+
+                htmlFilasFifo += `
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 8px; font-family: monospace; font-weight: bold; color: #1e3a8a;">${idLote}</td>
+                        <td style="padding: 8px; text-align: center; font-family: monospace; font-weight: bold; color: #047857;">${cantTomada}</td>
+                        <td style="padding: 8px; text-align: right; font-family: monospace;">${costoUsd}</td>
+                        <td style="padding: 8px; text-align: right; font-family: monospace; font-weight: bold;">${totalUsd}</td>
+                        <td style="padding: 8px; text-align: right; font-family: monospace; color: #64748b;">${tasaOrigen}</td>
+                        <td style="padding: 8px; text-align: right; font-family: monospace; color: #475569;">${totalBsOrigen}</td>
+                        <td style="padding: 8px; text-align: right; font-family: monospace; font-weight: bold; color: #2563eb;">${totalBsActual}</td>
+                    </tr>
+                `;
+            }
+        });
+    }
+
+    const ventanaImpresion = window.open('', '_blank', 'width=850,height=1100');
+    ventanaImpresion.document.write(`
+        <html>
+        <head>
+            <title>Comprobante Recepción de Carga - Factura ${factura}</title>
+            <style>
+                @page { size: letter; margin: 45px; }
+                body { font-family: 'Segoe UI', system-ui, Arial, sans-serif; color: #1e293b; background: white; margin: 0; padding: 0; font-size: 13px; }
+                .wrapper { width: 100%; max-width: 750px; margin: 0 auto; }
+                .table-info { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                .info-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; width: 48%; vertical-align: top; }
+                .table-main { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                .table-main th { background: #047857; color: white; padding: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+                .firma-linea { border-top: 1px solid #94a3b8; width: 200px; margin-top: 50px; text-align: center; font-size: 11px; color: #64748b; }
+            </style>
+        </head>
+        <body>
+            <div class="wrapper">
+                <table style="width:100%; border-collapse:collapse; margin-bottom: 15px;">
+                    <tr>
+                        <td>
+                            <h2 style="margin:0; color:#047857; font-size:24px; font-weight:800; letter-spacing:-0.5px;">SICOOP COOPERATIVA</h2>
+                            <p style="margin:2px 0 0 0; color:#64748b; font-size:11px; text-transform:uppercase; font-weight:600;">Comprobante de Recepción y Descargo FIFO</p>
+                        </td>
+                        <td style="text-align: right; vertical-align: middle;">
+                            <div style="border: 2px solid #047857; padding: 8px 16px; border-radius: 6px; display: inline-block; background:#f0fdf4;">
+                                <span style="display:block; font-size:10px; color:#047857; font-weight:700; text-align:center; text-transform:uppercase;">N° Factura / Guía</span>
+                                <span style="font-family:monospace; font-size:16px; font-weight:bold; color:#111827;">${factura}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <hr style="border:0; border-top: 1px solid #e2e8f0; margin-bottom:20px;">
+
+                <table class="table-info">
+                    <tr>
+                        <td class="info-card">
+                            <h4 style="margin:0 0 6px 0; color:#047857; font-size:11px; text-transform:uppercase; border-bottom:2px solid #e2e8f0; padding-bottom:3px;">Datos de Recepción</h4>
+                            <table style="width:100%; font-size:12px; line-height:1.7;">
+                                <tr><td style="color:#64748b;">Proveedor:</td><td style="font-weight:700; color:#0f172a;">${prov}</td></tr>
+                                <tr><td style="color:#64748b;">Producto:</td><td style="font-weight:600;">${prod}</td></tr>
+                                <tr><td style="color:#64748b;">Cant. Recibida:</td><td style="font-weight:bold; font-family:monospace; color:#047857;">${formatearMonto(cant)} und</td></tr>
+                            </table>
+                        </td>
+                        <td style="width:4%;"></td>
+                        <td class="info-card">
+                            <h4 style="margin:0 0 6px 0; color:#047857; font-size:11px; text-transform:uppercase; border-bottom:2px solid #e2e8f0; padding-bottom:3px;">Parámetros de Liquidación</h4>
+                            <table style="width:100%; font-size:12px; line-height:1.7;">
+                                <tr><td style="color:#64748b;">Fecha Recepción:</td><td style="font-weight:600;">${fecha}</td></tr>
+                                <tr><td style="color:#64748b;">Tasa Liquidación:</td><td style="font-weight:bold; font-family:monospace;">Bs. ${formatearMonto(tasaActual)}</td></tr>
+                                <tr><td style="color:#64748b;">Ajuste Cambiario:</td><td style="font-weight:bold; font-family:monospace; color:#2563eb;">${kpiAjuste}</td></tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+                <h3 style="font-size:12px; color:#475569; text-transform:uppercase; margin-bottom:6px;">1. Asignación y Consumo por Lote (Método FIFO)</h3>
+                <table class="table-main">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left;">Lote Af.</th>
+                            <th style="text-align:center;">Descargado</th>
+                            <th style="text-align:right;">Costo ($)</th>
+                            <th style="text-align:right;">Subtotal ($)</th>
+                            <th style="text-align:right;">Tasa Org.</th>
+                            <th style="text-align:right;">Subtotal Org. (Bs)</th>
+                            <th style="text-align:right;">Subtotal Liq. (Bs)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${htmlFilasFifo}
+                    </tbody>
+                </table>
+
+                <table style="width:50%; margin-left:auto; border-collapse:collapse; margin-top:15px; margin-bottom:25px; background:#f8fafc; border:1px solid #e2e8f0; padding:10px; border-radius:6px;">
+                    <tr>
+                        <td style="padding: 4px 8px; color: #64748b; font-size:12px;">Valor Equivalente USD:</td>
+                        <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 600;">$${kpiUsd}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 8px; color: #64748b; font-size:12px;">Monto Prepago Origen:</td>
+                        <td style="padding: 4px 8px; text-align: right; font-family: monospace;">Bs. ${kpiBsOrigen}</td>
+                    </tr>
+                    <tr style="border-top: 1px dashed #cbd5e1;">
+                        <td style="padding: 6px 8px; color: #047857; font-weight: bold; font-size:13px;">Total Liquidado Actual:</td>
+                        <td style="padding: 6px 8px; text-align: right; font-family: monospace; font-weight: bold; color: #047857; font-size:14px;">Bs. ${kpiBsActual}</td>
+                    </tr>
+                </table>
+
+                <table style="width:100%; margin-top:60px; border-collapse:collapse;">
+                    <tr>
+                        <td style="width:50%; text-align:center;">
+                            <div class="firma-linea" style="margin: 0 auto;">Almacén / Recepción</div>
+                        </td>
+                        <td style="width:50%; text-align:center;">
+                            <div class="firma-linea" style="margin: 0 auto;">Transportista / Entregado</div>
+                        </td>
+                    </tr>
+                </table>
+
+                <div style="margin-top:50px; border-top:1px solid #e2e8f0; padding-top:8px; text-align:center; font-size:10px; color:#94a3b8;">
+                    SICOOP Web Corporativo v2.5 • Este comprobante verifica el consumo FIFO de prepagos activos.
+                </div>
+            </div>
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() { window.close(); }, 500);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    ventanaImpresion.document.close();
+}
+
 function procesarEnvioRecepcion(e) {
     e.preventDefault();
     const btn = document.getElementById("btn-guardar-recepcion") || e.target.querySelector('button[type="submit"]');
@@ -653,23 +838,23 @@ function procesarEnvioRecepcion(e) {
         btn.innerText = "⏳ Descargando de cola FIFO...";
     }
 
-    // Mapeo flexible para obtener el input de número de factura / guía
     const numFacturaInput = document.getElementById("rec-guia") || document.getElementById("rec-factura") || document.querySelector('input[placeholder*="FACTURA"]');
 
     const payload = {
-        accion: "registrar_despacho", // <-- CORREGIDO: Coincide exactamente con la acción en Código.gs
+        accion: "registrar_despacho",
         data: {
             proveedor: document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "",
             producto: document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "",
             cantidad: parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0,
             fecha: document.getElementById("rec-fecha") ? document.getElementById("rec-fecha").value : new Date().toISOString().split('T')[0],
             tasaRecepcion: parseFloat(document.getElementById("rec-tasa") ? document.getElementById("rec-tasa").value : 1) || 1,
-            nroFactura: numFacturaInput ? numFacturaInput.value : "N/A" // <-- CORREGIDO: Propiedad esperada por Código.gs
+            nroFactura: numFacturaInput ? numFacturaInput.value : "N/A"
         }
     };
 
     window.respuestaRecepcionGoogle = function(res) {
         if (res && res.status === "success") {
+            imprimirComprobanteRecepcion();
             alert(`✅ Carga recibida exitosamente. El inventario FIFO fue actualizado en las tablas de la Cooperativa.`);
             const form = document.getElementById("form-recepcion");
             if (form) form.reset();
