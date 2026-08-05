@@ -599,16 +599,35 @@ function actualizarTablaRecepcionCascada() {
         tbody.appendChild(row);
     });
 
-    const diffCambiariaTotal = sumBsActual - sumBsOriginal;
+    // Actualizar Resumen KPI de la Recepción FIFO
+    const ajusteValorizacionBs = sumBsActual - sumBsOriginal;
     
     if (document.getElementById("rec-kpi-usd")) document.getElementById("rec-kpi-usd").innerText = formatearMonto(sumUsdOriginal);
     if (document.getElementById("rec-kpi-bs-origen")) document.getElementById("rec-kpi-bs-origen").innerText = formatearMonto(sumBsOriginal);
     if (document.getElementById("rec-kpi-bs-actual")) document.getElementById("rec-kpi-bs-actual").innerText = formatearMonto(sumBsActual);
     
-    const kpiDiff = document.getElementById("rec-kpi-diff");
-    if (kpiDiff) {
-        kpiDiff.innerText = formatearMonto(diffCambiariaTotal);
-        kpiDiff.className = diffCambiariaTotal >= 0 ? "text-lg font-mono font-bold text-emerald-400" : "text-lg font-mono font-bold text-red-400";
+    const kpiAjusteEl = document.getElementById("rec-kpi-ajuste");
+    if (kpiAjusteEl) {
+        kpiAjusteEl.innerText = `${ajusteValorizacionBs >= 0 ? '+' : ''}${formatearMonto(ajusteValorizacionBs)} Bs`;
+        kpiAjusteEl.className = `font-mono text-xs font-bold ${ajusteValorizacionBs >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
+    }
+
+    // Validación de sobre-despacho respecto al inventario prepagado
+    const btnProcesar = document.getElementById("btn-guardar-recepcion");
+    if (btnProcesar) {
+        if (remanentePorDespachar > 0) {
+            btnProcesar.disabled = true;
+            btnProcesar.className = "bg-amber-600/50 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
+            btnProcesar.innerText = `⚠️ Stock insuficiente (Faltan: ${formatearMonto(remanentePorDespachar)} und)`;
+        } else if (cantRecepcion > 0) {
+            btnProcesar.disabled = false;
+            btnProcesar.className = "bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
+            btnProcesar.innerText = "📦 Confirmar Recepción de Carga";
+        } else {
+            btnProcesar.disabled = true;
+            btnProcesar.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
+            btnProcesar.innerText = "📦 Confirmar Recepción de Carga";
+        }
     }
 }
 
@@ -616,40 +635,48 @@ function resetearKPIsRecepcion() {
     if (document.getElementById("rec-kpi-usd")) document.getElementById("rec-kpi-usd").innerText = "0,00";
     if (document.getElementById("rec-kpi-bs-origen")) document.getElementById("rec-kpi-bs-origen").innerText = "0,00";
     if (document.getElementById("rec-kpi-bs-actual")) document.getElementById("rec-kpi-bs-actual").innerText = "0,00";
-    if (document.getElementById("rec-kpi-diff")) document.getElementById("rec-kpi-diff").innerText = "0,00";
+    if (document.getElementById("rec-kpi-ajuste")) {
+        document.getElementById("rec-kpi-ajuste").innerText = "0,00 Bs";
+        document.getElementById("rec-kpi-ajuste").className = "font-mono text-xs font-bold text-slate-400";
+    }
+    const btn = document.getElementById("btn-guardar-recepcion");
+    if (btn) {
+        btn.disabled = true;
+        btn.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
+        btn.innerText = "📦 Confirmar Recepción de Carga";
+    }
 }
 
 function procesarEnvioRecepcion(e) {
-    if (e) e.preventDefault();
+    e.preventDefault();
     const btn = document.getElementById("btn-guardar-recepcion");
-    if (btn) { btn.disabled = true; btn.innerText = "⏳ Procesando FIFO..."; }
-
-    const inputFactura = document.getElementById("rec-factura") || document.getElementById("rec-nro-factura");
+    btn.disabled = true;
+    btn.innerText = "⏳ Descargando de cola FIFO...";
 
     const payload = {
-        accion: "registrar_despacho",
+        accion: "registrar_recepcion_carga",
         data: {
             proveedor: document.getElementById("rec-proveedor").value,
             producto: document.getElementById("rec-producto").value,
             cantidad: parseFloat(document.getElementById("rec-cantidad").value) || 0,
-            tasaRecepcion: parseFloat(document.getElementById("rec-tasa").value) || 1,
             fecha: document.getElementById("rec-fecha").value,
-            nroFactura: inputFactura ? inputFactura.value : "N/A"
+            tasaRecepcion: parseFloat(document.getElementById("rec-tasa").value) || 1,
+            guiaTransporte: document.getElementById("rec-guia") ? document.getElementById("rec-guia").value : ""
         }
     };
 
     window.respuestaRecepcionGoogle = function(res) {
         if (res && res.status === "success") {
-            alert(`✅ Despacho procesado con éxito. Se actualizó la cola FIFO.`);
-            const form = document.getElementById("form-recepcion");
-            if (form) form.reset();
+            alert(`✅ Carga recibida exitosamente. El inventario FIFO fue actualizado en las tablas de la Cooperativa.`);
+            document.getElementById("form-recepcion").reset();
             resetearKPIsRecepcion();
             cargarDatos();
             cambiarModulo("mod-dashboard");
         } else {
-            alert(`⚠️ Error al procesar: ${res ? res.message : "Error desconocido"}`);
+            alert("⚠️ " + (res.message || "Error procesando la recepción en el servidor."));
+            btn.disabled = false;
+            btn.innerText = "📦 Confirmar Recepción de Carga";
         }
-        if (btn) { btn.disabled = false; btn.innerText = "💾 Registrar Recepción"; }
         const loader = document.getElementById('jsonp-recepcion-loader');
         if (loader) loader.remove();
     };
@@ -658,10 +685,11 @@ function procesarEnvioRecepcion(e) {
     scriptEnvio.id = 'jsonp-recepcion-loader';
     const datosSerializados = encodeURIComponent(JSON.stringify(payload));
     scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaRecepcionGoogle&payload=${datosSerializados}`;
-
+    
     scriptEnvio.onerror = function() {
-        alert("❌ Error crítico de comunicación JSONP al intentar registrar la recepción.");
-        if (btn) { btn.disabled = false; btn.innerText = "💾 Registrar Recepción"; }
+        alert("❌ Error de comunicación con el servidor al registrar el despacho.");
+        btn.disabled = false;
+        btn.innerText = "📦 Confirmar Recepción de Carga";
         const loader = document.getElementById('jsonp-recepcion-loader');
         if (loader) loader.remove();
     };
@@ -669,29 +697,113 @@ function procesarEnvioRecepcion(e) {
     document.body.appendChild(scriptEnvio);
 }
 
-function renderizarTablaReportes() {
-    const tbody = document.getElementById("tabla-reportes-body");
-    if (!tbody) return;
-    tbody.innerHTML = "";
+// --------------------------------------------------------------------------
+// MÓDULO DE REGISTRO Y GESTIÓN DE PROVEEDORES
+// --------------------------------------------------------------------------
 
-    if (!cacheHistorialDespachos || cacheHistorialDespachos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-4 text-center text-xs text-slate-500 italic">No hay registros de despachos/recepciones guardados.</td></tr>`;
+function procesarEnvioProveedor(e) {
+    e.preventDefault();
+    const btn = document.getElementById("btn-guardar-proveedor");
+    if (btn) { btn.disabled = true; btn.innerText = "⏳ Guardando..."; }
+
+    const nombre = document.getElementById("prov-nombre").value.trim();
+    const inputsMercancia = document.querySelectorAll(".input-mercancia");
+    const productos = [];
+
+    inputsMercancia.forEach(inp => {
+        const val = inp.value.trim();
+        if (val) productos.push(val);
+    });
+
+    if (!nombre || productos.length === 0) {
+        alert("Por favor ingrese el nombre del proveedor y al menos un producto.");
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Guardar Proveedor"; }
         return;
     }
 
-    cacheHistorialDespachos.forEach(item => {
-        const row = document.createElement("tr");
-        row.className = "hover:bg-slate-900/50 border-b border-slate-800 text-xs";
-        row.innerHTML = `
-            <td class="px-4 py-3 font-mono font-bold text-blue-400">${item.idLote}</td>
-            <td class="px-4 py-3 font-mono text-slate-300">${item.nroFactura}</td>
-            <td class="px-4 py-3 font-mono text-slate-400">${item.fechaRecepcion}</td>
-            <td class="px-4 py-3 font-medium text-white">${item.proveedor}</td>
-            <td class="px-4 py-3 text-slate-300">${item.producto}</td>
-            <td class="px-4 py-3 text-right font-mono font-bold text-emerald-400">${formatearMonto(item.cantidadRecibida)}</td>
-            <td class="px-4 py-3 text-right font-mono text-slate-200">Bs. ${formatearMonto(item.montoFactura)}</td>
-            <td class="px-4 py-3 text-right font-mono font-bold ${item.difCambiaria >= 0 ? 'text-emerald-400' : 'text-red-400'}">Bs. ${formatearMonto(item.difCambiaria)}</td>
-        `;
-        tbody.appendChild(row);
+    const payload = {
+        accion: "registrar_proveedor",
+        data: { nombre, productos }
+    };
+
+    window.respuestaProveedorGoogle = function(res) {
+        if (res && res.status === "success") {
+            alert(`🤝 Proveedor "${nombre}" registrado exitosamente.`);
+            document.getElementById("form-proveedor").reset();
+            document.getElementById("contenedor-mercancias").innerHTML = `
+                <div class="flex gap-2 mt-1">
+                    <input type="text" class="input-mercancia w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white" placeholder="Producto" required>
+                </div>
+            `;
+            cargarDatos();
+        } else {
+            alert("⚠️ " + (res.message || "Error al guardar el proveedor."));
+        }
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Guardar Proveedor"; }
+        const loader = document.getElementById('jsonp-prov-loader');
+        if (loader) loader.remove();
+    };
+
+    const scriptEnvio = document.createElement('script');
+    scriptEnvio.id = 'jsonp-prov-loader';
+    const datosSerializados = encodeURIComponent(JSON.stringify(payload));
+    scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaProveedorGoogle&payload=${datosSerializados}`;
+    
+    scriptEnvio.onerror = function() {
+        alert("❌ Error de enlace al guardar el proveedor.");
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Guardar Proveedor"; }
+        const loader = document.getElementById('jsonp-prov-loader');
+        if (loader) loader.remove();
+    };
+
+    document.body.appendChild(scriptEnvio);
+}
+
+// --------------------------------------------------------------------------
+// MÓDULO DE REPORTES Y AUDITORÍA
+// --------------------------------------------------------------------------
+
+function renderizarTablaReportes() {
+    const tbody = document.getElementById("tabla-reportes-body");
+    const filtroProv = document.getElementById("reporte-filtro-proveedor") ? document.getElementById("reporte-filtro-proveedor").value : "";
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    if (!cacheHistorialDespachos || cacheHistorialDespachos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-xs text-slate-500 italic">No existen registros de auditoría o despachos consumidos</td></tr>`;
+        return;
+    }
+
+    const datosFiltrados = filtroProv 
+        ? cacheHistorialDespachos.filter(h => h.proveedor === filtroProv) 
+        : cacheHistorialDespachos;
+
+    datosFiltrados.forEach(h => {
+        tbody.insertAdjacentHTML("beforeend", `
+            <tr class="hover:bg-slate-900/50 border-b border-slate-800 text-xs">
+                <td class="px-4 py-3 font-mono text-slate-400">${h.fecha || '-'}</td>
+                <td class="px-4 py-3 font-mono font-bold text-blue-400">${h.idLote}</td>
+                <td class="px-4 py-3 font-medium text-white">${h.proveedor}</td>
+                <td class="px-4 py-3 text-slate-300">${h.producto}</td>
+                <td class="px-4 py-3 text-right font-mono text-emerald-400 font-bold">${formatearMonto(h.cantidadDespachada)}</td>
+                <td class="px-4 py-3 text-right font-mono text-slate-300">$${formatearMonto(h.costoUsdUnit)}</td>
+                <td class="px-4 py-3 text-right font-mono font-bold text-blue-400">Bs. ${formatearMonto(h.totalBsRecepcion)}</td>
+            </tr>
+        `);
     });
 }
+
+// Event Listeners Globales
+document.addEventListener("DOMContentLoaded", function() {
+    cargarDatos();
+
+    const formPrepago = document.getElementById("form-prepago");
+    if (formPrepago) formPrepago.addEventListener("submit", procesarEnvioPrepago);
+
+    const formRecepcion = document.getElementById("form-recepcion");
+    if (formRecepcion) formRecepcion.addEventListener("submit", procesarEnvioRecepcion);
+
+    const formProveedor = document.getElementById("form-proveedor");
+    if (formProveedor) formProveedor.addEventListener("submit", procesarEnvioProveedor);
+});
