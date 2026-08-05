@@ -594,71 +594,37 @@ function actualizarTablaRecepcionCascada() {
             <td class="px-3 py-2 font-mono text-xs text-right font-bold text-slate-200">$${formatearMonto(totalUsdTomado)}</td>
             <td class="px-3 py-2 font-mono text-xs text-right">Bs. ${formatearMonto(tasaOrigen)}</td>
             <td class="px-3 py-2 font-mono text-xs text-right text-slate-300">Bs. ${formatearMonto(totalBsOrigenTomado)}</td>
-            <td class="px-3 py-2 font-mono text-xs text-right font-bold text-blue-400">Bs. ${formatearMonto(totalBsActualTomado)}</td>
+            <td class="px-3 py-2 font-mono text-xs text-right text-blue-400 font-bold">Bs. ${formatearMonto(totalBsActualTomado)}</td>
         `;
         tbody.appendChild(row);
     });
 
     const diffCambiariaTotal = sumBsActual - sumBsOriginal;
-
-    // Actualizar resumen en pantalla
-    document.getElementById("rec-costo-usd").innerText = formatearMonto(sumUsdOriginal);
-    document.getElementById("rec-costo-bs-orig").innerText = formatearMonto(sumBsOriginal);
-    document.getElementById("rec-costo-bs-act").innerText = formatearMonto(sumBsActual);
-
-    const txtDiff = document.getElementById("rec-diff-cambiaria");
-    if (txtDiff) {
-        txtDiff.innerText = `${diffCambiariaTotal >= 0 ? '+' : ''}${formatearMonto(diffCambiariaTotal)} Bs`;
-        txtDiff.className = diffCambiariaTotal >= 0 
-            ? "text-xl font-mono font-bold text-emerald-400 mt-1" 
-            : "text-xl font-mono font-bold text-red-400 mt-1";
-    }
-
-    // Validar estado de cuadratura
-    const boxStatus = document.getElementById("rec-status-box");
-    const btnGuardar = document.getElementById("btn-guardar-recepcion");
-
-    if (cantRecepcion > 0 && remanentePorDespachar === 0) {
-        boxStatus.className = "p-3 rounded-lg text-center font-bold text-sm bg-emerald-950/60 border border-emerald-800 text-emerald-400";
-        boxStatus.innerText = "✅ Carga Valida y Lista para Procesar (FIFO Cuadrado)";
-        btnGuardar.disabled = false;
-        btnGuardar.className = "bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
-    } else if (cantRecepcion > 0 && remanentePorDespachar > 0) {
-        boxStatus.className = "p-3 rounded-lg text-center font-bold text-sm bg-red-950/60 border border-red-800 text-red-400";
-        boxStatus.innerHTML = `⚠️ Exceso de cantidad: Faltan lotes prepagados por <span class="font-mono">${formatearMonto(remanentePorDespachar)}</span> unidades`;
-        btnGuardar.disabled = true;
-        btnGuardar.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
-    } else {
-        boxStatus.className = "p-3 rounded-lg text-center font-bold text-sm bg-slate-800 border border-slate-700 text-slate-400";
-        boxStatus.innerText = "Ingrese una cantidad de recepción válida";
-        btnGuardar.disabled = true;
-        btnGuardar.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
+    
+    if (document.getElementById("rec-kpi-usd")) document.getElementById("rec-kpi-usd").innerText = formatearMonto(sumUsdOriginal);
+    if (document.getElementById("rec-kpi-bs-origen")) document.getElementById("rec-kpi-bs-origen").innerText = formatearMonto(sumBsOriginal);
+    if (document.getElementById("rec-kpi-bs-actual")) document.getElementById("rec-kpi-bs-actual").innerText = formatearMonto(sumBsActual);
+    
+    const kpiDiff = document.getElementById("rec-kpi-diff");
+    if (kpiDiff) {
+        kpiDiff.innerText = formatearMonto(diffCambiariaTotal);
+        kpiDiff.className = diffCambiariaTotal >= 0 ? "text-lg font-mono font-bold text-emerald-400" : "text-lg font-mono font-bold text-red-400";
     }
 }
 
 function resetearKPIsRecepcion() {
-    if (document.getElementById("rec-costo-usd")) document.getElementById("rec-costo-usd").innerText = "0,00";
-    if (document.getElementById("rec-costo-bs-orig")) document.getElementById("rec-costo-bs-orig").innerText = "0,00";
-    if (document.getElementById("rec-costo-bs-act")) document.getElementById("rec-costo-bs-act").innerText = "0,00";
-    if (document.getElementById("rec-diff-cambiaria")) document.getElementById("rec-diff-cambiaria").innerText = "0,00 Bs";
-    
-    const boxStatus = document.getElementById("rec-status-box");
-    if (boxStatus) {
-        boxStatus.className = "p-3 rounded-lg text-center font-bold text-sm bg-slate-800 border border-slate-700 text-slate-400";
-        boxStatus.innerText = "Ingrese una cantidad de recepción válida";
-    }
-    const btnGuardar = document.getElementById("btn-guardar-recepcion");
-    if (btnGuardar) {
-        btnGuardar.disabled = true;
-        btnGuardar.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
-    }
+    if (document.getElementById("rec-kpi-usd")) document.getElementById("rec-kpi-usd").innerText = "0,00";
+    if (document.getElementById("rec-kpi-bs-origen")) document.getElementById("rec-kpi-bs-origen").innerText = "0,00";
+    if (document.getElementById("rec-kpi-bs-actual")) document.getElementById("rec-kpi-bs-actual").innerText = "0,00";
+    if (document.getElementById("rec-kpi-diff")) document.getElementById("rec-kpi-diff").innerText = "0,00";
 }
 
 function procesarEnvioRecepcion(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const btn = document.getElementById("btn-guardar-recepcion");
-    btn.disabled = true;
-    btn.innerText = "⏳ Registrando Despacho...";
+    if (btn) { btn.disabled = true; btn.innerText = "⏳ Procesando FIFO..."; }
+
+    const inputFactura = document.getElementById("rec-factura") || document.getElementById("rec-nro-factura");
 
     const payload = {
         accion: "registrar_despacho",
@@ -667,22 +633,23 @@ function procesarEnvioRecepcion(e) {
             producto: document.getElementById("rec-producto").value,
             cantidad: parseFloat(document.getElementById("rec-cantidad").value) || 0,
             tasaRecepcion: parseFloat(document.getElementById("rec-tasa").value) || 1,
-            fecha: document.getElementById("rec-fecha").value
+            fecha: document.getElementById("rec-fecha").value,
+            nroFactura: inputFactura ? inputFactura.value : "N/A"
         }
     };
 
-    window.respuestaGuardadoRecepcionGoogle = function(res) {
+    window.respuestaRecepcionGoogle = function(res) {
         if (res && res.status === "success") {
-            alert("📦 Recepción registrada correctamente en el inventario.");
-            document.getElementById("form-recepcion").reset();
+            alert(`✅ Despacho procesado con éxito. Se actualizó la cola FIFO.`);
+            const form = document.getElementById("form-recepcion");
+            if (form) form.reset();
             resetearKPIsRecepcion();
             cargarDatos();
             cambiarModulo("mod-dashboard");
         } else {
-            alert("⚠️ " + (res.message || "Error al registrar el despacho. Verifique las existencias."));
-            btn.disabled = false;
-            btn.innerText = "📦 Confirmar Recepción de Carga";
+            alert(`⚠️ Error al procesar: ${res ? res.message : "Error desconocido"}`);
         }
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Registrar Recepción"; }
         const loader = document.getElementById('jsonp-recepcion-loader');
         if (loader) loader.remove();
     };
@@ -690,12 +657,11 @@ function procesarEnvioRecepcion(e) {
     const scriptEnvio = document.createElement('script');
     scriptEnvio.id = 'jsonp-recepcion-loader';
     const datosSerializados = encodeURIComponent(JSON.stringify(payload));
-    scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaGuardadoRecepcionGoogle&payload=${datosSerializados}`;
+    scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaRecepcionGoogle&payload=${datosSerializados}`;
 
     scriptEnvio.onerror = function() {
-        alert("❌ Error crítico en el canal de transmisión JSONP.");
-        btn.disabled = false;
-        btn.innerText = "📦 Confirmar Recepción de Carga";
+        alert("❌ Error crítico de comunicación JSONP al intentar registrar la recepción.");
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Registrar Recepción"; }
         const loader = document.getElementById('jsonp-recepcion-loader');
         if (loader) loader.remove();
     };
@@ -704,49 +670,28 @@ function procesarEnvioRecepcion(e) {
 }
 
 function renderizarTablaReportes() {
-    const ctx = document.getElementById("tabla-reportes-contenedor"); if (!ctx) return;
-    const provFiltro = document.getElementById("rep-proveedor") ? document.getElementById("rep-proveedor").value : "";
-    
-    ctx.innerHTML = "";
-    let filtrados = cacheHistorialDespachos;
-    if (provFiltro) { filtrados = cacheHistorialDespachos.filter(x => x.proveedor === provFiltro); }
+    const tbody = document.getElementById("tabla-reportes-body");
+    if (!tbody) return;
+    tbody.innerHTML = "";
 
-    if (filtrados.length === 0) {
-        ctx.innerHTML = `<p class="p-6 text-center text-slate-500 text-xs italic">No hay historial de auditoría bajo este criterio.</p>`;
+    if (!cacheHistorialDespachos || cacheHistorialDespachos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-4 text-center text-xs text-slate-500 italic">No hay registros de despachos/recepciones guardados.</td></tr>`;
         return;
     }
 
-    let html = `
-        <table class="w-full text-left text-sm">
-            <thead class="bg-slate-900 text-slate-400 text-xs font-bold uppercase">
-                <tr>
-                    <th class="px-6 py-3">Fecha Recepción</th>
-                    <th class="px-6 py-3">ID Lote</th>
-                    <th class="px-6 py-3">Proveedor</th>
-                    <th class="px-6 py-3">Mercancía</th>
-                    <th class="px-6 py-3 text-right">Cant. Despachada</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-800 text-slate-300">
-    `;
-
-    filtrados.forEach(x => {
-        html += `
-            <tr class="hover:bg-slate-900/40">
-                <td class="px-6 py-3 font-mono text-xs">${x.fechaDespacho || 'N/A'}</td>
-                <td class="px-6 py-3 font-mono text-xs text-blue-400 font-bold">${x.idLote}</td>
-                <td class="px-6 py-3 font-medium">${x.proveedor}</td>
-                <td class="px-6 py-3">${x.producto}</td>
-                <td class="px-6 py-3 text-right font-mono font-bold text-emerald-400">${formatearMonto(x.cantidadDespachada)}</td>
-            </tr>
+    cacheHistorialDespachos.forEach(item => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-slate-900/50 border-b border-slate-800 text-xs";
+        row.innerHTML = `
+            <td class="px-4 py-3 font-mono font-bold text-blue-400">${item.idLote}</td>
+            <td class="px-4 py-3 font-mono text-slate-300">${item.nroFactura}</td>
+            <td class="px-4 py-3 font-mono text-slate-400">${item.fechaRecepcion}</td>
+            <td class="px-4 py-3 font-medium text-white">${item.proveedor}</td>
+            <td class="px-4 py-3 text-slate-300">${item.producto}</td>
+            <td class="px-4 py-3 text-right font-mono font-bold text-emerald-400">${formatearMonto(item.cantidadRecibida)}</td>
+            <td class="px-4 py-3 text-right font-mono text-slate-200">Bs. ${formatearMonto(item.montoFactura)}</td>
+            <td class="px-4 py-3 text-right font-mono font-bold ${item.difCambiaria >= 0 ? 'text-emerald-400' : 'text-red-400'}">Bs. ${formatearMonto(item.difCambiaria)}</td>
         `;
+        tbody.appendChild(row);
     });
-
-    html += `</tbody></table>`;
-    ctx.innerHTML = html;
 }
-
-// Inicialización automática
-window.addEventListener("DOMContentLoaded", () => {
-    cargarDatos();
-});
