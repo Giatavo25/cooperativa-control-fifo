@@ -3,308 +3,369 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SICOOP - Control FIFO</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <title>SICOOP - Control de Inventario FIFO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col md:flex-row">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex">
 
-    <aside class="w-full md:w-64 bg-slate-950 p-6 flex flex-col gap-6 border-b md:border-b-0 md:border-r border-slate-800">
+    <!-- PANEL LATERAL DE NAVEGACIÓN -->
+    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between p-4 shrink-0">
         <div>
-            <h1 class="text-xl font-black tracking-wider text-blue-400">📊 SICOOP</h1>
-            <p class="text-xs text-slate-500 font-medium">Control de Inventario FIFO</p>
+            <div class="flex items-center gap-3 px-2 py-4 border-b border-slate-800 mb-6">
+                <div class="bg-blue-600 text-white font-black p-2 rounded-lg text-lg">📊</div>
+                <div>
+                    <h1 class="font-bold text-white text-base tracking-wide">SICOOP</h1>
+                    <p class="text-xs text-slate-400">Control de Inventario FIFO</p>
+                </div>
+            </div>
+
+            <nav class="space-y-2">
+                <button id="nav-mod-dashboard" onclick="cambiarModulo('mod-dashboard')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition">
+                    🏠 Dashboard
+                </button>
+                <button id="nav-mod-prepagos" onclick="cambiarModulo('mod-prepagos')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                    💳 Registrar Prepago
+                </button>
+                <button id="nav-mod-recepcion" onclick="cambiarModulo('mod-recepcion')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                    📦 Recepción Carga
+                </button>
+                <button id="nav-mod-proveedores" onclick="cambiarModulo('mod-proveedores')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                    🤝 Proveedores
+                </button>
+                <button id="nav-mod-reportes" onclick="cambiarModulo('mod-reportes')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                    📋 Reportes / Auditoría
+                </button>
+            </nav>
         </div>
-        <nav class="flex flex-col gap-2 flex-1">
-            <button id="nav-mod-dashboard" onclick="cambiarModulo('mod-dashboard')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition">
-                <span>🏠 Dashboard</span>
-            </button>
-            <button id="nav-mod-prepagos" onclick="cambiarModulo('mod-prepagos')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
-                <span>💳 Registrar Prepago</span>
-            </button>
-            <button id="nav-mod-recepcion" onclick="cambiarModulo('mod-recepcion')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
-                <span>📦 Recepción Carga</span>
-            </button>
-            <button id="nav-mod-proveedores" onclick="cambiarModulo('mod-proveedores')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
-                <span>🤝 Proveedores</span>
-            </button>
-            <button id="nav-mod-reportes" onclick="cambiarModulo('mod-reportes')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
-                <span>📋 Reportes / Auditoría</span>
-            </button>
-        </nav>
-        <div class="pt-4 border-t border-slate-800 text-center">
-            <button onclick="cargarDatos()" class="w-full bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs py-2 rounded-lg font-bold transition">
-                🔄 Forzar Sincronización
-            </button>
-        </div>
+
+        <button onclick="cargarDatos()" class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition border border-slate-700">
+            🔄 Forzar Sincronización
+        </button>
     </aside>
 
-    <main class="flex-1 p-6 md:p-8 flex flex-col gap-6 overflow-y-auto">
-        <header class="flex justify-between items-center border-b border-slate-800 pb-4">
-            <h2 id="titulo-modulo" class="text-2xl font-bold text-white">Dashboard General</h2>
-            <span class="bg-blue-950 text-blue-400 text-xs font-bold px-3 py-1 rounded-full border border-blue-800">Barquisimeto Online</span>
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+        <!-- BARRA SUPERIOR -->
+        <header class="bg-slate-900/50 border-b border-slate-800 px-8 py-4 flex items-center justify-between backdrop-blur">
+            <h2 id="titulo-modulo" class="text-xl font-bold text-white">Dashboard General</h2>
+            <span class="text-xs bg-blue-950 text-blue-300 border border-blue-800 px-3 py-1 rounded-full font-mono">Barquisimeto Online</span>
         </header>
 
-        <section id="mod-dashboard" class="modulo flex flex-col gap-6">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
-                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Prepagado</p>
-                    <p id="kpi-prepagado" class="text-3xl font-mono font-black text-blue-400 mt-2">0</p>
-                </div>
-                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
-                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Recibido</p>
-                    <p id="kpi-recibido" class="text-3xl font-mono font-black text-emerald-400 mt-2">0</p>
-                </div>
-                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
-                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pendiente en Origen</p>
-                    <p id="kpi-pendiente" class="text-3xl font-mono font-black text-amber-500 mt-2">0</p>
-                </div>
-            </div>
+        <div class="p-8 space-y-8">
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                    <h3 class="text-sm font-bold text-slate-300 mb-2">Progreso por Proveedor</h3>
-                    <div id="chart-progreso" class="w-full h-64 flex items-center justify-center text-xs text-slate-500 bg-slate-900 rounded-lg">Esperando datos...</div>
-                </div>
-                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                    <h3 class="text-sm font-bold text-slate-300 mb-2">Distribución de Lotes</h3>
-                    <div id="chart-distribucion" class="w-full h-64 flex items-center justify-center text-xs text-slate-500 bg-slate-900 rounded-lg">Esperando existencias...</div>
-                </div>
-            </div>
-
-            <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
-                <div class="p-4 bg-slate-900/50 border-b border-slate-800">
-                    <h3 class="text-sm font-bold text-slate-200">Lotes Activos en Sistema (Cola FIFO)</h3>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-900 text-slate-400 text-xs font-bold uppercase">
-                            <tr>
-                                <th class="px-6 py-3">ID Lote</th>
-                                <th class="px-6 py-3">Proveedor</th>
-                                <th class="px-6 py-3">Mercancía</th>
-                                <th class="px-6 py-3 text-right">Cant. Inicial</th>
-                                <th class="px-6 py-3 text-right">Cantidad Disponible</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-lotes" class="divide-y divide-slate-800 text-slate-300">
-                            <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-xs text-slate-500 italic">Sincronizando con Google Sheets...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <section id="mod-prepagos" class="modulo hidden flex flex-col gap-6 max-w-4xl mx-auto">
-            <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 shadow-2xl">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-4 mb-6">
-                    <div>
-                        <h3 class="text-lg font-black text-white tracking-wide uppercase">🧾 Nuevo Prepago Consolidado</h3>
-                        <p class="text-xs text-slate-400">Generación de secuencia FIFO indexada por proveedor</p>
+            <!-- MÓDULO 1: DASHBOARD -->
+            <section id="mod-dashboard" class="modulo space-y-6">
+                <!-- KPIs -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Prepagado (Unds)</p>
+                        <p id="kpi-prepagado" class="text-2xl font-black text-white font-mono mt-1">0,00</p>
                     </div>
-                    <div class="text-right">
-                        <span class="text-xs font-mono font-bold text-slate-500 block">LOTE SUGERIDO</span>
-                        <span id="pre-lote-sugerido" class="text-sm font-mono font-black text-blue-400 bg-blue-950/50 px-3 py-1 rounded border border-blue-900">AUTO-GEN</span>
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Recibido (Unds)</p>
+                        <p id="kpi-recibido" class="text-2xl font-black text-emerald-400 font-mono mt-1">0,00</p>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pendiente por Recibir (Unds)</p>
+                        <p id="kpi-pendiente" class="text-2xl font-black text-amber-400 font-mono mt-1">0,00</p>
                     </div>
                 </div>
 
-                <form id="form-prepago" class="flex flex-col gap-6" onsubmit="procesarEnvioPrepago(event)">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-800/80">
+                <!-- GRÁFICOS -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                        <h3 class="text-sm font-bold text-slate-300 mb-4">Progreso por Proveedor</h3>
+                        <div id="chart-progreso" class="h-64 flex items-center justify-center text-xs text-slate-500">Cargando gráfico...</div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                        <h3 class="text-sm font-bold text-slate-300 mb-4">Distribución de Lotes Pendientes</h3>
+                        <div id="chart-distribucion" class="h-64 flex items-center justify-center text-xs text-slate-500">Cargando gráfico...</div>
+                    </div>
+                </div>
+
+                <!-- TABLA DE LOTES ACTIVOS -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-800">
+                        <h3 class="text-sm font-bold text-slate-200">Lotes Activos en Cola FIFO</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="bg-slate-950 text-slate-400 uppercase text-xs">
+                                <tr>
+                                    <th class="px-6 py-3">Lote ID</th>
+                                    <th class="px-6 py-3">Proveedor</th>
+                                    <th class="px-6 py-3">Producto</th>
+                                    <th class="px-6 py-3 text-right">Cant. Original</th>
+                                    <th class="px-6 py-3 text-right">Disponible</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-lotes">
+                                <tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">Cargando datos del servidor...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MÓDULO 2: REGISTRAR PREPAGO -->
+            <section id="mod-prepagos" class="modulo hidden space-y-6">
+                <form id="form-prepago" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
+                            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                                <h3 class="font-bold text-white text-sm">Datos Básicos del Prepago</h3>
+                                <div class="text-xs font-mono bg-blue-900/50 text-blue-300 border border-blue-700 px-3 py-1 rounded">
+                                    LOTE SUGERIDO: <span id="pre-lote-sugerido" class="font-bold">AUTO-GEN</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 mb-1">PROVEEDOR</label>
+                                    <select id="pre-proveedor" onchange="actualizarFlujoProveedorPrepago(this.value)" class="select-proveedores w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" required>
+                                        <option value="">-- Seleccione --</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 mb-1">FECHA</label>
+                                    <input type="date" id="pre-fecha" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 mb-1">TASA BVC (Bs/$)</label>
+                                    <input type="number" step="0.01" id="pre-tasa" oninput="calcularTotalesPrepago()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white" placeholder="0.00" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
+                            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                                <h3 class="font-bold text-white text-sm">Detalle de Mercancía Comprada</h3>
+                                <button type="button" onclick="agregarFilaMercanciaPrepago()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold">+ Agregar Item</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-slate-950 text-slate-400 uppercase">
+                                        <tr>
+                                            <th class="p-2">Producto</th>
+                                            <th class="p-2 w-24 text-right">Cant.</th>
+                                            <th class="p-2 w-28 text-right">Costo ($)</th>
+                                            <th class="p-2 w-28 text-right">Total ($)</th>
+                                            <th class="p-2 w-32 text-right">Total (Bs)</th>
+                                            <th class="p-2 w-10 text-center"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="contenedor-items-prepago"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DESGLOSE Y PAGOS BANCOS -->
+                    <div class="space-y-6">
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
+                            <h3 class="font-bold text-white text-sm border-b border-slate-800 pb-3">Pagos Emitidos por Banco (Bs.)</h3>
+                            <div class="space-y-3 text-xs">
+                                <div>
+                                    <label class="text-slate-400">BANESCO</label>
+                                    <input type="number" step="0.01" id="pago-banesco" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1" placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label class="text-slate-400">MERCANTIL</label>
+                                    <input type="number" step="0.01" id="pago-mercantil" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1" placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label class="text-slate-400">PROVINCIAL</label>
+                                    <input type="number" step="0.01" id="pago-provincial" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1" placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label class="text-slate-400">BANCARIBE</label>
+                                    <input type="number" step="0.01" id="pago-bancaribe" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1" placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label class="text-slate-400">BANCO ACTIVO</label>
+                                    <input type="number" step="0.01" id="pago-activo" class="input-banco-prepago w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-white text-right mt-1" placeholder="0.00">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-3 text-xs">
+                            <div class="flex justify-between text-slate-400"><span>Total FOB ($):</span> <span id="txt-total-usd" class="font-mono text-white font-bold">0,00</span></div>
+                            <div class="flex justify-between text-slate-400"><span>Total Requerido (Bs):</span> <span id="txt-total-bs" class="font-mono text-blue-400 font-bold">0,00</span></div>
+                            <div class="flex justify-between text-slate-400"><span>Total Bancos (Bs):</span> <span id="txt-total-bancos" class="font-mono text-emerald-400 font-bold">0,00</span></div>
+                            <hr class="border-slate-800">
+                            <div id="wrapper-diferencia" class="p-3 rounded-lg text-center font-bold text-xs bg-red-950/60 border border-red-800 text-red-400">
+                                Falta por conciliar: <span id="txt-diferencia" class="font-mono">0,00</span> Bs
+                            </div>
+                            <div class="pt-2 flex gap-2">
+                                <button type="submit" id="btn-guardar-prepago" disabled class="bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full">💾 Procesar Guardado</button>
+                                <button type="button" id="btn-imprimir-prepago" onclick="imprimirReciboPrepago()" disabled class="bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full">🖨️ Imprimir</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <!-- MÓDULO 3: RECEPCCIÓN DE CARGA (DESPACHO FIFO) -->
+            <section id="mod-recepcion" class="modulo hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <form id="form-recepcion" class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
+                        <h3 class="font-bold text-white text-sm border-b border-slate-800 pb-3">Registro de Carga Física</h3>
+                        
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Proveedor</label>
-                            <select id="pre-proveedor" onchange="actualizarFlujoProveedorPrepago(this.value)" class="select-proveedores w-full p-2.5 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm focus:border-blue-500" required>
-                                <option value="">Seleccione proveedor...</option>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">NRO FACTURA / CONTROL</label>
+                            <input type="text" id="rec-guia" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono" placeholder="00000000" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">PROVEEDOR</label>
+                            <select id="rec-proveedor" onchange="actualizarFlujoProveedorRecepcion(this.value)" class="select-proveedores w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" required>
+                                <option value="">-- Seleccione un proveedor --</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Fecha del Prepago</label>
-                            <input type="date" id="pre-fecha" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm font-mono" required>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">MERCANCÍA RECIBIDA</label>
+                            <select id="rec-producto" onchange="actualizarTablaRecepcionCascada()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" required>
+                                <option value="">-- Seleccione primero un proveedor --</option>
+                            </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Tasa de Cambio ($ a Bs)</label>
-                            <input type="number" step="0.01" id="pre-tasa" placeholder="Ej: 36.50" oninput="calcularTotalesPrepago()" class="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm font-mono text-right font-bold text-amber-400" required>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">CANTIDAD FÍSICA QUE ENTRA (UNIDADES)</label>
+                            <input type="number" step="1" id="rec-cantidad" oninput="actualizarTablaRecepcionCascada()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white" placeholder="0" required>
                         </div>
-                    </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">FECHA RECEP.</label>
+                                <input type="date" id="rec-fecha" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">TASA DEL DÍA (Bs/$)</label>
+                                <input type="number" step="0.01" id="rec-tasa" oninput="actualizarTablaRecepcionCascada()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white" placeholder="0.00" required>
+                            </div>
+                        </div>
 
-                    <div class="bg-slate-900/30 p-4 rounded-xl border border-slate-800">
-                        <div class="flex justify-between items-center mb-3">
-                            <h4 class="text-xs font-black text-slate-300 uppercase tracking-wider">📦 Mercancías a Incluir en este Lote</h4>
-                            <button type="button" onclick="agregarFilaMercanciaPrepago()" class="text-xs bg-blue-950 hover:bg-blue-900 text-blue-400 border border-blue-800 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1">
-                                ➕ Añadir Mercancía
+                        <div class="pt-2">
+                            <button type="submit" id="btn-guardar-recepcion" disabled class="bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full">
+                                📦 Confirmar Recepción de Carga
                             </button>
                         </div>
-                        
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs">
-                                <thead class="bg-slate-900 text-slate-400 font-bold uppercase">
-                                    <tr>
-                                        <th class="p-2.5 rounded-l-lg w-1/3">Producto / Tipo</th>
-                                        <th class="p-2.5 text-right w-20">Cantidad</th>
-                                        <th class="p-2.5 text-right w-24">Costo Unit $</th>
-                                        <th class="p-2.5 text-right w-28">Total $</th>
-                                        <th class="p-2.5 text-right w-32">Total Bs</th>
-                                        <th class="p-2.5 text-center w-10 rounded-r-lg"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="contenedor-items-prepago" class="divide-y divide-slate-800/60">
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    </form>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                        <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-800 flex flex-col gap-3">
-                            <h4 class="text-xs font-black text-slate-300 uppercase tracking-wider">🏦 Distribución del Pago (Bancos)</h4>
-                            <div class="grid grid-cols-1 gap-2.5">
-                                <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
-                                    <span class="text-xs font-bold text-slate-400 w-24">BANESCO</span>
-                                    <input type="number" step="0.01" id="pago-banesco" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white">
-                                </div>
-                                <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
-                                    <span class="text-xs font-bold text-slate-400 w-24">MERCANTIL</span>
-                                    <input type="number" step="0.01" id="pago-mercantil" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white">
-                                </div>
-                                <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
-                                    <span class="text-xs font-bold text-slate-400 w-24">PROVINCIAL</span>
-                                    <input type="number" step="0.01" id="pago-provincial" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white">
-                                </div>
-                                <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
-                                    <span class="text-xs font-bold text-slate-400 w-24">BANCARIBE</span>
-                                    <input type="number" step="0.01" id="pago-bancaribe" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white">
-                                </div>
-                                <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
-                                    <span class="text-xs font-bold text-slate-400 w-24">B. ACTIVO</span>
-                                    <input type="number" step="0.01" id="pago-activo" placeholder="0.00" oninput="calcularTotalesPrepago()" class="input-banco-prepago flex-1 p-1.5 bg-slate-900 border border-slate-700 rounded text-right font-mono text-sm text-white">
-                                </div>
+                    <!-- TABLA CASCADA Y KPIS FIFO -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                                <p class="text-xs text-slate-400">Total Consumido ($)</p>
+                                <p id="rec-kpi-usd" class="text-lg font-bold font-mono text-white mt-1">0,00</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                                <p class="text-xs text-slate-400">Costo Origen (Bs)</p>
+                                <p id="rec-kpi-bs-origen" class="text-lg font-bold font-mono text-slate-300 mt-1">0,00</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                                <p class="text-xs text-slate-400">Valor Hoy (Bs)</p>
+                                <p id="rec-kpi-bs-actual" class="text-lg font-bold font-mono text-blue-400 mt-1">0,00</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                                <p class="text-xs text-slate-400">Ajuste / Valorización</p>
+                                <p id="rec-kpi-ajuste" class="text-lg font-bold font-mono text-slate-400 mt-1">0,00 Bs</p>
                             </div>
                         </div>
 
-                        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 flex flex-col justify-between gap-4">
-                            <div class="flex flex-col gap-2">
-                                <div class="flex justify-between items-center border-b border-slate-900 pb-2">
-                                    <span class="text-xs font-semibold text-slate-400">Monto Total Mercancía ($):</span>
-                                    <span id="txt-total-usd" class="text-base font-mono font-bold text-white">0,00</span>
-                                </div>
-                                <div class="flex justify-between items-center border-b border-slate-900 pb-2">
-                                    <span class="text-xs font-semibold text-slate-400">Monto Obligatorio a Cancelar (Bs):</span>
-                                    <span id="txt-total-bs" class="text-base font-mono font-bold text-blue-400">0,00</span>
-                                </div>
-                                <div class="flex justify-between items-center border-b border-slate-900 pb-2">
-                                    <span class="text-xs font-semibold text-slate-400">Total Declarado en Bancos (Bs):</span>
-                                    <span id="txt-total-bancos" class="text-base font-mono font-bold text-emerald-400">0,00</span>
-                                </div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                            <div class="px-6 py-4 border-b border-slate-800">
+                                <h3 class="text-sm font-bold text-slate-200">Proyección de Consumo en Cola FIFO</h3>
                             </div>
-
-                            <div id="wrapper-diferencia" class="p-3 rounded-lg text-center font-bold text-sm bg-red-950/60 border border-red-800 text-red-400">
-                                Falta por conciliar: <span id="txt-diferencia" class="font-mono">0,00</span> Bs
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-3">
-                                <button type="button" id="btn-imprimir-prepago" onclick="imprimirReciboPrepago()" class="opacity-50 cursor-not-allowed bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-lg text-xs transition flex items-center justify-center gap-1" disabled>
-                                    🖨️ Imprimir Recibo
-                                </button>
-                                <button type="submit" id="btn-guardar-prepago" class="bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition" disabled>
-                                    💾 Procesar Guardado
-                                </button>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs text-slate-300">
+                                    <thead class="bg-slate-950 text-slate-400 uppercase">
+                                        <tr>
+                                            <th class="px-3 py-2">Lote</th>
+                                            <th class="px-3 py-2 text-right">Disp.</th>
+                                            <th class="px-3 py-2 text-right">Tomado</th>
+                                            <th class="px-3 py-2 text-right">Costo ($)</th>
+                                            <th class="px-3 py-2 text-right">Total ($)</th>
+                                            <th class="px-3 py-2 text-right">Tasa Origen</th>
+                                            <th class="px-3 py-2 text-right">Total Origen (Bs)</th>
+                                            <th class="px-3 py-2 text-right">Total Hoy (Bs)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rec-tabla-lotes-body">
+                                        <tr><td colspan="8" class="px-4 py-4 text-center text-xs text-slate-500 italic">Seleccione proveedor y producto para cargar desglose FIFO</td></tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
-                </form>
-            </div>
-        </section>
+                </div>
+            </section>
 
-        <section id="mod-recepcion" class="modulo hidden bg-slate-950 p-6 rounded-xl border border-slate-800 max-w-xl">
-            <form id="form-recepcion" class="flex flex-col gap-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Nro Factura / Control</label>
-                        <input type="text" id="des-factura" placeholder="F-001" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Proveedor</label>
-                        <select id="des-proveedor" onchange="filtrarProductosPorProveedor(this.value, 'des-producto')" class="select-proveedores w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
-                            <option value="">Cargando proveedores...</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Mercancía Recibida</label>
-                    <select id="des-producto" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
-                        <option value="">-- Seleccione primero un proveedor --</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Cantidad Física que Entra (Unidades)</label>
-                    <input type="number" id="des-cantidad" placeholder="Ej: 1200" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono" required>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Tasa del Día</label>
-                        <input type="number" step="0.01" id="des-tasa" placeholder="0.00" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase">Monto total Bs.</label>
-                        <input type="number" step="0.01" id="des-monto" placeholder="0.00" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono">
-                    </div>
-                </div>
-                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-lg font-bold text-sm text-white mt-2 active:scale-98 transition">
-                    📥 Descargar de la Cola FIFO
-                </button>
-            </form>
-        </section>
-
-        <section id="mod-proveedores" class="modulo hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 lg:col-span-1 h-fit">
-                <h3 class="text-sm font-bold text-white mb-4 uppercase">Nuevo Proveedor</h3>
-                <form id="form-proveedor" class="flex flex-col gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1.5">Nombre de la Empresa</label>
-                        <input type="text" id="prov-nombre" placeholder="Ej: Polar" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1.5">Mercancías que Suministra</label>
-                        <div id="contenedor-mercancias" class="flex flex-col gap-2">
-                            <input type="text" class="input-mercancia w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" placeholder="Ej: Harina PAN" required>
+            <!-- MÓDULO 4: PROVEEDORES -->
+            <section id="mod-proveedores" class="modulo hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <form id="form-proveedor" class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
+                        <h3 class="font-bold text-white text-sm border-b border-slate-800 pb-3">Nuevo Proveedor / Mercancía</h3>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">NOMBRE / RAZÓN SOCIAL</label>
+                            <input type="text" id="prov-nombre" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" placeholder="Ej: ALIMENTOS DOÑA EMILIA, S.A." required>
                         </div>
-                        <button type="button" onclick="agregarCampoMercancia()" class="text-xs text-blue-400 font-bold mt-2 hover:underline flex items-center gap-1">
-                            ➕ Añadir otro producto
-                        </button>
-                    </div>
-                    <button type="submit" class="w-full bg-slate-800 hover:bg-slate-700 py-2.5 rounded-lg text-sm font-bold text-white mt-2">
-                        💾 Guardar Ficha
-                    </button>
-                </form>
-            </div>
-            <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 lg:col-span-2">
-                <h3 class="text-sm font-bold text-white mb-4 uppercase">Lista de Aliados Registrados</h3>
-                <div id="lista-proveedores-completa" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <p class="text-xs text-slate-500 italic">Cargando catálogo...</p>
-                </div>
-            </div>
-        </section>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-semibold text-slate-400">PRODUCTOS / MERCANCÍAS</label>
+                                <button type="button" onclick="agregarCampoMercancia()" class="text-xs text-blue-400 font-bold hover:underline">+ Añadir</button>
+                            </div>
+                            <div id="contenedor-mercancias" class="space-y-2">
+                                <div class="flex gap-2">
+                                    <input type="text" class="input-mercancia w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" placeholder="Producto" required>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" id="btn-guardar-proveedor" class="w-full bg-blue-600 hover:bg-blue-500 font-bold py-2.5 rounded-lg text-xs text-white transition">💾 Guardar Proveedor</button>
+                    </form>
 
-        <section id="mod-reportes" class="modulo hidden flex flex-col gap-4">
-            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-wrap gap-4 items-center justify-between">
-                <div>
-                    <h3 class="text-sm font-bold text-white">Auditoría Histórica de Despachos</h3>
-                    <p class="text-xs text-slate-500">Visualiza las salidas registradas bajo el método FIFO.</p>
+                    <div class="lg:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
+                        <h3 class="font-bold text-white text-sm border-b border-slate-800 pb-3">Proveedores Registrados</h3>
+                        <div id="lista-proveedores-completa" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                    </div>
                 </div>
-                <div class="w-64">
-                    <select id="rep-proveedor" onchange="renderizarTablaReportes()" class="select-proveedores w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
-                        <option value="">-- Todos los Proveedores --</option>
-                    </select>
+            </section>
+
+            <!-- MÓDULO 5: REPORTES Y AUDITORÍA -->
+            <section id="mod-reportes" class="modulo hidden space-y-6">
+                <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-200">Histórico de Despachos y Auditoría FIFO</h3>
+                        <div class="w-64">
+                            <select id="reporte-filtro-proveedor" onchange="renderizarTablaReportes()" class="select-proveedores w-full p-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+                                <option value="">-- Todos los Proveedores --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-950 text-slate-400 uppercase">
+                                <tr>
+                                    <th class="px-4 py-3">Fecha Despacho</th>
+                                    <th class="px-4 py-3">Lote Origen</th>
+                                    <th class="px-4 py-3">Proveedor</th>
+                                    <th class="px-4 py-3">Producto</th>
+                                    <th class="px-4 py-3 text-right">Cant. Despachada</th>
+                                    <th class="px-4 py-3 text-right">Costo ($)</th>
+                                    <th class="px-4 py-3 text-right">Total Recepción (Bs)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-reportes-body">
+                                <tr><td colspan="7" class="px-6 py-4 text-center text-xs text-slate-500 italic">No existen registros de auditoría</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-            <div id="tabla-reportes-contenedor" class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
-                <p class="p-6 text-center text-slate-500 text-xs italic">Cargando reportes...</p>
-            </div>
-        </section>
+            </section>
+
+        </div>
     </main>
 
-    <div id="ticket-impresion" style="display: none;"></div>
-
+    <!-- JS Sincronizado -->
     <script src="script.js"></script>
 </body>
 </html>
