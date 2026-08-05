@@ -1,11 +1,11 @@
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
-        
+
 let cacheProveedores = []; 
 let cacheHistorialDespachos = []; 
 let cacheUltimosDatos = null;
 let chartsCargados = false; 
 
-// FUNCIÓN CLAVE: Formateador numérico regional (Miles: Punto | Decimales: Coma)
+// Formateador numérico regional (Miles: Punto | Decimales: Coma)
 function formatearMonto(valor) {
     const numero = parseFloat(valor);
     if (isNaN(numero)) return "0,00";
@@ -162,6 +162,11 @@ function configurarFechaPorDefecto() {
     if (el && !el.value) {
         const hoy = new Date().toISOString().split('T')[0];
         el.value = hoy;
+    }
+    const elRec = document.getElementById("rec-fecha");
+    if (elRec && !elRec.value) {
+        const hoy = new Date().toISOString().split('T')[0];
+        elRec.value = hoy;
     }
 }
 
@@ -324,7 +329,7 @@ function imprimirReciboPrepago() {
         if (val > 0) {
             htmlBancos += `
                 <tr>
-                    <td style="padding: 6px 0; color: #475569; font-size: 13px;">• Debito cuenta ${b.label}:</td>
+                    <td style="padding: 6px 0; color: #475569; font-size: 13px;">• Débito cuenta ${b.label}:</td>
                     <td style="padding: 6px 0; text-align: right; font-family: monospace; font-weight: bold; color: #0f766e; font-size: 13px;">Bs. ${formatearMonto(val)}</td>
                 </tr>`;
         }
@@ -451,7 +456,6 @@ function imprimirReciboPrepago() {
     ventanaImpresion.document.close();
 }
 
-// CORREGIDO: Guardado robusto sincronizado con la propiedad 'payload' del Servidor
 function procesarEnvioPrepago(e) {
     e.preventDefault();
     const btn = document.getElementById("btn-guardar-prepago");
@@ -485,36 +489,25 @@ function procesarEnvioPrepago(e) {
         }
     };
 
-    // Callback global temporal para capturar la respuesta exitosa del Servidor de Hojas de Cálculo
     window.respuestaGuardadoGoogle = function(res) {
         if (res && res.status === "success") {
-            // 1. Lanzamos el nuevo e impecable formato carta de soporte corporativo
             imprimirReciboPrepago();
-            
-            // 2. Avisamos al usuario e interactuamos con la UI
             alert(`🚀 Transmisión limpia: Lote ${payload.data.idLote} guardado con éxito en las tablas de Google Sheets.`);
-            
-            // 3. Reseteamos el formulario de la aplicación
             document.getElementById("form-prepago").reset();
             document.getElementById("contenedor-items-prepago").innerHTML = "";
             calcularTotalesPrepago();
-            
-            // 4. Mandamos al usuario al inicio y recargamos los gráficos
             cambiarModulo("mod-dashboard");
         } else {
             alert("⚠️ El servidor procesó los datos pero devolvió una alerta no controlada.");
             btn.disabled = false; btn.innerText = "💾 Procesar Guardado";
         }
         
-        // Limpieza del elemento inyectado
         const loader = document.getElementById('jsonp-guardar-loader');
         if (loader) loader.remove();
     };
 
-    // SOLUCIÓN AL ERROR CORS: Se cambió 'raw=' por 'payload=' para acoplarse con Código.gs
     const scriptEnvio = document.createElement('script');
     scriptEnvio.id = 'jsonp-guardar-loader';
-    
     const datosSerializados = encodeURIComponent(JSON.stringify(payload));
     scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaGuardadoGoogle&payload=${datosSerializados}`;
     
@@ -525,7 +518,188 @@ function procesarEnvioPrepago(e) {
         if (loader) loader.remove();
     };
 
-    // Agregamos al documento para gatillar el guardado inmediato en Sheets
+    document.body.appendChild(scriptEnvio);
+}
+
+// --------------------------------------------------------------------------
+// LÓGICA COMPLETA DE RECEPCIÓN DE CARGA Y MOTOR FIFO EN CASCADA
+// --------------------------------------------------------------------------
+
+function actualizarFlujoProveedorRecepcion(prov) {
+    filtrarProductosPorProveedor(prov, "rec-producto");
+    actualizarTablaRecepcionCascada();
+}
+
+function actualizarTablaRecepcionCascada() {
+    const prov = document.getElementById("rec-proveedor").value;
+    const prod = document.getElementById("rec-producto").value;
+    const cantRecepcion = parseFloat(document.getElementById("rec-cantidad").value) || 0;
+    const tasaActual = parseFloat(document.getElementById("rec-tasa").value) || 0;
+
+    const tbody = document.getElementById("rec-tabla-lotes-body");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    if (!prov || !prod || !cacheUltimosDatos || !cacheUltimosDatos.data || !cacheUltimosDatos.data.detallesLotes) {
+        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-4 text-center text-xs text-slate-500 italic">Seleccione proveedor y producto para cargar desglose FIFO</td></tr>`;
+        resetearKPIsRecepcion();
+        return;
+    }
+
+    // Filtrar lotes pendientes FIFO (orden de llegada natural) del proveedor y producto
+    const lotesDisponibles = cacheUltimosDatos.data.detallesLotes.filter(l => 
+        l.proveedor === prov && 
+        l.producto === prod && 
+        l.cantDisponible > 0
+    );
+
+    if (lotesDisponibles.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-4 text-center text-xs text-amber-500 italic">⚠️ No hay lotes pendientes para este producto</td></tr>`;
+        resetearKPIsRecepcion();
+        return;
+    }
+
+    let remanentePorDespachar = cantRecepcion;
+    let sumUsdOriginal = 0;
+    let sumBsOriginal = 0;
+    let sumBsActual = 0;
+
+    lotesDisponibles.forEach(lote => {
+        const cantDisponible = lote.cantDisponible;
+        let cantTomada = 0;
+
+        if (remanentePorDespachar > 0) {
+            cantTomada = Math.min(remanentePorDespachar, cantDisponible);
+            remanentePorDespachar -= cantTomada;
+        }
+
+        const costoUsdUnit = lote.costoUsd || 0;
+        const tasaOrigen = lote.tasaOriginal || 0;
+
+        const totalUsdTomado = cantTomada * costoUsdUnit;
+        const totalBsOrigenTomado = totalUsdTomado * tasaOrigen;
+        const totalBsActualTomado = totalUsdTomado * tasaActual;
+
+        sumUsdOriginal += totalUsdTomado;
+        sumBsOriginal += totalBsOrigenTomado;
+        sumBsActual += totalBsActualTomado;
+
+        const row = document.createElement("tr");
+        row.className = cantTomada > 0 ? "bg-blue-950/30 border-b border-slate-800" : "opacity-40 border-b border-slate-800";
+        row.innerHTML = `
+            <td class="px-3 py-2 font-mono text-xs font-bold text-blue-400">${lote.idLote}</td>
+            <td class="px-3 py-2 font-mono text-xs text-right">${formatearMonto(cantDisponible)}</td>
+            <td class="px-3 py-2 font-mono text-xs text-right text-emerald-400 font-bold">${formatearMonto(cantTomada)}</td>
+            <td class="px-3 py-2 font-mono text-xs text-right">$${formatearMonto(costoUsdUnit)}</td>
+            <td class="px-3 py-2 font-mono text-xs text-right font-bold text-slate-200">$${formatearMonto(totalUsdTomado)}</td>
+            <td class="px-3 py-2 font-mono text-xs text-right">Bs. ${formatearMonto(tasaOrigen)}</td>
+            <td class="px-3 py-2 font-mono text-xs text-right text-slate-300">Bs. ${formatearMonto(totalBsOrigenTomado)}</td>
+            <td class="px-3 py-2 font-mono text-xs text-right font-bold text-blue-400">Bs. ${formatearMonto(totalBsActualTomado)}</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    const diffCambiariaTotal = sumBsActual - sumBsOriginal;
+
+    // Actualizar resumen en pantalla
+    document.getElementById("rec-costo-usd").innerText = formatearMonto(sumUsdOriginal);
+    document.getElementById("rec-costo-bs-orig").innerText = formatearMonto(sumBsOriginal);
+    document.getElementById("rec-costo-bs-act").innerText = formatearMonto(sumBsActual);
+
+    const txtDiff = document.getElementById("rec-diff-cambiaria");
+    if (txtDiff) {
+        txtDiff.innerText = `${diffCambiariaTotal >= 0 ? '+' : ''}${formatearMonto(diffCambiariaTotal)} Bs`;
+        txtDiff.className = diffCambiariaTotal >= 0 
+            ? "text-xl font-mono font-bold text-emerald-400 mt-1" 
+            : "text-xl font-mono font-bold text-red-400 mt-1";
+    }
+
+    // Validar estado de cuadratura
+    const boxStatus = document.getElementById("rec-status-box");
+    const btnGuardar = document.getElementById("btn-guardar-recepcion");
+
+    if (cantRecepcion > 0 && remanentePorDespachar === 0) {
+        boxStatus.className = "p-3 rounded-lg text-center font-bold text-sm bg-emerald-950/60 border border-emerald-800 text-emerald-400";
+        boxStatus.innerText = "✅ Carga Valida y Lista para Procesar (FIFO Cuadrado)";
+        btnGuardar.disabled = false;
+        btnGuardar.className = "bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
+    } else if (cantRecepcion > 0 && remanentePorDespachar > 0) {
+        boxStatus.className = "p-3 rounded-lg text-center font-bold text-sm bg-red-950/60 border border-red-800 text-red-400";
+        boxStatus.innerHTML = `⚠️ Exceso de cantidad: Faltan lotes prepagados por <span class="font-mono">${formatearMonto(remanentePorDespachar)}</span> unidades`;
+        btnGuardar.disabled = true;
+        btnGuardar.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
+    } else {
+        boxStatus.className = "p-3 rounded-lg text-center font-bold text-sm bg-slate-800 border border-slate-700 text-slate-400";
+        boxStatus.innerText = "Ingrese una cantidad de recepción válida";
+        btnGuardar.disabled = true;
+        btnGuardar.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
+    }
+}
+
+function resetearKPIsRecepcion() {
+    if (document.getElementById("rec-costo-usd")) document.getElementById("rec-costo-usd").innerText = "0,00";
+    if (document.getElementById("rec-costo-bs-orig")) document.getElementById("rec-costo-bs-orig").innerText = "0,00";
+    if (document.getElementById("rec-costo-bs-act")) document.getElementById("rec-costo-bs-act").innerText = "0,00";
+    if (document.getElementById("rec-diff-cambiaria")) document.getElementById("rec-diff-cambiaria").innerText = "0,00 Bs";
+    
+    const boxStatus = document.getElementById("rec-status-box");
+    if (boxStatus) {
+        boxStatus.className = "p-3 rounded-lg text-center font-bold text-sm bg-slate-800 border border-slate-700 text-slate-400";
+        boxStatus.innerText = "Ingrese una cantidad de recepción válida";
+    }
+    const btnGuardar = document.getElementById("btn-guardar-recepcion");
+    if (btnGuardar) {
+        btnGuardar.disabled = true;
+        btnGuardar.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
+    }
+}
+
+function procesarEnvioRecepcion(e) {
+    e.preventDefault();
+    const btn = document.getElementById("btn-guardar-recepcion");
+    btn.disabled = true;
+    btn.innerText = "⏳ Registrando Despacho...";
+
+    const payload = {
+        accion: "registrar_despacho",
+        data: {
+            proveedor: document.getElementById("rec-proveedor").value,
+            producto: document.getElementById("rec-producto").value,
+            cantidad: parseFloat(document.getElementById("rec-cantidad").value) || 0,
+            tasaRecepcion: parseFloat(document.getElementById("rec-tasa").value) || 1,
+            fecha: document.getElementById("rec-fecha").value
+        }
+    };
+
+    window.respuestaGuardadoRecepcionGoogle = function(res) {
+        if (res && res.status === "success") {
+            alert("📦 Recepción registrada correctamente en el inventario.");
+            document.getElementById("form-recepcion").reset();
+            resetearKPIsRecepcion();
+            cargarDatos();
+            cambiarModulo("mod-dashboard");
+        } else {
+            alert("⚠️ " + (res.message || "Error al registrar el despacho. Verifique las existencias."));
+            btn.disabled = false;
+            btn.innerText = "📦 Confirmar Recepción de Carga";
+        }
+        const loader = document.getElementById('jsonp-recepcion-loader');
+        if (loader) loader.remove();
+    };
+
+    const scriptEnvio = document.createElement('script');
+    scriptEnvio.id = 'jsonp-recepcion-loader';
+    const datosSerializados = encodeURIComponent(JSON.stringify(payload));
+    scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaGuardadoRecepcionGoogle&payload=${datosSerializados}`;
+
+    scriptEnvio.onerror = function() {
+        alert("❌ Error crítico en el canal de transmisión JSONP.");
+        btn.disabled = false;
+        btn.innerText = "📦 Confirmar Recepción de Carga";
+        const loader = document.getElementById('jsonp-recepcion-loader');
+        if (loader) loader.remove();
+    };
+
     document.body.appendChild(scriptEnvio);
 }
 
