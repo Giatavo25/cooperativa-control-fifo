@@ -69,14 +69,20 @@ function cambiarModulo(idModulo) {
     const btn = document.getElementById('nav-' + idModulo);
     if (btn) btn.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition";
     
-    const titulos = { 'mod-dashboard': 'Dashboard General', 'mod-prepagos': 'Registrar Prepagos', 'mod-recepcion': 'Recepción de Carga', 'mod-proveedores': 'Ficha de Proveedores', 'mod-reportes': 'Reportes y Auditoría' };
+    const titulos = { 
+        'mod-dashboard': 'Dashboard General', 
+        'mod-prepagos': 'Registrar Prepagos', 
+        'mod-recepcion': 'Recepción de Carga', 
+        'mod-proveedores': 'Ficha de Proveedores', 
+        'mod-reportes': 'Reportes y Auditoría' 
+    };
     const titleDom = document.getElementById('titulo-modulo'); if (titleDom) titleDom.innerText = titulos[idModulo] || 'Sistema';
     if (idModulo === 'mod-dashboard') cargarDatos();
 }
 
 function agregarCampoMercancia() {
     const div = document.createElement('div'); div.className = "flex gap-2 mt-1";
-    div.innerHTML = `<input type="text" class="input-mercancia w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white" placeholder="Producto" required><button type="button" onclick="this.parentElement.remove()" class="bg-red-900 text-red-200 px-3 rounded-lg font-bold hover:bg-red-800">-</button>`;
+    div.innerHTML = `<input type="text" class="input-mercancia w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" placeholder="Producto" required><button type="button" onclick="this.parentElement.remove()" class="bg-red-900/80 text-red-200 px-3 rounded-lg font-bold hover:bg-red-800 text-xs">-</button>`;
     document.getElementById('contenedor-mercancias').appendChild(div);
 }
 
@@ -94,7 +100,7 @@ function actualizarInterfacesProveedores() {
         cacheProveedores.forEach(p => {
             const prods = Array.isArray(p.productos) ? p.productos : [];
             const chips = prods.map(pr => `<span class="bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded border border-slate-700">${pr}</span>`).join(' ');
-            lista.innerHTML += `<div class="p-3 bg-slate-900 rounded-lg border border-slate-800"><p class="font-bold text-sm text-white">${p.nombre}</p><div class="flex flex-wrap gap-1 mt-2">${chips || '<span class="text-xs text-slate-600 italic">Sin mercancía</span>'}</div></div>`;
+            lista.innerHTML += `<div class="p-3 bg-slate-950 rounded-lg border border-slate-800"><p class="font-bold text-sm text-white">${p.nombre}</p><div class="flex flex-wrap gap-1 mt-2">${chips || '<span class="text-xs text-slate-600 italic">Sin mercancía</span>'}</div></div>`;
         });
     }
 }
@@ -266,7 +272,7 @@ function calcularTotalesPrepago() {
     const btnImprimir = document.getElementById("btn-imprimir-prepago");
 
     if (totalBsObligatorio > 0 && Math.abs(diferencia) <= 1) {
-        wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-sm bg-emerald-950/60 border border-emerald-800 text-emerald-400";
+        wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-emerald-950/60 border border-emerald-800 text-emerald-400";
         wrapperDiff.innerText = "✅ Cuadrado / Conciliación Bancaria Exitosa";
         
         btnGuardar.disabled = false; 
@@ -275,7 +281,7 @@ function calcularTotalesPrepago() {
         btnImprimir.disabled = false; 
         btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full";
     } else {
-        wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-sm bg-red-950/60 border border-red-800 text-red-400";
+        wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-red-950/60 border border-red-800 text-red-400";
         
         if (diferencia >= 0) {
             wrapperDiff.innerHTML = `Falta por conciliar: <span class="font-mono">${formatearMonto(diferencia)}</span> Bs`;
@@ -291,7 +297,6 @@ function calcularTotalesPrepago() {
     }
 }
 
-// Soporte Corporativo Profesional tipo Factura / Carta Ejecutiva Completa
 function imprimirReciboPrepago() {
     const prov = document.getElementById("pre-proveedor").value;
     const lote = document.getElementById("pre-lote-sugerido").innerText;
@@ -431,10 +436,10 @@ function imprimirReciboPrepago() {
 
                 <table style="width:100%; margin-top:80px; border-collapse:collapse;">
                     <tr>
-                        <td style="width:50%; align:center;">
+                        <td style="width:50%; text-align:center;">
                             <div class="firma-linea" style="margin: 0 auto;">Preparado por: Control Operativo</div>
                         </td>
-                        <td style="width:50%; align:center;">
+                        <td style="width:50%; text-align:center;">
                             <div class="firma-linea" style="margin: 0 auto;">Recibido Conforme / Proveedor</div>
                         </td>
                     </tr>
@@ -459,8 +464,7 @@ function imprimirReciboPrepago() {
 function procesarEnvioPrepago(e) {
     e.preventDefault();
     const btn = document.getElementById("btn-guardar-prepago");
-    btn.disabled = true; 
-    btn.innerText = "⏳ Guardando en Servidor...";
+    if (btn) { btn.disabled = true; btn.innerText = "⏳ Guardando..."; }
 
     const items = [];
     document.querySelectorAll(".item-fila-prepago").forEach(fila => {
@@ -492,16 +496,15 @@ function procesarEnvioPrepago(e) {
     window.respuestaGuardadoGoogle = function(res) {
         if (res && res.status === "success") {
             imprimirReciboPrepago();
-            alert(`🚀 Transmisión limpia: Lote ${payload.data.idLote} guardado con éxito en las tablas de Google Sheets.`);
+            alert(`🚀 Transmisión limpia: Lote ${payload.data.idLote} guardado con éxito.`);
             document.getElementById("form-prepago").reset();
             document.getElementById("contenedor-items-prepago").innerHTML = "";
             calcularTotalesPrepago();
             cambiarModulo("mod-dashboard");
         } else {
-            alert("⚠️ El servidor procesó los datos pero devolvió una alerta no controlada.");
-            btn.disabled = false; btn.innerText = "💾 Procesar Guardado";
+            alert("⚠️ " + (res && res.message ? res.message : "El servidor devolvió una alerta."));
+            if (btn) { btn.disabled = false; btn.innerText = "💾 Procesar Guardado"; }
         }
-        
         const loader = document.getElementById('jsonp-guardar-loader');
         if (loader) loader.remove();
     };
@@ -512,8 +515,8 @@ function procesarEnvioPrepago(e) {
     scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaGuardadoGoogle&payload=${datosSerializados}`;
     
     scriptEnvio.onerror = function() {
-        alert("❌ Error crítico en el canal de datos JSONP. El servidor no respondió.");
-        btn.disabled = false; btn.innerText = "💾 Procesar Guardado";
+        alert("❌ Error de red al comunicarse con Google Apps Script.");
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Procesar Guardado"; }
         const loader = document.getElementById('jsonp-guardar-loader');
         if (loader) loader.remove();
     };
@@ -521,20 +524,17 @@ function procesarEnvioPrepago(e) {
     document.body.appendChild(scriptEnvio);
 }
 
-// --------------------------------------------------------------------------
-// LÓGICA COMPLETA DE RECEPCIÓN DE CARGA Y MOTOR FIFO EN CASCADA
-// --------------------------------------------------------------------------
-
+// RECEPCCIÓN DE CARGA Y MOTOR FIFO CASCADA
 function actualizarFlujoProveedorRecepcion(prov) {
     filtrarProductosPorProveedor(prov, "rec-producto");
     actualizarTablaRecepcionCascada();
 }
 
 function actualizarTablaRecepcionCascada() {
-    const prov = document.getElementById("rec-proveedor").value;
-    const prod = document.getElementById("rec-producto").value;
-    const cantRecepcion = parseFloat(document.getElementById("rec-cantidad").value) || 0;
-    const tasaActual = parseFloat(document.getElementById("rec-tasa").value) || 0;
+    const prov = document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "";
+    const prod = document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "";
+    const cantRecepcion = parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0;
+    const tasaActual = parseFloat(document.getElementById("rec-tasa") ? document.getElementById("rec-tasa").value : 0) || 0;
 
     const tbody = document.getElementById("rec-tabla-lotes-body");
     if (!tbody) return;
@@ -546,7 +546,6 @@ function actualizarTablaRecepcionCascada() {
         return;
     }
 
-    // Filtrar lotes pendientes FIFO (orden de llegada natural) del proveedor y producto
     const lotesDisponibles = cacheUltimosDatos.data.detallesLotes.filter(l => 
         l.proveedor === prov && 
         l.producto === prod && 
@@ -599,7 +598,6 @@ function actualizarTablaRecepcionCascada() {
         tbody.appendChild(row);
     });
 
-    // Actualizar Resumen KPI de la Recepción FIFO
     const ajusteValorizacionBs = sumBsActual - sumBsOriginal;
     
     if (document.getElementById("rec-kpi-usd")) document.getElementById("rec-kpi-usd").innerText = formatearMonto(sumUsdOriginal);
@@ -609,10 +607,9 @@ function actualizarTablaRecepcionCascada() {
     const kpiAjusteEl = document.getElementById("rec-kpi-ajuste");
     if (kpiAjusteEl) {
         kpiAjusteEl.innerText = `${ajusteValorizacionBs >= 0 ? '+' : ''}${formatearMonto(ajusteValorizacionBs)} Bs`;
-        kpiAjusteEl.className = `font-mono text-xs font-bold ${ajusteValorizacionBs >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
+        kpiAjusteEl.className = `font-mono text-lg font-bold ${ajusteValorizacionBs >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
     }
 
-    // Validación de sobre-despacho respecto al inventario prepagado
     const btnProcesar = document.getElementById("btn-guardar-recepcion");
     if (btnProcesar) {
         if (remanentePorDespachar > 0) {
@@ -637,7 +634,7 @@ function resetearKPIsRecepcion() {
     if (document.getElementById("rec-kpi-bs-actual")) document.getElementById("rec-kpi-bs-actual").innerText = "0,00";
     if (document.getElementById("rec-kpi-ajuste")) {
         document.getElementById("rec-kpi-ajuste").innerText = "0,00 Bs";
-        document.getElementById("rec-kpi-ajuste").className = "font-mono text-xs font-bold text-slate-400";
+        document.getElementById("rec-kpi-ajuste").className = "font-mono text-lg font-bold text-slate-400";
     }
     const btn = document.getElementById("btn-guardar-recepcion");
     if (btn) {
@@ -649,18 +646,20 @@ function resetearKPIsRecepcion() {
 
 function procesarEnvioRecepcion(e) {
     e.preventDefault();
-    const btn = document.getElementById("btn-guardar-recepcion");
-    btn.disabled = true;
-    btn.innerText = "⏳ Descargando de cola FIFO...";
+    const btn = document.getElementById("btn-guardar-recepcion") || e.target.querySelector('button[type="submit"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "⏳ Descargando de cola FIFO...";
+    }
 
     const payload = {
         accion: "registrar_recepcion_carga",
         data: {
-            proveedor: document.getElementById("rec-proveedor").value,
-            producto: document.getElementById("rec-producto").value,
-            cantidad: parseFloat(document.getElementById("rec-cantidad").value) || 0,
-            fecha: document.getElementById("rec-fecha").value,
-            tasaRecepcion: parseFloat(document.getElementById("rec-tasa").value) || 1,
+            proveedor: document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "",
+            producto: document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "",
+            cantidad: parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0,
+            fecha: document.getElementById("rec-fecha") ? document.getElementById("rec-fecha").value : new Date().toISOString().split('T')[0],
+            tasaRecepcion: parseFloat(document.getElementById("rec-tasa") ? document.getElementById("rec-tasa").value : 1) || 1,
             guiaTransporte: document.getElementById("rec-guia") ? document.getElementById("rec-guia").value : ""
         }
     };
@@ -668,14 +667,17 @@ function procesarEnvioRecepcion(e) {
     window.respuestaRecepcionGoogle = function(res) {
         if (res && res.status === "success") {
             alert(`✅ Carga recibida exitosamente. El inventario FIFO fue actualizado en las tablas de la Cooperativa.`);
-            document.getElementById("form-recepcion").reset();
+            const form = document.getElementById("form-recepcion");
+            if (form) form.reset();
             resetearKPIsRecepcion();
             cargarDatos();
             cambiarModulo("mod-dashboard");
         } else {
-            alert("⚠️ " + (res.message || "Error procesando la recepción en el servidor."));
-            btn.disabled = false;
-            btn.innerText = "📦 Confirmar Recepción de Carga";
+            alert("⚠️ " + (res && res.message ? res.message : "Error procesando la recepción en el servidor."));
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = "📦 Confirmar Recepción de Carga";
+            }
         }
         const loader = document.getElementById('jsonp-recepcion-loader');
         if (loader) loader.remove();
@@ -688,8 +690,10 @@ function procesarEnvioRecepcion(e) {
     
     scriptEnvio.onerror = function() {
         alert("❌ Error de comunicación con el servidor al registrar el despacho.");
-        btn.disabled = false;
-        btn.innerText = "📦 Confirmar Recepción de Carga";
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "📦 Confirmar Recepción de Carga";
+        }
         const loader = document.getElementById('jsonp-recepcion-loader');
         if (loader) loader.remove();
     };
@@ -697,10 +701,7 @@ function procesarEnvioRecepcion(e) {
     document.body.appendChild(scriptEnvio);
 }
 
-// --------------------------------------------------------------------------
-// MÓDULO DE REGISTRO Y GESTIÓN DE PROVEEDORES
-// --------------------------------------------------------------------------
-
+// PROVEEDORES
 function procesarEnvioProveedor(e) {
     e.preventDefault();
     const btn = document.getElementById("btn-guardar-proveedor");
@@ -731,13 +732,13 @@ function procesarEnvioProveedor(e) {
             alert(`🤝 Proveedor "${nombre}" registrado exitosamente.`);
             document.getElementById("form-proveedor").reset();
             document.getElementById("contenedor-mercancias").innerHTML = `
-                <div class="flex gap-2 mt-1">
-                    <input type="text" class="input-mercancia w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-white" placeholder="Producto" required>
+                <div class="flex gap-2 text-xs">
+                    <input type="text" class="input-mercancia w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-white" placeholder="Producto" required>
                 </div>
             `;
             cargarDatos();
         } else {
-            alert("⚠️ " + (res.message || "Error al guardar el proveedor."));
+            alert("⚠️ " + (res && res.message ? res.message : "Error al guardar el proveedor."));
         }
         if (btn) { btn.disabled = false; btn.innerText = "💾 Guardar Proveedor"; }
         const loader = document.getElementById('jsonp-prov-loader');
@@ -759,10 +760,7 @@ function procesarEnvioProveedor(e) {
     document.body.appendChild(scriptEnvio);
 }
 
-// --------------------------------------------------------------------------
-// MÓDULO DE REPORTES Y AUDITORÍA
-// --------------------------------------------------------------------------
-
+// REPORTES Y AUDITORÍA
 function renderizarTablaReportes() {
     const tbody = document.getElementById("tabla-reportes-body");
     const filtroProv = document.getElementById("reporte-filtro-proveedor") ? document.getElementById("reporte-filtro-proveedor").value : "";
