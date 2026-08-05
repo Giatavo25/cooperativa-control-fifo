@@ -1,73 +1,73 @@
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec"; //[cite: 4]
 
-let cacheProveedores = []; 
-let cacheHistorialDespachos = []; 
-let cacheUltimosDatos = null;
-let chartsCargados = false; 
+let cacheProveedores = []; //[cite: 4]
+let cacheHistorialDespachos = []; //[cite: 4]
+let cacheUltimosDatos = null; //[cite: 4]
+let chartsCargados = false; //[cite: 4]
 
 // Formateador numérico regional (Miles: Punto | Decimales: Coma)
 function formatearMonto(valor) {
-    const numero = parseFloat(valor);
-    if (isNaN(numero)) return "0,00";
+    const numero = parseFloat(valor); //[cite: 4]
+    if (isNaN(numero)) return "0,00"; //[cite: 4]
     return new Intl.NumberFormat('es-VE', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
-    }).format(numero);
+    }).format(numero); //[cite: 4]
 }
 
 function inicializarGraficos() {
     try {
-        if (typeof google !== 'undefined' && google.charts) {
-            google.charts.load('current', {'packages':['corechart', 'bar']});
-            google.charts.setOnLoadCallback(function() { chartsCargados = true; });
+        if (typeof google !== 'undefined' && google.charts) { //[cite: 4]
+            google.charts.load('current', {'packages':['corechart', 'bar']}); //[cite: 4]
+            google.charts.setOnLoadCallback(function() { chartsCargados = true; }); //[cite: 4]
         }
-    } catch (e) { console.warn("Google Charts no disponible."); }
+    } catch (e) { console.warn("Google Charts no disponible."); } //[cite: 4]
 }
 
 function cargarDatos() {
-    const elProgreso = document.getElementById('chart-progreso');
-    const elDistribucion = document.getElementById('chart-distribucion');
+    const elProgreso = document.getElementById('chart-progreso'); //[cite: 4]
+    const elDistribucion = document.getElementById('chart-distribucion'); //[cite: 4]
     
-    if (elProgreso) elProgreso.innerHTML = "<span class='text-blue-400 animate-pulse'>Sincronizando con Sheets de la Cooperativa...</span>";
-    if (elDistribucion) elDistribucion.innerHTML = "<span class='text-blue-400 animate-pulse'>Analizando Lotes...</span>";
+    if (elProgreso) elProgreso.innerHTML = "<span class='text-blue-400 animate-pulse'>Sincronizando con Sheets de la Cooperativa...</span>"; //[cite: 4]
+    if (elDistribucion) elDistribucion.innerHTML = "<span class='text-blue-400 animate-pulse'>Analizando Lotes...</span>"; //[cite: 4]
 
     window.procesarRespuestaGoogle = function(resultado) {
         try {
-            if (resultado && resultado.status === "success") {
-                cacheUltimosDatos = resultado;
-                cacheProveedores = resultado.data.proveedores || [];
-                cacheHistorialDespachos = resultado.data.historialDespachos || []; 
+            if (resultado && resultado.status === "success") { //[cite: 4]
+                cacheUltimosDatos = resultado; //[cite: 4]
+                cacheProveedores = resultado.data.proveedores || []; //[cite: 4]
+                cacheHistorialDespachos = resultado.data.historialDespachos || []; //[cite: 4]
                 
-                renderizarDashboard(resultado.data);
-                actualizarInterfacesProveedores();
-                renderizarTablaReportes(); 
-                configurarFechaPorDefecto();
+                renderizarDashboard(resultado.data); //[cite: 4]
+                actualizarInterfacesProveedores(); //[cite: 4]
+                renderizarTablaReportes(); //[cite: 4]
+                configurarFechaPorDefecto(); //[cite: 4]
             }
-        } catch (err) { console.error("Error procesando datos:", err); }
-        const l = document.getElementById('jsonp-script-loader'); if (l) l.remove();
+        } catch (err) { console.error("Error procesando datos:", err); } //[cite: 4]
+        const l = document.getElementById('jsonp-script-loader'); if (l) l.remove(); //[cite: 4]
     };
 
-    if (!chartsCargados) inicializarGraficos();
+    if (!chartsCargados) inicializarGraficos(); //[cite: 4]
 
-    const script = document.createElement('script');
-    script.id = 'jsonp-script-loader';
-    script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'callback=procesarRespuestaGoogle';
+    const script = document.createElement('script'); //[cite: 4]
+    script.id = 'jsonp-script-loader'; //[cite: 4]
+    script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'callback=procesarRespuestaGoogle'; //[cite: 4]
     script.onerror = function() {
-        if (elProgreso) elProgreso.innerText = "⚠️ Error de conexión con Google.";
+        if (elProgreso) elProgreso.innerText = "⚠️ Error de conexión con Google."; //[cite: 4]
     };
-    document.body.appendChild(script);
+    document.body.appendChild(script); //[cite: 4]
 }
 
 function cambiarModulo(idModulo) {
-    const target = document.getElementById(idModulo); if (!target) return;
-    document.querySelectorAll('.modulo').forEach(m => m.classList.add('hidden'));
-    target.classList.remove('hidden');
+    const target = document.getElementById(idModulo); if (!target) return; //[cite: 4]
+    document.querySelectorAll('.modulo').forEach(m => m.classList.add('hidden')); //[cite: 4]
+    target.classList.remove('hidden'); //[cite: 4]
     
     document.querySelectorAll('aside nav button').forEach(b => {
-        b.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition";
+        b.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition"; //[cite: 4]
     });
-    const btn = document.getElementById('nav-' + idModulo);
-    if (btn) btn.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition";
+    const btn = document.getElementById('nav-' + idModulo); //[cite: 4]
+    if (btn) btn.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition"; //[cite: 4]
     
     const titulos = { 
         'mod-dashboard': 'Dashboard General', 
@@ -75,59 +75,59 @@ function cambiarModulo(idModulo) {
         'mod-recepcion': 'Recepción de Carga', 
         'mod-proveedores': 'Ficha de Proveedores', 
         'mod-reportes': 'Reportes y Auditoría' 
-    };
-    const titleDom = document.getElementById('titulo-modulo'); if (titleDom) titleDom.innerText = titulos[idModulo] || 'Sistema';
-    if (idModulo === 'mod-dashboard') cargarDatos();
+    }; //[cite: 4]
+    const titleDom = document.getElementById('titulo-modulo'); if (titleDom) titleDom.innerText = titulos[idModulo] || 'Sistema'; //[cite: 4]
+    if (idModulo === 'mod-dashboard') cargarDatos(); //[cite: 4]
 }
 
 function agregarCampoMercancia() {
-    const div = document.createElement('div'); div.className = "flex gap-2 mt-1";
-    div.innerHTML = `<input type="text" class="input-mercancia w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" placeholder="Producto" required><button type="button" onclick="this.parentElement.remove()" class="bg-red-900/80 text-red-200 px-3 rounded-lg font-bold hover:bg-red-800 text-xs">-</button>`;
-    document.getElementById('contenedor-mercancias').appendChild(div);
+    const div = document.createElement('div'); div.className = "flex gap-2 mt-1"; //[cite: 4]
+    div.innerHTML = `<input type="text" class="input-mercancia w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" placeholder="Producto" required><button type="button" onclick="this.parentElement.remove()" class="bg-red-900/80 text-red-200 px-3 rounded-lg font-bold hover:bg-red-800 text-xs">-</button>`; //[cite: 4]
+    document.getElementById('contenedor-mercancias').appendChild(div); //[cite: 4]
 }
 
 function actualizarInterfacesProveedores() {
     document.querySelectorAll('.select-proveedores').forEach(sel => {
-        const val = sel.value;
-        sel.innerHTML = '<option value="">-- Seleccione un proveedor --</option>';
-        cacheProveedores.forEach(p => sel.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`);
-        if (val) sel.value = val;
+        const val = sel.value; //[cite: 4]
+        sel.innerHTML = '<option value="">-- Seleccione un proveedor --</option>'; //[cite: 4]
+        cacheProveedores.forEach(p => sel.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`); //[cite: 4]
+        if (val) sel.value = val; //[cite: 4]
     });
 
-    const lista = document.getElementById('lista-proveedores-completa');
+    const lista = document.getElementById('lista-proveedores-completa'); //[cite: 4]
     if (lista) {
-        lista.innerHTML = "";
+        lista.innerHTML = ""; //[cite: 4]
         cacheProveedores.forEach(p => {
-            const prods = Array.isArray(p.productos) ? p.productos : [];
-            const chips = prods.map(pr => `<span class="bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded border border-slate-700">${pr}</span>`).join(' ');
-            lista.innerHTML += `<div class="p-3 bg-slate-950 rounded-lg border border-slate-800"><p class="font-bold text-sm text-white">${p.nombre}</p><div class="flex flex-wrap gap-1 mt-2">${chips || '<span class="text-xs text-slate-600 italic">Sin mercancía</span>'}</div></div>`;
+            const prods = Array.isArray(p.productos) ? p.productos : []; //[cite: 4]
+            const chips = prods.map(pr => `<span class="bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded border border-slate-700">${pr}</span>`).join(' '); //[cite: 4]
+            lista.innerHTML += `<div class="p-3 bg-slate-950 rounded-lg border border-slate-800"><p class="font-bold text-sm text-white">${p.nombre}</p><div class="flex flex-wrap gap-1 mt-2">${chips || '<span class="text-xs text-slate-600 italic">Sin mercancía</span>'}</div></div>`; //[cite: 4]
         });
     }
 }
 
 function filtrarProductosPorProveedor(prov, idDestino) {
-    const dest = document.getElementById(idDestino); if (!dest) return;
-    dest.innerHTML = "";
-    if (!prov) { dest.innerHTML = '<option value="">-- Seleccione primero un proveedor --</option>'; return; }
-    const item = cacheProveedores.find(p => p.nombre === prov);
+    const dest = document.getElementById(idDestino); if (!dest) return; //[cite: 4]
+    dest.innerHTML = ""; //[cite: 4]
+    if (!prov) { dest.innerHTML = '<option value="">-- Seleccione primero un proveedor --</option>'; return; } //[cite: 4]
+    const item = cacheProveedores.find(p => p.nombre === prov); //[cite: 4]
     if (item && Array.isArray(item.productos) && item.productos.length > 0) {
-        dest.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
-        item.productos.forEach(pr => dest.innerHTML += `<option value="${pr}">${pr}</option>`);
-    } else { dest.innerHTML = '<option value="">⚠️ Sin mercancía registrada</option>'; }
+        dest.innerHTML = '<option value="">-- Seleccione Mercancía --</option>'; //[cite: 4]
+        item.productos.forEach(pr => dest.innerHTML += `<option value="${pr}">${pr}</option>`); //[cite: 4]
+    } else { dest.innerHTML = '<option value="">⚠️ Sin mercancía registrada</option>'; } //[cite: 4]
 }
 
 function renderizarDashboard(data) {
-    let p = 0, pe = 0, r = 0;
-    const tbody = document.getElementById("tabla-lotes"); if (!tbody) return;
-    tbody.innerHTML = "";
+    let p = 0, pe = 0, r = 0; //[cite: 4]
+    const tbody = document.getElementById("tabla-lotes"); if (!tbody) return; //[cite: 4]
+    tbody.innerHTML = ""; //[cite: 4]
     
     if (!data.detallesLotes || data.detallesLotes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">No hay lotes activos registrados</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">No hay lotes activos registrados</td></tr>`; //[cite: 4]
         return;
     }
 
     data.detallesLotes.forEach(l => {
-        const rec = l.cantOriginal - l.cantDisponible; p += l.cantOriginal; pe += l.cantDisponible; r += rec;
+        const rec = l.cantOriginal - l.cantDisponible; p += l.cantOriginal; pe += l.cantDisponible; r += rec; //[cite: 4]
         tbody.insertAdjacentHTML("beforeend", `
             <tr class="hover:bg-slate-900/50 border-b border-slate-800">
                 <td class="px-6 py-4 font-mono text-xs font-bold text-blue-400">${l.idLote}</td>
@@ -136,78 +136,78 @@ function renderizarDashboard(data) {
                 <td class="px-6 py-4 text-right font-mono">${formatearMonto(l.cantOriginal)}</td>
                 <td class="px-6 py-4 text-right font-mono font-bold text-amber-400">${formatearMonto(l.cantDisponible)}</td>
             </tr>
-        `);
+        `); //[cite: 4]
     });
 
-    if (document.getElementById("kpi-prepagado")) document.getElementById("kpi-prepagado").innerText = formatearMonto(p);
-    if (document.getElementById("kpi-recibido")) document.getElementById("kpi-recibido").innerText = formatearMonto(r);
-    if (document.getElementById("kpi-pendiente")) document.getElementById("kpi-pendiente").innerText = formatearMonto(pe);
+    if (document.getElementById("kpi-prepagado")) document.getElementById("kpi-prepagado").innerText = formatearMonto(p); //[cite: 4]
+    if (document.getElementById("kpi-recibido")) document.getElementById("kpi-recibido").innerText = formatearMonto(r); //[cite: 4]
+    if (document.getElementById("kpi-pendiente")) document.getElementById("kpi-pendiente").innerText = formatearMonto(pe); //[cite: 4]
     
-    if (chartsCargados && data.resumenConsolidated) dibujarGraficos(data.resumenConsolidated);
+    if (chartsCargados && data.resumenConsolidated) dibujarGraficos(data.resumenConsolidated); //[cite: 4]
 }
 
 function dibujarGraficos(resumen) {
     try {
-        const pDom = document.getElementById('chart-progreso');
-        const dDom = document.getElementById('chart-distribucion');
-        if (!pDom || !dDom) return;
+        const pDom = document.getElementById('chart-progreso'); //[cite: 4]
+        const dDom = document.getElementById('chart-distribucion'); //[cite: 4]
+        if (!pDom || !dDom) return; //[cite: 4]
 
-        const dtP = new google.visualization.DataTable();
-        dtP.addColumn('string', 'Proveedor'); dtP.addColumn('number', 'Recibido'); dtP.addColumn('number', 'Pendiente');
-        const dtT = [['Proveedor', 'Pendiente']];
-        resumen.forEach(r => { dtP.addRow([r.proveedor, r.totalRecibido, r.totalPendiente]); dtT.push([r.proveedor, r.totalPendiente]); });
+        const dtP = new google.visualization.DataTable(); //[cite: 4]
+        dtP.addColumn('string', 'Proveedor'); dtP.addColumn('number', 'Recibido'); dtP.addColumn('number', 'Pendiente'); //[cite: 4]
+        const dtT = [['Proveedor', 'Pendiente']]; //[cite: 4]
+        resumen.forEach(r => { dtP.addRow([r.proveedor, r.totalRecibido, r.totalPendiente]); dtT.push([r.proveedor, r.totalPendiente]); }); //[cite: 4]
         
-        const opt = { backgroundColor: 'transparent', legend: {textStyle:{color:'#94a3b8'}}, chartArea: {width: '80%', height: '80%'}, hAxis:{textStyle:{color:'#64748b'}}, vAxis:{textStyle:{color:'#64748b'}} };
-        new google.visualization.BarChart(pDom).draw(dtP, { ...opt, isStacked: true, colors: ['#10b981', '#f59e0b'] });
-        new google.visualization.PieChart(dDom).draw(google.visualization.arrayToDataTable(dtT), { ...opt, colors: ['#3b82f6', '#f59e0b', '#ef4444'], pieHole: 0.4 });
+        const opt = { backgroundColor: 'transparent', legend: {textStyle:{color:'#94a3b8'}}, chartArea: {width: '80%', height: '80%'}, hAxis:{textStyle:{color:'#64748b'}}, vAxis:{textStyle:{color:'#64748b'}} }; //[cite: 4]
+        new google.visualization.BarChart(pDom).draw(dtP, { ...opt, isStacked: true, colors: ['#10b981', '#f59e0b'] }); //[cite: 4]
+        new google.visualization.PieChart(dDom).draw(google.visualization.arrayToDataTable(dtT), { ...opt, colors: ['#3b82f6', '#f59e0b', '#ef4444'], pieHole: 0.4 }); //[cite: 4]
     } catch (e) {}
 }
 
 function configurarFechaPorDefecto() {
-    const el = document.getElementById("pre-fecha");
+    const el = document.getElementById("pre-fecha"); //[cite: 4]
     if (el && !el.value) {
-        const hoy = new Date().toISOString().split('T')[0];
-        el.value = hoy;
+        const hoy = new Date().toISOString().split('T')[0]; //[cite: 4]
+        el.value = hoy; //[cite: 4]
     }
-    const elRec = document.getElementById("rec-fecha");
+    const elRec = document.getElementById("rec-fecha"); //[cite: 4]
     if (elRec && !elRec.value) {
-        const hoy = new Date().toISOString().split('T')[0];
-        elRec.value = hoy;
+        const hoy = new Date().toISOString().split('T')[0]; //[cite: 4]
+        elRec.value = hoy; //[cite: 4]
     }
 }
 
 function actualizarFlujoProveedorPrepago(prov) {
-    const container = document.getElementById("contenedor-items-prepago");
-    container.innerHTML = "";
+    const container = document.getElementById("contenedor-items-prepago"); //[cite: 4]
+    container.innerHTML = ""; //[cite: 4]
     
     if (!prov) {
-        document.getElementById("pre-lote-sugerido").innerText = "AUTO-GEN";
+        document.getElementById("pre-lote-sugerido").innerText = "AUTO-GEN"; //[cite: 4]
         return;
     }
 
-    let correlativo = 1;
+    let correlativo = 1; //[cite: 4]
     if (cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes) {
-        const filtrados = cacheUltimosDatos.data.detallesLotes.filter(x => x.proveedor === prov);
-        correlativo = filtrados.length + 1;
+        const filtrados = cacheUltimosDatos.data.detallesLotes.filter(x => x.proveedor === prov); //[cite: 4]
+        correlativo = filtrados.length + 1; //[cite: 4]
     }
-    const iniciales = prov.substring(0, 3).toUpperCase();
-    document.getElementById("pre-lote-sugerido").innerText = `${iniciales}-${String(correlativo).padStart(3, '0')}`;
+    const iniciales = prov.substring(0, 3).toUpperCase(); //[cite: 4]
+    document.getElementById("pre-lote-sugerido").innerText = `${iniciales}-${String(correlativo).padStart(3, '0')}`; //[cite: 4]
 
-    agregarFilaMercanciaPrepago();
+    agregarFilaMercanciaPrepago(); //[cite: 4]
 }
 
 function agregarFilaMercanciaPrepago() {
-    const prov = document.getElementById("pre-proveedor").value;
-    if (!prov) { alert("Por favor, seleccione primero un proveedor."); return; }
+    const prov = document.getElementById("pre-proveedor").value; //[cite: 4]
+    if (!prov) { alert("Por favor, seleccione primero un proveedor."); return; } //[cite: 4]
 
-    const pData = cacheProveedores.find(x => x.nombre === prov);
-    const productos = (pData && pData.productos) ? pData.productos : [];
+    const pData = cacheProveedores.find(x => x.nombre === prov); //[cite: 4]
+    const productos = (pData && pData.productos) ? pData.productos : []; //[cite: 4]
     
-    const tr = document.createElement('tr');
-    tr.className = "item-fila-prepago bg-slate-950/40 hover:bg-slate-900/40 transition";
+    const tr = document.createElement('tr'); //[cite: 4]
+    tr.className = "item-fila-prepago bg-slate-950/40 hover:bg-slate-900/40 transition"; //[cite: 4]
     
-    let opcionesHtml = `<option value="">Seleccione...</option>`;
-    productos.forEach(pr => opcionesHtml += `<option value="${pr}">${pr}</option>`);
+    let opcionesHtml = `<option value="">Seleccione...</option>`; //[cite: 4]
+    productos.forEach(pr => opcionesHtml += `<option value="${pr}">${pr}</option>`); //[cite: 4]
 
     tr.innerHTML = `
         <td class="p-2">
@@ -226,90 +226,90 @@ function agregarFilaMercanciaPrepago() {
         <td class="p-2 text-center">
             <button type="button" onclick="this.parentElement.parentElement.remove(); calcularTotalesPrepago();" class="text-red-500 hover:text-red-400 font-bold text-sm">✕</button>
         </td>
-    `;
-    document.getElementById("contenedor-items-prepago").appendChild(tr);
-    calcularTotalesPrepago();
+    `; //[cite: 4]
+    document.getElementById("contenedor-items-prepago").appendChild(tr); //[cite: 4]
+    calcularTotalesPrepago(); //[cite: 4]
 }
 
 function calcularTotalesPrepago() {
-    const tasa = parseFloat(document.getElementById("pre-tasa").value) || 0;
-    let sumatoriaUsd = 0;
+    const tasa = parseFloat(document.getElementById("pre-tasa").value) || 0; //[cite: 4]
+    let sumatoriaUsd = 0; //[cite: 4]
 
     document.querySelectorAll(".item-fila-prepago").forEach(fila => {
-        const cant = parseFloat(fila.querySelector(".item-cantidad").value) || 0;
-        const costoUsd = parseFloat(fila.querySelector(".item-costo-usd").value) || 0;
+        const cant = parseFloat(fila.querySelector(".item-cantidad").value) || 0; //[cite: 4]
+        const costoUsd = parseFloat(fila.querySelector(".item-costo-usd").value) || 0; //[cite: 4]
         
-        const tUsd = cant * costoUsd;
-        const tBs = tUsd * tasa;
-        sumatoriaUsd += tUsd;
+        const tUsd = cant * costoUsd; //[cite: 4]
+        const tBs = tUsd * tasa; //[cite: 4]
+        sumatoriaUsd += tUsd; //[cite: 4]
 
-        fila.querySelector(".item-total-usd-txt").innerText = formatearMonto(tUsd);
-        fila.querySelector(".item-total-bs-txt").innerText = formatearMonto(tBs);
+        fila.querySelector(".item-total-usd-txt").innerText = formatearMonto(tUsd); //[cite: 4]
+        fila.querySelector(".item-total-bs-txt").innerText = formatearMonto(tBs); //[cite: 4]
     });
 
-    const totalBsObligatorio = sumatoriaUsd * tasa;
+    const totalBsObligatorio = sumatoriaUsd * tasa; //[cite: 4]
 
-    let sumatoriaBancos = 0;
+    let sumatoriaBancos = 0; //[cite: 4]
     document.querySelectorAll(".input-banco-prepago").forEach(inp => {
         if (!inp.dataset.listenerAsignado) {
-            inp.addEventListener("input", calcularTotalesPrepago);
-            inp.dataset.listenerAsignado = "true";
+            inp.addEventListener("input", calcularTotalesPrepago); //[cite: 4]
+            inp.dataset.listenerAsignado = "true"; //[cite: 4]
         }
-        sumatoriaBancos += parseFloat(inp.value) || 0;
+        sumatoriaBancos += parseFloat(inp.value) || 0; //[cite: 4]
     });
 
-    const diferencia = totalBsObligatorio - sumatoriaBancos;
+    const diferencia = totalBsObligatorio - sumatoriaBancos; //[cite: 4]
 
-    document.getElementById("txt-total-usd").innerText = formatearMonto(sumatoriaUsd);
-    document.getElementById("txt-total-bs").innerText = formatearMonto(totalBsObligatorio);
-    document.getElementById("txt-total-bancos").innerText = formatearMonto(sumatoriaBancos);
+    document.getElementById("txt-total-usd").innerText = formatearMonto(sumatoriaUsd); //[cite: 4]
+    document.getElementById("txt-total-bs").innerText = formatearMonto(totalBsObligatorio); //[cite: 4]
+    document.getElementById("txt-total-bancos").innerText = formatearMonto(sumatoriaBancos); //[cite: 4]
     
-    const txtDiffEl = document.getElementById("txt-diferencia");
-    if (txtDiffEl) txtDiffEl.innerText = formatearMonto(Math.abs(diferencia));
+    const txtDiffEl = document.getElementById("txt-diferencia"); //[cite: 4]
+    if (txtDiffEl) txtDiffEl.innerText = formatearMonto(Math.abs(diferencia)); //[cite: 4]
 
-    const wrapperDiff = document.getElementById("wrapper-diferencia");
-    const btnGuardar = document.getElementById("btn-guardar-prepago");
-    const btnImprimir = document.getElementById("btn-imprimir-prepago");
+    const wrapperDiff = document.getElementById("wrapper-diferencia"); //[cite: 4]
+    const btnGuardar = document.getElementById("btn-guardar-prepago"); //[cite: 4]
+    const btnImprimir = document.getElementById("btn-imprimir-prepago"); //[cite: 4]
 
     if (totalBsObligatorio > 0 && Math.abs(diferencia) <= 1) {
-        wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-emerald-950/60 border border-emerald-800 text-emerald-400";
-        wrapperDiff.innerText = "✅ Cuadrado / Conciliación Bancaria Exitosa";
+        wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-emerald-950/60 border border-emerald-800 text-emerald-400"; //[cite: 4]
+        wrapperDiff.innerText = "✅ Cuadrado / Conciliación Bancaria Exitosa"; //[cite: 4]
         
-        btnGuardar.disabled = false; 
-        btnGuardar.className = "bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
+        btnGuardar.disabled = false; //[cite: 4]
+        btnGuardar.className = "bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center"; //[cite: 4]
         
-        btnImprimir.disabled = false; 
-        btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full";
+        btnImprimir.disabled = false; //[cite: 4]
+        btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full"; //[cite: 4]
     } else {
-        wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-red-950/60 border border-red-800 text-red-400";
+        wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-red-950/60 border border-red-800 text-red-400"; //[cite: 4]
         
         if (diferencia >= 0) {
-            wrapperDiff.innerHTML = `Falta por conciliar: <span class="font-mono">${formatearMonto(diferencia)}</span> Bs`;
+            wrapperDiff.innerHTML = `Falta por conciliar: <span class="font-mono">${formatearMonto(diferencia)}</span> Bs`; //[cite: 4]
         } else {
-            wrapperDiff.innerHTML = `Monto excedido en bancos: <span class="font-mono">${formatearMonto(Math.abs(diferencia))}</span> Bs`;
+            wrapperDiff.innerHTML = `Monto excedido en bancos: <span class="font-mono">${formatearMonto(Math.abs(diferencia))}</span> Bs`; //[cite: 4]
         }
         
-        btnGuardar.disabled = true; 
-        btnGuardar.className = "bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
+        btnGuardar.disabled = true; //[cite: 4]
+        btnGuardar.className = "bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full"; //[cite: 4]
         
-        btnImprimir.disabled = true; 
-        btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
+        btnImprimir.disabled = true; //[cite: 4]
+        btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full"; //[cite: 4]
     }
 }
 
 function imprimirReciboPrepago() {
-    const prov = document.getElementById("pre-proveedor").value;
-    const lote = document.getElementById("pre-lote-sugerido").innerText;
-    const tasa = parseFloat(document.getElementById("pre-tasa").value) || 1;
-    const fecha = document.getElementById("pre-fecha").value;
+    const prov = document.getElementById("pre-proveedor").value; //[cite: 4]
+    const lote = document.getElementById("pre-lote-sugerido").innerText; //[cite: 4]
+    const tasa = parseFloat(document.getElementById("pre-tasa").value) || 1; //[cite: 4]
+    const fecha = document.getElementById("pre-fecha").value; //[cite: 4]
     
-    let htmlItems = "";
+    let htmlItems = ""; //[cite: 4]
     document.querySelectorAll(".item-fila-prepago").forEach(fila => {
-        const prod = fila.querySelector(".item-producto").value;
-        const cant = parseFloat(fila.querySelector(".item-cantidad").value) || 0;
-        const cost = parseFloat(fila.querySelector(".item-costo-usd").value) || 0;
-        const totUsd = cant * cost;
-        const totBs = totUsd * tasa;
+        const prod = fila.querySelector(".item-producto").value; //[cite: 4]
+        const cant = parseFloat(fila.querySelector(".item-cantidad").value) || 0; //[cite: 4]
+        const cost = parseFloat(fila.querySelector(".item-costo-usd").value) || 0; //[cite: 4]
+        const totUsd = cant * cost; //[cite: 4]
+        const totBs = totUsd * tasa; //[cite: 4]
         htmlItems += `
             <tr style="border-bottom: 1px solid #e2e8f0;">
                 <td style="padding: 10px 8px; text-align: left; color: #334155;">${prod}</td>
@@ -317,33 +317,33 @@ function imprimirReciboPrepago() {
                 <td style="padding: 10px 8px; text-align: right; font-family: monospace;">$${formatearMonto(cost)}</td>
                 <td style="padding: 10px 8px; text-align: right; font-family: monospace; font-weight: bold; color: #1e293b;">$${formatearMonto(totUsd)}</td>
                 <td style="padding: 10px 8px; text-align: right; font-family: monospace; color: #2563eb;">Bs. ${formatearMonto(totBs)}</td>
-            </tr>`;
+            </tr>`; //[cite: 4]
     });
 
-    let htmlBancos = "";
+    let htmlBancos = ""; //[cite: 4]
     const bancosMapeados = [
         { id: "pago-banesco", label: "BANESCO" },
         { id: "pago-mercantil", label: "MERCANTIL" },
         { id: "pago-provincial", label: "PROVINCIAL" },
         { id: "pago-bancaribe", label: "BANCARIBE" },
         { id: "pago-activo", label: "BANCO ACTIVO" }
-    ];
+    ]; //[cite: 4]
 
     bancosMapeados.forEach(b => {
-        const val = parseFloat(document.getElementById(b.id).value) || 0;
+        const val = parseFloat(document.getElementById(b.id).value) || 0; //[cite: 4]
         if (val > 0) {
             htmlBancos += `
                 <tr>
                     <td style="padding: 6px 0; color: #475569; font-size: 13px;">• Débito cuenta ${b.label}:</td>
                     <td style="padding: 6px 0; text-align: right; font-family: monospace; font-weight: bold; color: #0f766e; font-size: 13px;">Bs. ${formatearMonto(val)}</td>
-                </tr>`;
+                </tr>`; //[cite: 4]
         }
     });
 
-    const tUsd = document.getElementById("txt-total-usd").innerText;
-    const tBs = document.getElementById("txt-total-bs").innerText;
+    const tUsd = document.getElementById("txt-total-usd").innerText; //[cite: 4]
+    const tBs = document.getElementById("txt-total-bs").innerText; //[cite: 4]
 
-    const ventanaImpresion = window.open('', '_blank', 'width=850,height=1100');
+    const ventanaImpresion = window.open('', '_blank', 'width=850,height=1100'); //[cite: 4]
     ventanaImpresion.document.write(`
         <html>
         <head>
@@ -457,22 +457,22 @@ function imprimirReciboPrepago() {
             <\/script>
         </body>
         </html>
-    `);
-    ventanaImpresion.document.close();
+    `); //[cite: 4]
+    ventanaImpresion.document.close(); //[cite: 4]
 }
 
 function procesarEnvioPrepago(e) {
-    e.preventDefault();
-    const btn = document.getElementById("btn-guardar-prepago");
-    if (btn) { btn.disabled = true; btn.innerText = "⏳ Guardando..."; }
+    e.preventDefault(); //[cite: 4]
+    const btn = document.getElementById("btn-guardar-prepago"); //[cite: 4]
+    if (btn) { btn.disabled = true; btn.innerText = "⏳ Guardando..."; } //[cite: 4]
 
-    const items = [];
+    const items = []; //[cite: 4]
     document.querySelectorAll(".item-fila-prepago").forEach(fila => {
         items.push({
             producto: fila.querySelector(".item-producto").value,
             cantidad: parseFloat(fila.querySelector(".item-cantidad").value) || 0,
             costoUsd: parseFloat(fila.querySelector(".item-costo-usd").value) || 0
-        });
+        }); //[cite: 4]
     });
 
     const payload = {
@@ -491,58 +491,75 @@ function procesarEnvioPrepago(e) {
                 BANCO_ACTIVO: parseFloat(document.getElementById("pago-activo").value) || 0
             }
         }
-    };
+    }; //[cite: 4]
 
     window.respuestaGuardadoGoogle = function(res) {
-        if (res && res.status === "success") {
-            imprimirReciboPrepago();
-            alert(`🚀 Transmisión limpia: Lote ${payload.data.idLote} guardado con éxito.`);
-            document.getElementById("form-prepago").reset();
-            document.getElementById("contenedor-items-prepago").innerHTML = "";
-            calcularTotalesPrepago();
-            cambiarModulo("mod-dashboard");
+        if (res && res.status === "success") { //[cite: 4]
+            imprimirReciboPrepago(); //[cite: 4]
+            alert(`🚀 Transmisión limpia: Lote ${payload.data.idLote} guardado con éxito.`); //[cite: 4]
+            document.getElementById("form-prepago").reset(); //[cite: 4]
+            document.getElementById("contenedor-items-prepago").innerHTML = ""; //[cite: 4]
+            calcularTotalesPrepago(); //[cite: 4]
+            cambiarModulo("mod-dashboard"); //[cite: 4]
         } else {
-            alert("⚠️ " + (res && res.message ? res.message : "El servidor devolvió una alerta."));
-            if (btn) { btn.disabled = false; btn.innerText = "💾 Procesar Guardado"; }
+            alert("⚠️ " + (res && res.message ? res.message : "El servidor devolvió una alerta.")); //[cite: 4]
+            if (btn) { btn.disabled = false; btn.innerText = "💾 Procesar Guardado"; } //[cite: 4]
         }
-        const loader = document.getElementById('jsonp-guardar-loader');
-        if (loader) loader.remove();
+        const loader = document.getElementById('jsonp-guardar-loader'); //[cite: 4]
+        if (loader) loader.remove(); //[cite: 4]
     };
 
-    const scriptEnvio = document.createElement('script');
-    scriptEnvio.id = 'jsonp-guardar-loader';
-    const datosSerializados = encodeURIComponent(JSON.stringify(payload));
-    scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaGuardadoGoogle&payload=${datosSerializados}`;
+    const scriptEnvio = document.createElement('script'); //[cite: 4]
+    scriptEnvio.id = 'jsonp-guardar-loader'; //[cite: 4]
+    const datosSerializados = encodeURIComponent(JSON.stringify(payload)); //[cite: 4]
+    scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaGuardadoGoogle&payload=${datosSerializados}`; //[cite: 4]
     
     scriptEnvio.onerror = function() {
-        alert("❌ Error de red al comunicarse con Google Apps Script.");
-        if (btn) { btn.disabled = false; btn.innerText = "💾 Procesar Guardado"; }
-        const loader = document.getElementById('jsonp-guardar-loader');
-        if (loader) loader.remove();
+        alert("❌ Error de red al comunicarse con Google Apps Script."); //[cite: 4]
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Procesar Guardado"; } //[cite: 4]
+        const loader = document.getElementById('jsonp-guardar-loader'); //[cite: 4]
+        if (loader) loader.remove(); //[cite: 4]
     };
 
-    document.body.appendChild(scriptEnvio);
+    document.body.appendChild(scriptEnvio); //[cite: 4]
 }
 
 // RECEPCIÓN DE CARGA Y MOTOR FIFO CASCADA
 function actualizarFlujoProveedorRecepcion(prov) {
-    filtrarProductosPorProveedor(prov, "rec-producto");
-    actualizarTablaRecepcionCascada();
+    filtrarProductosPorProveedor(prov, "rec-producto"); //[cite: 4]
+    actualizarTablaRecepcionCascada(); //[cite: 4]
 }
 
+/**
+ * Función que recalcula la tabla FIFO y asigna directamente el valor de 'rec-monto-bs' al elemento KPI 'rec-kpi-bs-actual'
+ */
 function actualizarTablaRecepcionCascada() {
-    const prov = document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "";
-    const prod = document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "";
-    const cantRecepcion = parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0;
-    const tasaActual = parseFloat(document.getElementById("rec-tasa") ? document.getElementById("rec-tasa").value : 0) || 0;
+    // 1. Asignar directamente el valor de 'rec-monto-bs' hacia el elemento 'rec-kpi-bs-actual'
+    const inputMontoBs = document.getElementById("rec-monto-bs");
+    const elKpiBsActual = document.getElementById("rec-kpi-bs-actual");
+    const valorBsDirecto = parseFloat(inputMontoBs ? inputMontoBs.value : 0) || 0;
 
-    const tbody = document.getElementById("rec-tabla-lotes-body");
-    if (!tbody) return;
-    tbody.innerHTML = "";
+    if (elKpiBsActual) {
+        if ('value' in elKpiBsActual) {
+            elKpiBsActual.value = valorBsDirecto;
+        } else {
+            elKpiBsActual.innerText = formatearMonto(valorBsDirecto);
+        }
+    }
+
+    // 2. Lógica del motor FIFO y actualización de la tabla
+    const prov = document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : ""; //[cite: 4]
+    const prod = document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : ""; //[cite: 4]
+    const cantRecepcion = parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0; //[cite: 4]
+    const tasaActual = parseFloat(document.getElementById("rec-tasa") ? document.getElementById("rec-tasa").value : 0) || 0; //[cite: 4]
+
+    const tbody = document.getElementById("rec-tabla-lotes-body"); //[cite: 4]
+    if (!tbody) return; //[cite: 4]
+    tbody.innerHTML = ""; //[cite: 4]
 
     if (!prov || !prod || !cacheUltimosDatos || !cacheUltimosDatos.data || !cacheUltimosDatos.data.detallesLotes) {
-        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-4 text-center text-xs text-slate-500 italic">Seleccione proveedor y producto para cargar desglose FIFO</td></tr>`;
-        resetearKPIsRecepcion();
+        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-4 text-center text-xs text-slate-500 italic">Seleccione proveedor y producto para cargar desglose FIFO</td></tr>`; //[cite: 4]
+        resetearKPIsRecepcion(); //[cite: 4]
         return;
     }
 
@@ -550,41 +567,41 @@ function actualizarTablaRecepcionCascada() {
         l.proveedor === prov && 
         l.producto === prod && 
         l.cantDisponible > 0
-    );
+    ); //[cite: 4]
 
     if (lotesDisponibles.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-4 text-center text-xs text-amber-500 italic">⚠️ No hay lotes pendientes para este producto</td></tr>`;
-        resetearKPIsRecepcion();
+        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-4 text-center text-xs text-amber-500 italic">⚠️ No hay lotes pendientes para este producto</td></tr>`; //[cite: 4]
+        resetearKPIsRecepcion(); //[cite: 4]
         return;
     }
 
-    let remanentePorDespachar = cantRecepcion;
-    let sumUsdOriginal = 0;
-    let sumBsOriginal = 0;
-    let sumBsActual = 0;
+    let remanentePorDespachar = cantRecepcion; //[cite: 4]
+    let sumUsdOriginal = 0; //[cite: 4]
+    let sumBsOriginal = 0; //[cite: 4]
+    let sumBsActual = 0; //[cite: 4]
 
     lotesDisponibles.forEach(lote => {
-        const cantDisponible = lote.cantDisponible;
-        let cantTomada = 0;
+        const cantDisponible = lote.cantDisponible; //[cite: 4]
+        let cantTomada = 0; //[cite: 4]
 
         if (remanentePorDespachar > 0) {
-            cantTomada = Math.min(remanentePorDespachar, cantDisponible);
-            remanentePorDespachar -= cantTomada;
+            cantTomada = Math.min(remanentePorDespachar, cantDisponible); //[cite: 4]
+            remanentePorDespachar -= cantTomada; //[cite: 4]
         }
 
-        const costoUsdUnit = lote.costoUsd || 0;
-        const tasaOrigen = lote.tasaOriginal || 0;
+        const costoUsdUnit = lote.costoUsd || 0; //[cite: 4]
+        const tasaOrigen = lote.tasaOriginal || 0; //[cite: 4]
 
-        const totalUsdTomado = cantTomada * costoUsdUnit;
-        const totalBsOrigenTomado = totalUsdTomado * tasaOrigen;
-        const totalBsActualTomado = totalUsdTomado * tasaActual;
+        const totalUsdTomado = cantTomada * costoUsdUnit; //[cite: 4]
+        const totalBsOrigenTomado = totalUsdTomado * tasaOrigen; //[cite: 4]
+        const totalBsActualTomado = totalUsdTomado * tasaActual; //[cite: 4]
 
-        sumUsdOriginal += totalUsdTomado;
-        sumBsOriginal += totalBsOrigenTomado;
-        sumBsActual += totalBsActualTomado;
+        sumUsdOriginal += totalUsdTomado; //[cite: 4]
+        sumBsOriginal += totalBsOrigenTomado; //[cite: 4]
+        sumBsActual += totalBsActualTomado; //[cite: 4]
 
-        const row = document.createElement("tr");
-        row.className = cantTomada > 0 ? "bg-blue-950/30 border-b border-slate-800" : "opacity-40 border-b border-slate-800";
+        const row = document.createElement("tr"); //[cite: 4]
+        row.className = cantTomada > 0 ? "bg-blue-950/30 border-b border-slate-800" : "opacity-40 border-b border-slate-800"; //[cite: 4]
         row.innerHTML = `
             <td class="px-3 py-2 font-mono text-xs font-bold text-blue-400">${lote.idLote}</td>
             <td class="px-3 py-2 font-mono text-xs text-right">${formatearMonto(cantDisponible)}</td>
@@ -594,109 +611,115 @@ function actualizarTablaRecepcionCascada() {
             <td class="px-3 py-2 font-mono text-xs text-right">Bs. ${formatearMonto(tasaOrigen)}</td>
             <td class="px-3 py-2 font-mono text-xs text-right text-slate-300">Bs. ${formatearMonto(totalBsOrigenTomado)}</td>
             <td class="px-3 py-2 font-mono text-xs text-right text-blue-400 font-bold">Bs. ${formatearMonto(totalBsActualTomado)}</td>
-        `;
-        tbody.appendChild(row);
+        `; //[cite: 4]
+        tbody.appendChild(row); //[cite: 4]
     });
 
-    const ajusteValorizacionBs = sumBsActual - sumBsOriginal;
+    const ajusteValorizacionBs = sumBsActual - sumBsOriginal; //[cite: 4]
     
-    if (document.getElementById("rec-kpi-usd")) document.getElementById("rec-kpi-usd").innerText = formatearMonto(sumUsdOriginal);
-    if (document.getElementById("rec-kpi-bs-origen")) document.getElementById("rec-kpi-bs-origen").innerText = formatearMonto(sumBsOriginal);
-    if (document.getElementById("rec-kpi-bs-actual")) document.getElementById("rec-kpi-bs-actual").innerText = formatearMonto(sumBsActual);
+    if (document.getElementById("rec-kpi-usd")) document.getElementById("rec-kpi-usd").innerText = formatearMonto(sumUsdOriginal); //[cite: 4]
+    if (document.getElementById("rec-kpi-bs-origen")) document.getElementById("rec-kpi-bs-origen").innerText = formatearMonto(sumBsOriginal); //[cite: 4]
     
-    const kpiAjusteEl = document.getElementById("rec-kpi-ajuste");
+    const kpiAjusteEl = document.getElementById("rec-kpi-ajuste"); //[cite: 4]
     if (kpiAjusteEl) {
-        kpiAjusteEl.innerText = `${ajusteValorizacionBs >= 0 ? '+' : ''}${formatearMonto(ajusteValorizacionBs)} Bs`;
-        kpiAjusteEl.className = `font-mono text-lg font-bold ${ajusteValorizacionBs >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
+        kpiAjusteEl.innerText = `${ajusteValorizacionBs >= 0 ? '+' : ''}${formatearMonto(ajusteValorizacionBs)} Bs`; //[cite: 4]
+        kpiAjusteEl.className = `font-mono text-lg font-bold ${ajusteValorizacionBs >= 0 ? 'text-emerald-400' : 'text-red-400'}`; //[cite: 4]
     }
 
-    const btnProcesar = document.getElementById("btn-guardar-recepcion");
-    const btnImprimir = document.getElementById("btn-imprimir-recepcion");
+    const btnProcesar = document.getElementById("btn-guardar-recepcion"); //[cite: 4]
+    const btnImprimir = document.getElementById("btn-imprimir-recepcion"); //[cite: 4]
 
     if (remanentePorDespachar > 0) {
         if (btnProcesar) {
-            btnProcesar.disabled = true;
-            btnProcesar.className = "bg-amber-600/50 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
-            btnProcesar.innerText = `⚠️ Stock insuficiente (Faltan: ${formatearMonto(remanentePorDespachar)} und)`;
+            btnProcesar.disabled = true; //[cite: 4]
+            btnProcesar.className = "bg-amber-600/50 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full"; //[cite: 4]
+            btnProcesar.innerText = `⚠️ Stock insuficiente (Faltan: ${formatearMonto(remanentePorDespachar)} und)`; //[cite: 4]
         }
         if (btnImprimir) {
-            btnImprimir.disabled = true;
-            btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
+            btnImprimir.disabled = true; //[cite: 4]
+            btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full"; //[cite: 4]
         }
     } else if (cantRecepcion > 0) {
         if (btnProcesar) {
-            btnProcesar.disabled = false;
-            btnProcesar.className = "bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
-            btnProcesar.innerText = "📦 Confirmar Recepción de Carga";
+            btnProcesar.disabled = false; //[cite: 4]
+            btnProcesar.className = "bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center"; //[cite: 4]
+            btnProcesar.innerText = "📦 Confirmar Recepción de Carga"; //[cite: 4]
         }
         if (btnImprimir) {
-            btnImprimir.disabled = false;
-            btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full";
+            btnImprimir.disabled = false; //[cite: 4]
+            btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full"; //[cite: 4]
         }
     } else {
         if (btnProcesar) {
-            btnProcesar.disabled = true;
-            btnProcesar.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
-            btnProcesar.innerText = "📦 Confirmar Recepción de Carga";
+            btnProcesar.disabled = true; //[cite: 4]
+            btnProcesar.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full"; //[cite: 4]
+            btnProcesar.innerText = "📦 Confirmar Recepción de Carga"; //[cite: 4]
         }
         if (btnImprimir) {
-            btnImprimir.disabled = true;
-            btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
+            btnImprimir.disabled = true; //[cite: 4]
+            btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full"; //[cite: 4]
         }
     }
 }
 
 function resetearKPIsRecepcion() {
-    if (document.getElementById("rec-kpi-usd")) document.getElementById("rec-kpi-usd").innerText = "0,00";
-    if (document.getElementById("rec-kpi-bs-origen")) document.getElementById("rec-kpi-bs-origen").innerText = "0,00";
-    if (document.getElementById("rec-kpi-bs-actual")) document.getElementById("rec-kpi-bs-actual").innerText = "0,00";
+    if (document.getElementById("rec-kpi-usd")) document.getElementById("rec-kpi-usd").innerText = "0,00"; //[cite: 4]
+    if (document.getElementById("rec-kpi-bs-origen")) document.getElementById("rec-kpi-bs-origen").innerText = "0,00"; //[cite: 4]
+    if (document.getElementById("rec-kpi-bs-actual")) {
+        const el = document.getElementById("rec-kpi-bs-actual");
+        if ('value' in el) el.value = "0";
+        else el.innerText = "0,00";
+    }
     if (document.getElementById("rec-kpi-ajuste")) {
-        document.getElementById("rec-kpi-ajuste").innerText = "0,00 Bs";
-        document.getElementById("rec-kpi-ajuste").className = "font-mono text-lg font-bold text-slate-400";
+        document.getElementById("rec-kpi-ajuste").innerText = "0,00 Bs"; //[cite: 4]
+        document.getElementById("rec-kpi-ajuste").className = "font-mono text-lg font-bold text-slate-400"; //[cite: 4]
     }
-    const btn = document.getElementById("btn-guardar-recepcion");
+    const btn = document.getElementById("btn-guardar-recepcion"); //[cite: 4]
     if (btn) {
-        btn.disabled = true;
-        btn.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
-        btn.innerText = "📦 Confirmar Recepción de Carga";
+        btn.disabled = true; //[cite: 4]
+        btn.className = "bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full"; //[cite: 4]
+        btn.innerText = "📦 Confirmar Recepción de Carga"; //[cite: 4]
     }
-    const btnImp = document.getElementById("btn-imprimir-recepcion");
+    const btnImp = document.getElementById("btn-imprimir-recepcion"); //[cite: 4]
     if (btnImp) {
-        btnImp.disabled = true;
-        btnImp.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
+        btnImp.disabled = true; //[cite: 4]
+        btnImp.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full"; //[cite: 4]
     }
 }
 
 // IMPRESIÓN COMPROBANTE RECEPCIÓN DE CARGA
 function imprimirComprobanteRecepcion() {
-    const prov = document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "";
-    const prod = document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "";
-    const cant = parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0;
-    const fecha = document.getElementById("rec-fecha") ? document.getElementById("rec-fecha").value : new Date().toISOString().split('T')[0];
-    const tasaActual = parseFloat(document.getElementById("rec-tasa") ? document.getElementById("rec-tasa").value : 1) || 1;
+    const prov = document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : ""; //[cite: 4]
+    const prod = document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : ""; //[cite: 4]
+    const cant = parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0; //[cite: 4]
+    const fecha = document.getElementById("rec-fecha") ? document.getElementById("rec-fecha").value : new Date().toISOString().split('T')[0]; //[cite: 4]
+    const tasaActual = parseFloat(document.getElementById("rec-tasa") ? document.getElementById("rec-tasa").value : 1) || 1; //[cite: 4]
     
-    const numFacturaInput = document.getElementById("rec-guia") || document.getElementById("rec-factura") || document.querySelector('input[placeholder*="FACTURA"]');
-    const factura = numFacturaInput ? numFacturaInput.value : "N/A";
+    const numFacturaInput = document.getElementById("rec-guia") || document.getElementById("rec-factura") || document.querySelector('input[placeholder*="FACTURA"]'); //[cite: 4]
+    const factura = numFacturaInput ? numFacturaInput.value : "N/A"; //[cite: 4]
 
-    const kpiUsd = document.getElementById("rec-kpi-usd") ? document.getElementById("rec-kpi-usd").innerText : "0,00";
-    const kpiBsOrigen = document.getElementById("rec-kpi-bs-origen") ? document.getElementById("rec-kpi-bs-origen").innerText : "0,00";
-    const kpiBsActual = document.getElementById("rec-kpi-bs-actual") ? document.getElementById("rec-kpi-bs-actual").innerText : "0,00";
-    const kpiAjuste = document.getElementById("rec-kpi-ajuste") ? document.getElementById("rec-kpi-ajuste").innerText : "0,00 Bs";
+    const kpiUsd = document.getElementById("rec-kpi-usd") ? document.getElementById("rec-kpi-usd").innerText : "0,00"; //[cite: 4]
+    const kpiBsOrigen = document.getElementById("rec-kpi-bs-origen") ? document.getElementById("rec-kpi-bs-origen").innerText : "0,00"; //[cite: 4]
+    
+    const elBsActual = document.getElementById("rec-kpi-bs-actual");
+    const kpiBsActual = elBsActual ? ('value' in elBsActual ? elBsActual.value : elBsActual.innerText) : "0,00";
+    
+    const kpiAjuste = document.getElementById("rec-kpi-ajuste") ? document.getElementById("rec-kpi-ajuste").innerText : "0,00 Bs"; //[cite: 4]
 
-    let htmlFilasFifo = "";
-    const tbody = document.getElementById("rec-tabla-lotes-body");
+    let htmlFilasFifo = ""; //[cite: 4]
+    const tbody = document.getElementById("rec-tabla-lotes-body"); //[cite: 4]
     if (tbody) {
-        const trs = tbody.querySelectorAll("tr");
+        const trs = tbody.querySelectorAll("tr"); //[cite: 4]
         trs.forEach(tr => {
-            const cols = tr.querySelectorAll("td");
+            const cols = tr.querySelectorAll("td"); //[cite: 4]
             if (cols.length >= 8) {
-                const idLote = cols[0].innerText;
-                const cantTomada = cols[2].innerText;
-                const costoUsd = cols[3].innerText;
-                const totalUsd = cols[4].innerText;
-                const tasaOrigen = cols[5].innerText;
-                const totalBsOrigen = cols[6].innerText;
-                const totalBsActual = cols[7].innerText;
+                const idLote = cols[0].innerText; //[cite: 4]
+                const cantTomada = cols[2].innerText; //[cite: 4]
+                const costoUsd = cols[3].innerText; //[cite: 4]
+                const totalUsd = cols[4].innerText; //[cite: 4]
+                const tasaOrigen = cols[5].innerText; //[cite: 4]
+                const totalBsOrigen = cols[6].innerText; //[cite: 4]
+                const totalBsActual = cols[7].innerText; //[cite: 4]
 
                 htmlFilasFifo += `
                     <tr style="border-bottom: 1px solid #e2e8f0;">
@@ -708,12 +731,12 @@ function imprimirComprobanteRecepcion() {
                         <td style="padding: 8px; text-align: right; font-family: monospace; color: #475569;">${totalBsOrigen}</td>
                         <td style="padding: 8px; text-align: right; font-family: monospace; font-weight: bold; color: #2563eb;">${totalBsActual}</td>
                     </tr>
-                `;
+                `; //[cite: 4]
             }
         });
     }
 
-    const ventanaImpresion = window.open('', '_blank', 'width=850,height=1100');
+    const ventanaImpresion = window.open('', '_blank', 'width=850,height=1100'); //[cite: 4]
     ventanaImpresion.document.write(`
         <html>
         <head>
@@ -826,19 +849,19 @@ function imprimirComprobanteRecepcion() {
             <\/script>
         </body>
         </html>
-    `);
-    ventanaImpresion.document.close();
+    `); //[cite: 4]
+    ventanaImpresion.document.close(); //[cite: 4]
 }
 
 function procesarEnvioRecepcion(e) {
-    e.preventDefault();
-    const btn = document.getElementById("btn-guardar-recepcion") || e.target.querySelector('button[type="submit"]');
+    e.preventDefault(); //[cite: 4]
+    const btn = document.getElementById("btn-guardar-recepcion") || e.target.querySelector('button[type="submit"]'); //[cite: 4]
     if (btn) {
-        btn.disabled = true;
-        btn.innerText = "⏳ Descargando de cola FIFO...";
+        btn.disabled = true; //[cite: 4]
+        btn.innerText = "⏳ Descargando de cola FIFO..."; //[cite: 4]
     }
 
-    const numFacturaInput = document.getElementById("rec-guia") || document.getElementById("rec-factura") || document.querySelector('input[placeholder*="FACTURA"]');
+    const numFacturaInput = document.getElementById("rec-guia") || document.getElementById("rec-factura") || document.querySelector('input[placeholder*="FACTURA"]'); //[cite: 4]
 
     const payload = {
         accion: "registrar_despacho",
@@ -850,121 +873,121 @@ function procesarEnvioRecepcion(e) {
             tasaRecepcion: parseFloat(document.getElementById("rec-tasa") ? document.getElementById("rec-tasa").value : 1) || 1,
             nroFactura: numFacturaInput ? numFacturaInput.value : "N/A"
         }
-    };
+    }; //[cite: 4]
 
     window.respuestaRecepcionGoogle = function(res) {
-        if (res && res.status === "success") {
-            imprimirComprobanteRecepcion();
-            alert(`✅ Carga recibida exitosamente. El inventario FIFO fue actualizado en las tablas de la Cooperativa.`);
-            const form = document.getElementById("form-recepcion");
-            if (form) form.reset();
-            resetearKPIsRecepcion();
-            cargarDatos();
-            cambiarModulo("mod-dashboard");
+        if (res && res.status === "success") { //[cite: 4]
+            imprimirComprobanteRecepcion(); //[cite: 4]
+            alert(`✅ Carga recibida exitosamente. El inventario FIFO fue actualizado en las tablas de la Cooperativa.`); //[cite: 4]
+            const form = document.getElementById("form-recepcion"); //[cite: 4]
+            if (form) form.reset(); //[cite: 4]
+            resetearKPIsRecepcion(); //[cite: 4]
+            cargarDatos(); //[cite: 4]
+            cambiarModulo("mod-dashboard"); //[cite: 4]
         } else {
-            alert("⚠️ " + (res && res.message ? res.message : "Error procesando la recepción en el servidor."));
+            alert("⚠️ " + (res && res.message ? res.message : "Error procesando la recepción en el servidor.")); //[cite: 4]
             if (btn) {
-                btn.disabled = false;
-                btn.innerText = "📦 Confirmar Recepción de Carga";
+                btn.disabled = false; //[cite: 4]
+                btn.innerText = "📦 Confirmar Recepción de Carga"; //[cite: 4]
             }
         }
-        const loader = document.getElementById('jsonp-recepcion-loader');
-        if (loader) loader.remove();
+        const loader = document.getElementById('jsonp-recepcion-loader'); //[cite: 4]
+        if (loader) loader.remove(); //[cite: 4]
     };
 
-    const scriptEnvio = document.createElement('script');
-    scriptEnvio.id = 'jsonp-recepcion-loader';
-    const datosSerializados = encodeURIComponent(JSON.stringify(payload));
-    scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaRecepcionGoogle&payload=${datosSerializados}`;
+    const scriptEnvio = document.createElement('script'); //[cite: 4]
+    scriptEnvio.id = 'jsonp-recepcion-loader'; //[cite: 4]
+    const datosSerializados = encodeURIComponent(JSON.stringify(payload)); //[cite: 4]
+    scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaRecepcionGoogle&payload=${datosSerializados}`; //[cite: 4]
     
     scriptEnvio.onerror = function() {
-        alert("❌ Error de comunicación con el servidor al registrar el despacho.");
+        alert("❌ Error de comunicación con el servidor al registrar el despacho."); //[cite: 4]
         if (btn) {
-            btn.disabled = false;
-            btn.innerText = "📦 Confirmar Recepción de Carga";
+            btn.disabled = false; //[cite: 4]
+            btn.innerText = "📦 Confirmar Recepción de Carga"; //[cite: 4]
         }
-        const loader = document.getElementById('jsonp-recepcion-loader');
-        if (loader) loader.remove();
+        const loader = document.getElementById('jsonp-recepcion-loader'); //[cite: 4]
+        if (loader) loader.remove(); //[cite: 4]
     };
 
-    document.body.appendChild(scriptEnvio);
+    document.body.appendChild(scriptEnvio); //[cite: 4]
 }
 
 // PROVEEDORES
 function procesarEnvioProveedor(e) {
-    e.preventDefault();
-    const btn = document.getElementById("btn-guardar-proveedor");
-    if (btn) { btn.disabled = true; btn.innerText = "⏳ Guardando..."; }
+    e.preventDefault(); //[cite: 4]
+    const btn = document.getElementById("btn-guardar-proveedor"); //[cite: 4]
+    if (btn) { btn.disabled = true; btn.innerText = "⏳ Guardando..."; } //[cite: 4]
 
-    const nombre = document.getElementById("prov-nombre").value.trim();
-    const inputsMercancia = document.querySelectorAll(".input-mercancia");
-    const productos = [];
+    const nombre = document.getElementById("prov-nombre").value.trim(); //[cite: 4]
+    const inputsMercancia = document.querySelectorAll(".input-mercancia"); //[cite: 4]
+    const productos = []; //[cite: 4]
 
     inputsMercancia.forEach(inp => {
-        const val = inp.value.trim();
-        if (val) productos.push(val);
+        const val = inp.value.trim(); //[cite: 4]
+        if (val) productos.push(val); //[cite: 4]
     });
 
     if (!nombre || productos.length === 0) {
-        alert("Por favor ingrese el nombre del proveedor y al menos un producto.");
-        if (btn) { btn.disabled = false; btn.innerText = "💾 Guardar Proveedor"; }
+        alert("Por favor ingrese el nombre del proveedor y al menos un producto."); //[cite: 4]
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Guardar Proveedor"; } //[cite: 4]
         return;
     }
 
     const payload = {
         accion: "registrar_proveedor",
         data: { nombre, productos }
-    };
+    }; //[cite: 4]
 
     window.respuestaProveedorGoogle = function(res) {
-        if (res && res.status === "success") {
-            alert(`🤝 Proveedor "${nombre}" registrado exitosamente.`);
-            document.getElementById("form-proveedor").reset();
+        if (res && res.status === "success") { //[cite: 4]
+            alert(`🤝 Proveedor "${nombre}" registrado exitosamente.`); //[cite: 4]
+            document.getElementById("form-proveedor").reset(); //[cite: 4]
             document.getElementById("contenedor-mercancias").innerHTML = `
                 <div class="flex gap-2 text-xs">
                     <input type="text" class="input-mercancia w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-white" placeholder="Producto" required>
                 </div>
-            `;
-            cargarDatos();
+            `; //[cite: 4]
+            cargarDatos(); //[cite: 4]
         } else {
-            alert("⚠️ " + (res && res.message ? res.message : "Error al guardar el proveedor."));
+            alert("⚠️ " + (res && res.message ? res.message : "Error al guardar el proveedor.")); //[cite: 4]
         }
-        if (btn) { btn.disabled = false; btn.innerText = "💾 Guardar Proveedor"; }
-        const loader = document.getElementById('jsonp-prov-loader');
-        if (loader) loader.remove();
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Guardar Proveedor"; } //[cite: 4]
+        const loader = document.getElementById('jsonp-prov-loader'); //[cite: 4]
+        if (loader) loader.remove(); //[cite: 4]
     };
 
-    const scriptEnvio = document.createElement('script');
-    scriptEnvio.id = 'jsonp-prov-loader';
-    const datosSerializados = encodeURIComponent(JSON.stringify(payload));
-    scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaProveedorGoogle&payload=${datosSerializados}`;
+    const scriptEnvio = document.createElement('script'); //[cite: 4]
+    scriptEnvio.id = 'jsonp-prov-loader'; //[cite: 4]
+    const datosSerializados = encodeURIComponent(JSON.stringify(payload)); //[cite: 4]
+    scriptEnvio.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaProveedorGoogle&payload=${datosSerializados}`; //[cite: 4]
     
     scriptEnvio.onerror = function() {
-        alert("❌ Error de enlace al guardar el proveedor.");
-        if (btn) { btn.disabled = false; btn.innerText = "💾 Guardar Proveedor"; }
-        const loader = document.getElementById('jsonp-prov-loader');
-        if (loader) loader.remove();
+        alert("❌ Error de enlace al guardar el proveedor."); //[cite: 4]
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Guardar Proveedor"; } //[cite: 4]
+        const loader = document.getElementById('jsonp-prov-loader'); //[cite: 4]
+        if (loader) loader.remove(); //[cite: 4]
     };
 
-    document.body.appendChild(scriptEnvio);
+    document.body.appendChild(scriptEnvio); //[cite: 4]
 }
 
 // REPORTES Y AUDITORÍA
 function renderizarTablaReportes() {
-    const tbody = document.getElementById("tabla-reportes-body");
-    const filtroProv = document.getElementById("reporte-filtro-proveedor") ? document.getElementById("reporte-filtro-proveedor").value : "";
-    if (!tbody) return;
+    const tbody = document.getElementById("tabla-reportes-body"); //[cite: 4]
+    const filtroProv = document.getElementById("reporte-filtro-proveedor") ? document.getElementById("reporte-filtro-proveedor").value : ""; //[cite: 4]
+    if (!tbody) return; //[cite: 4]
 
-    tbody.innerHTML = "";
+    tbody.innerHTML = ""; //[cite: 4]
 
     if (!cacheHistorialDespachos || cacheHistorialDespachos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-xs text-slate-500 italic">No existen registros de auditoría o despachos consumidos</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-xs text-slate-500 italic">No existen registros de auditoría o despachos consumidos</td></tr>`; //[cite: 4]
         return;
     }
 
     const datosFiltrados = filtroProv 
         ? cacheHistorialDespachos.filter(h => h.proveedor === filtroProv) 
-        : cacheHistorialDespachos;
+        : cacheHistorialDespachos; //[cite: 4]
 
     datosFiltrados.forEach(h => {
         tbody.insertAdjacentHTML("beforeend", `
@@ -977,20 +1000,26 @@ function renderizarTablaReportes() {
                 <td class="px-4 py-3 text-right font-mono text-slate-300">$${formatearMonto(h.costoUsdUnit)}</td>
                 <td class="px-4 py-3 text-right font-mono font-bold text-blue-400">Bs. ${formatearMonto(h.totalBsRecepcion)}</td>
             </tr>
-        `);
+        `); //[cite: 4]
     });
 }
 
 // Event Listeners Globales
 document.addEventListener("DOMContentLoaded", function() {
-    cargarDatos();
+    cargarDatos(); //[cite: 4]
 
-    const formPrepago = document.getElementById("form-prepago");
-    if (formPrepago) formPrepago.addEventListener("submit", procesarEnvioPrepago);
+    // Escuchar el evento input en 'rec-monto-bs' para disparar el recálculo
+    const recMontoBs = document.getElementById("rec-monto-bs");
+    if (recMontoBs) {
+        recMontoBs.addEventListener("input", actualizarTablaRecepcionCascada);
+    }
 
-    const formRecepcion = document.getElementById("form-recepcion");
-    if (formRecepcion) formRecepcion.addEventListener("submit", procesarEnvioRecepcion);
+    const formPrepago = document.getElementById("form-prepago"); //[cite: 4]
+    if (formPrepago) formPrepago.addEventListener("submit", procesarEnvioPrepago); //[cite: 4]
 
-    const formProveedor = document.getElementById("form-proveedor");
-    if (formProveedor) formProveedor.addEventListener("submit", procesarEnvioProveedor);
+    const formRecepcion = document.getElementById("form-recepcion"); //[cite: 4]
+    if (formRecepcion) formRecepcion.addEventListener("submit", procesarEnvioRecepcion); //[cite: 4]
+
+    const formProveedor = document.getElementById("form-proveedor"); //[cite: 4]
+    if (formProveedor) formProveedor.addEventListener("submit", procesarEnvioProveedor); //[cite: 4]
 });
