@@ -19,7 +19,13 @@ function inicializarGraficos() {
     try {
         if (typeof google !== 'undefined' && google.charts) {
             google.charts.load('current', {'packages':['corechart', 'bar']});
-            google.charts.setOnCallback(function() { chartsCargados = true; });
+            // CORREGIDO: Método correcto para registrar el callback oficial de Google Charts
+            google.charts.setOnLoadCallback(function() { 
+                chartsCargados = true; 
+                if (cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.resumenConsolidated) {
+                    dibujarGraficos(cacheUltimosDatos.data.resumenConsolidated);
+                }
+            });
         }
     } catch (e) { console.warn("Google Charts no disponible."); }
 }
@@ -77,7 +83,16 @@ function cambiarModulo(idModulo) {
         'mod-reportes': 'Reportes y Auditoría' 
     };
     const titleDom = document.getElementById('titulo-modulo'); if (titleDom) titleDom.innerText = titulos[idModulo] || 'Sistema';
-    if (idModulo === 'mod-dashboard') cargarDatos();
+    
+    if (idModulo === 'mod-dashboard') {
+        cargarDatos();
+        // Redibujar gráficos si se cambia al dashboard y los datos ya están en memoria
+        if (chartsCargados && cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.resumenConsolidated) {
+            setTimeout(() => {
+                dibujarGraficos(cacheUltimosDatos.data.resumenConsolidated);
+            }, 100);
+        }
+    }
 }
 
 function agregarCampoMercancia() {
@@ -168,15 +183,20 @@ function dibujarGraficos(resumen) {
         const dDom = document.getElementById('chart-distribucion');
         if (!pDom || !dDom || !Array.isArray(resumen)) return;
 
+        // Limpiar contenido previo para evitar acumulación de HTML de carga
+        pDom.innerHTML = "";
+        dDom.innerHTML = "";
+
         const dtP = new google.visualization.DataTable();
         dtP.addColumn('string', 'Proveedor'); dtP.addColumn('number', 'Recibido'); dtP.addColumn('number', 'Pendiente');
         const dtT = [['Proveedor', 'Pendiente']];
         resumen.forEach(r => { dtP.addRow([r.proveedor, r.totalRecibido, r.totalPendiente]); dtT.push([r.proveedor, r.totalPendiente]); });
         
         const opt = { backgroundColor: 'transparent', legend: {textStyle:{color:'#94a3b8'}}, chartArea: {width: '80%', height: '80%'}, hAxis:{textStyle:{color:'#64748b'}}, vAxis:{textStyle:{color:'#64748b'}} };
+        
         new google.visualization.BarChart(pDom).draw(dtP, { ...opt, isStacked: true, colors: ['#10b981', '#f59e0b'] });
         new google.visualization.PieChart(dDom).draw(google.visualization.arrayToDataTable(dtT), { ...opt, colors: ['#3b82f6', '#f59e0b', '#ef4444'], pieHole: 0.4 });
-    } catch (e) {}
+    } catch (e) { console.error("Error dibujando gráficas:", e); }
 }
 
 function configurarFechaPorDefecto() {
@@ -1392,5 +1412,15 @@ document.addEventListener("DOMContentLoaded", function() {
     const formProveedor = document.getElementById("form-proveedor");
     if (formProveedor) {
         formProveedor.addEventListener("submit", procesarEnvioProveedor);
+    }
+});
+
+// Redibujar gráficos automáticamente al cambiar el tamaño de la pantalla
+window.addEventListener('resize', function() {
+    if (chartsCargados && cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.resumenConsolidated) {
+        const modDashboard = document.getElementById('mod-dashboard');
+        if (modDashboard && !modDashboard.classList.contains('hidden')) {
+            dibujarGraficos(cacheUltimosDatos.data.resumenConsolidated);
+        }
     }
 });
