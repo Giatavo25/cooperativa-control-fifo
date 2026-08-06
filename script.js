@@ -118,26 +118,40 @@ function filtrarProductosPorProveedor(prov, idDestino) {
 
 function renderizarDashboard(data) {
     let p = 0, pe = 0, r = 0;
+    let lotesMostrados = 0;
     const tbody = document.getElementById("tabla-lotes"); if (!tbody) return;
     tbody.innerHTML = "";
     
     if (!data.detallesLotes || data.detallesLotes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">No hay lotes activos registrados</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">No hay lotes registrados</td></tr>`;
         return;
     }
 
     data.detallesLotes.forEach(l => {
-        const rec = l.cantOriginal - l.cantDisponible; p += l.cantOriginal; pe += l.cantDisponible; r += rec;
-        tbody.insertAdjacentHTML("beforeend", `
-            <tr class="hover:bg-slate-900/50 border-b border-slate-800">
-                <td class="px-6 py-4 font-mono text-xs font-bold text-blue-400">${l.idLote}</td>
-                <td class="px-6 py-4 font-medium">${l.proveedor}</td>
-                <td class="px-6 py-4">${l.producto}</td>
-                <td class="px-6 py-4 text-right font-mono">${formatearMonto(l.cantOriginal)}</td>
-                <td class="px-6 py-4 text-right font-mono font-bold text-amber-400">${formatearMonto(l.cantDisponible)}</td>
-            </tr>
-        `);
+        const rec = l.cantOriginal - l.cantDisponible; 
+        p += l.cantOriginal; 
+        pe += l.cantDisponible; 
+        r += rec;
+
+        // FILTRO: Solo dibuja la fila si el lote tiene mercancía disponible (> 0)
+        if (parseFloat(l.cantDisponible) > 0) {
+            lotesMostrados++;
+            tbody.insertAdjacentHTML("beforeend", `
+                <tr class="hover:bg-slate-900/50 border-b border-slate-800">
+                    <td class="px-6 py-4 font-mono text-xs font-bold text-blue-400">${l.idLote}</td>
+                    <td class="px-6 py-4 font-medium">${l.proveedor}</td>
+                    <td class="px-6 py-4">${l.producto}</td>
+                    <td class="px-6 py-4 text-right font-mono">${formatearMonto(l.cantOriginal)}</td>
+                    <td class="px-6 py-4 text-right font-mono font-bold text-amber-400">${formatearMonto(l.cantDisponible)}</td>
+                </tr>
+            `);
+        }
     });
+
+    // Si todos los lotes están en 0, muestra este mensaje limpio en la tabla
+    if (lotesMostrados === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-400 italic">✅ No hay lotes pendientes. Toda la mercancía ha sido recibida en almacén.</td></tr>`;
+    }
 
     if (document.getElementById("kpi-prepagado")) document.getElementById("kpi-prepagado").innerText = formatearMonto(p);
     if (document.getElementById("kpi-recibido")) document.getElementById("kpi-recibido").innerText = formatearMonto(r);
