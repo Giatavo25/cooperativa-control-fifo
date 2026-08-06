@@ -178,22 +178,47 @@ function configurarFechaPorDefecto() {
 
 function actualizarFlujoProveedorPrepago(prov) {
     const container = document.getElementById("contenedor-items-prepago");
-    container.innerHTML = "";
+    if (container) container.innerHTML = "";
     
     if (!prov) {
         document.getElementById("pre-lote-sugerido").innerText = "AUTO-GEN";
         return;
     }
 
-    let correlativo = 1;
-    if (cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes) {
-        const filtrados = cacheUltimosDatos.data.detallesLotes.filter(x => x.proveedor === prov);
-        correlativo = filtrados.length + 1;
-    }
     const iniciales = prov.substring(0, 3).toUpperCase();
-    document.getElementById("pre-lote-sugerido").innerText = `${iniciales}-${String(correlativo).padStart(3, '0')}`;
+    let maxCorrelativo = 0;
 
-    agregarFilaMercanciaPrepago();
+    // 1. Unificar todos los registros para inspeccionar IDs históricos y activos
+    const todosLosRegistros = [];
+    if (typeof cacheUltimosDatos !== 'undefined' && cacheUltimosDatos && cacheUltimosDatos.data) {
+        if (Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
+            todosLosRegistros.push(...cacheUltimosDatos.data.detallesLotes);
+        }
+    }
+    if (typeof cacheHistorialDespachos !== 'undefined' && Array.isArray(cacheHistorialDespachos)) {
+        todosLosRegistros.push(...cacheHistorialDespachos);
+    }
+
+    // 2. Extraer el número más alto del formato "ABC-000"
+    todosLosRegistros.forEach(item => {
+        if (item.proveedor === prov && item.idLote) {
+            const partes = String(item.idLote).split('-');
+            if (partes.length > 1) {
+                const num = parseInt(partes[partes.length - 1], 10);
+                if (!isNaN(num) && num > maxCorrelativo) {
+                    maxCorrelativo = num;
+                }
+            }
+        }
+    });
+
+    // 3. Asignar el siguiente correlativo secuencial
+    const nuevoCorrelativo = maxCorrelativo + 1;
+    document.getElementById("pre-lote-sugerido").innerText = `${iniciales}-${String(nuevoCorrelativo).padStart(3, '0')}`;
+
+    if (typeof agregarFilaMercanciaPrepago === 'function') {
+        agregarFilaMercanciaPrepago();
+    }
 }
 
 function agregarFilaMercanciaPrepago() {
