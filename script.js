@@ -479,7 +479,7 @@ function imprimirReciboPrepago() {
                     </tr>
                 </table>
 
-                <h3 style="font-size:13px; color:#475569; text-transform:uppercase; margin-bottom:8px; letter-spacing:0.5px;">1. Desglose Computado de Bienes Adquiridos</h3>
+                <h3 style="font-size:13px; color:#475569; text-transform:uppercase; margin-bottom:8px; letter-spacing:0.5px;">1. Desglose de Prepago Realizado</h3>
                 <table class="table-main">
                     <thead>
                         <tr>
