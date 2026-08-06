@@ -310,11 +310,15 @@ function calcularTotalesPrepago() {
         wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-emerald-950/60 border border-emerald-800 text-emerald-400";
         wrapperDiff.innerText = "✅ Cuadrado / Conciliación Bancaria Exitosa";
         
-        btnGuardar.disabled = false;
-        btnGuardar.className = "bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
+        if (btnGuardar) {
+            btnGuardar.disabled = false;
+            btnGuardar.className = "bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
+        }
         
-        btnImprimir.disabled = false;
-        btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full";
+        if (btnImprimir) {
+            btnImprimir.disabled = false;
+            btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full";
+        }
     } else {
         wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-red-950/60 border border-red-800 text-red-400";
         
@@ -324,11 +328,15 @@ function calcularTotalesPrepago() {
             wrapperDiff.innerHTML = `Monto excedido en bancos: <span class="font-mono">${formatearMonto(Math.abs(diferencia))}</span> Bs`;
         }
         
-        btnGuardar.disabled = true;
-        btnGuardar.className = "bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
+        if (btnGuardar) {
+            btnGuardar.disabled = true;
+            btnGuardar.className = "bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
+        }
         
-        btnImprimir.disabled = true;
-        btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
+        if (btnImprimir) {
+            btnImprimir.disabled = true;
+            btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
+        }
     }
 }
 
@@ -365,7 +373,8 @@ function imprimirReciboPrepago() {
     ];
 
     bancosMapeados.forEach(b => {
-        const val = parseFloat(document.getElementById(b.id).value) || 0;
+        const el = document.getElementById(b.id);
+        const val = el ? (parseFloat(el.value) || 0) : 0;
         if (val > 0) {
             htmlBancos += `
                 <tr>
@@ -510,6 +519,11 @@ function procesarEnvioPrepago(e) {
         });
     });
 
+    const getMontoBanco = (id) => {
+        const el = document.getElementById(id);
+        return el ? (parseFloat(el.value) || 0) : 0;
+    };
+
     const payload = {
         accion: "registrar_prepago_consolidado",
         data: {
@@ -519,11 +533,11 @@ function procesarEnvioPrepago(e) {
             tasa: parseFloat(document.getElementById("pre-tasa").value) || 1,
             items: items,
             bancos: {
-                BANESCO: parseFloat(document.getElementById("pago-banesco").value) || 0,
-                MERCANTIL: parseFloat(document.getElementById("pago-mercantil").value) || 0,
-                PROVINCIAL: parseFloat(document.getElementById("pago-provincial").value) || 0,
-                BANCARIBE: parseFloat(document.getElementById("pago-bancaribe").value) || 0,
-                BANCO_ACTIVO: parseFloat(document.getElementById("pago-activo").value) || 0
+                BANESCO: getMontoBanco("pago-banesco"),
+                MERCANTIL: getMontoBanco("pago-mercantil"),
+                PROVINCIAL: getMontoBanco("pago-provincial"),
+                BANCARIBE: getMontoBanco("pago-bancaribe"),
+                BANCO_ACTIVO: getMontoBanco("pago-activo")
             }
         }
     };
@@ -532,10 +546,11 @@ function procesarEnvioPrepago(e) {
         if (res && res.status === "success") {
             imprimirReciboPrepago();
             alert(`🚀 Transmisión limpia: Lote ${payload.data.idLote} guardado con éxito.`);
-            document.getElementById("form-prepago").reset();
+            const formPrepago = document.getElementById("form-prepago");
+            if (formPrepago) formPrepago.reset();
             document.getElementById("contenedor-items-prepago").innerHTML = "";
             calcularTotalesPrepago();
-            cargarDatos(); // Actualiza los datos en segundo plano sin cambiar de módulo
+            cargarDatos();
         } else {
             alert("⚠️ " + (res && res.message ? res.message : "El servidor devolvió una alerta."));
             if (btn) { btn.disabled = false; btn.innerText = "💾 Procesar Guardado"; }
@@ -559,7 +574,7 @@ function procesarEnvioPrepago(e) {
     document.body.appendChild(scriptEnvio);
 }
 
-// RECEPCCIÓN DE CARGA Y MOTOR FIFO CASCADA
+// RECEPCIÓN DE CARGA Y MOTOR FIFO CASCADA
 function actualizarFlujoProveedorRecepcion(prov) {
     filtrarProductosPorProveedor(prov, "rec-producto");
     actualizarTablaRecepcionCascada();
@@ -1307,3 +1322,23 @@ function imprimirReporteAuditoria() {
     `);
     win.document.close();
 }
+
+// INICIALIZACIÓN Y ENLACE AUTOMÁTICO DE EVENTOS EN EL DOM
+document.addEventListener("DOMContentLoaded", function() {
+    cargarDatos();
+
+    const formPrepago = document.getElementById("form-prepago");
+    if (formPrepago) {
+        formPrepago.addEventListener("submit", procesarEnvioPrepago);
+    }
+
+    const formRecepcion = document.getElementById("form-recepcion");
+    if (formRecepcion) {
+        formRecepcion.addEventListener("submit", procesarEnvioRecepcion);
+    }
+
+    const formProveedor = document.getElementById("form-proveedor");
+    if (formProveedor) {
+        formProveedor.addEventListener("submit", procesarEnvioProveedor);
+    }
+});
