@@ -925,7 +925,7 @@ function imprimirComprobanteRecepcion() {
                             <th style="text-align:right;">Subtotal ($)</th>
                             <th style="text-align:right;">Tasa Org.</th>
                             <th style="text-align:right;">Subtotal Org. (Bs)</th>
-                            <th style="text-align:right;">Subtotal Liq. (Bs)</th>
+                            <th style="text-align:right;">Total Factura. (Bs)</th>
                         </tr>
                     </thead>
                     <tbody>
