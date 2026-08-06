@@ -1056,21 +1056,93 @@ function procesarEnvioProveedor(e) {
 // REPORTES Y AUDITORÍA
 // Renderizado completo de Reportes y Auditoría
 function renderizarTablaReportes() {
-    const tbody = document.getElementById("tabla-reportes-body");
+    const tbodyMovs = document.getElementById("tabla-reportes-body");
+    const tbodyProds = document.getElementById("tabla-productos-activos-body");
     const filtroProv = document.getElementById("reporte-filtro-proveedor") ? document.getElementById("reporte-filtro-proveedor").value : "";
     const filtroTipo = document.getElementById("reporte-filtro-tipo") ? document.getElementById("reporte-filtro-tipo").value : "todos";
 
-    if (!tbody) return;
-    tbody.innerHTML = "";
+    if (!tbodyMovs) return;
+    tbodyMovs.innerHTML = "";
+    if (tbodyProds) tbodyProds.innerHTML = "";
 
     let totalPrepagoBs = 0;
     let totalLiquidadoBs = 0;
     let totalAjusteBs = 0;
     let contadorOps = 0;
 
+    // Estructura para agrupar inventario activo por producto
+    const resumenProductos = {}; 
+    let granTotalBultosActivos = 0;
+    let granTotalUsdActivos = 0;
+
+    // 1. PROCESAR MERCANCÍA PREPAGADA ACTIVA Y ACUMULAR POR PRODUCTO
+    if (cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes) {
+        cacheUltimosDatos.data.detallesLotes.forEach(l => {
+            if (!filtroProv || l.proveedor === filtroProv) {
+                const bultosDisponibles = parseFloat(l.cantDisponible) || 0;
+                const costoUsd = parseFloat(l.costoUsd) || 0;
+
+                if (bultosDisponibles > 0) {
+                    const prodNombre = l.producto || "Sin Especificar";
+                    const totalUsdLote = bultosDisponibles * costoUsd;
+
+                    if (!resumenProductos[prodNombre]) {
+                        resumenProductos[prodNombre] = {
+                            bultos: 0,
+                            totalUsd: 0,
+                            costos: []
+                        };
+                    }
+
+                    resumenProductos[prodNombre].bultos += bultosDisponibles;
+                    resumenProductos[prodNombre].totalUsd += totalUsdLote;
+                    resumenProductos[prodNombre].costos.push(costoUsd);
+
+                    granTotalBultosActivos += bultosDisponibles;
+                    granTotalUsdActivos += totalUsdLote;
+                }
+            }
+        });
+    }
+
+    // Dibujar la tabla de resumen por productos activos
+    if (tbodyProds) {
+        const nombresProductos = Object.keys(resumenProductos);
+        if (nombresProductos.length === 0) {
+            tbodyProds.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-xs text-slate-500 italic">No hay mercancía prepagada activa para mostrar.</td></tr>`;
+        } else {
+            nombresProductos.forEach(prod => {
+                const item = resumenProductos[prod];
+                const costoPromedio = item.bultos > 0 ? (item.totalUsd / item.bultos) : 0;
+                const porcentaje = granTotalUsdActivos > 0 ? ((item.totalUsd / granTotalUsdActivos) * 100).toFixed(1) : 0;
+
+                tbodyProds.insertAdjacentHTML("beforeend", `
+                    <tr class="hover:bg-slate-900/40 border-b border-slate-800/40">
+                        <td class="px-4 py-2 font-bold text-white flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-cyan-400"></span> ${prod}
+                        </td>
+                        <td class="px-4 py-2 text-right font-mono font-bold text-amber-400">${formatearMonto(item.bultos)} bultos</td>
+                        <td class="px-4 py-2 text-right font-mono text-slate-300">$${formatearMonto(costoPromedio)}</td>
+                        <td class="px-4 py-2 text-right font-mono font-bold text-emerald-400">$${formatearMonto(item.totalUsd)}</td>
+                        <td class="px-4 py-2 text-center">
+                            <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[10px] font-mono">${porcentaje}%</span>
+                        </td>
+                    </tr>
+                `);
+            });
+        }
+    }
+
+    // Actualizar Totales del Encabezado de Mercancía Activa
+    if (document.getElementById("resumen-total-bultos-activos")) document.getElementById("resumen-total-bultos-activos").innerText = `${formatearMonto(granTotalBultosActivos)} bultos`;
+    if (document.getElementById("resumen-total-usd-activos")) document.getElementById("resumen-total-usd-activos").innerText = `$${formatearMonto(granTotalUsdActivos)}`;
+    if (document.getElementById("aud-kpi-total-usd-activo")) document.getElementById("aud-kpi-total-usd-activo").innerText = `$${formatearMonto(granTotalUsdActivos)}`;
+
+
+    // 2. CONSTRUIR HISTORIAL COMPLETO DE MOVIMIENTOS Y REGISTROS
     const listaRender = [];
 
-    // 1. Procesar Lotes Prepagados (Entradas)
+    // Prepagos
     if ((filtroTipo === "todos" || filtroTipo === "prepagos") && cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes) {
         cacheUltimosDatos.data.detallesLotes.forEach(l => {
             if (!filtroProv || l.proveedor === filtroProv) {
@@ -1079,6 +1151,10 @@ function renderizarTablaReportes() {
                 
                 totalPrepagoBs += totalBs;
                 contadorOps++;
+
+                const estatusBadge = (l.cantDisponible > 0) 
+                    ? `<span class="bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded text-[10px] font-bold">ACTIVO (${formatearMonto(l.cantDisponible)} PEND.)</span>`
+                    : `<span class="bg-slate-800 text-slate-400 border border-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">LIQUIDADO / CERRADO</span>`;
 
                 listaRender.push({
                     fecha: l.fecha || '-',
@@ -1089,14 +1165,13 @@ function renderizarTablaReportes() {
                     tasa: l.tasaOriginal,
                     totalUsd: totalUsd,
                     totalBs: totalBs,
-                    tipo: 'PREPAGO',
-                    badge: `<span class="bg-blue-950 text-blue-400 border border-blue-800 px-2 py-0.5 rounded text-[10px] font-bold">PREPAGO ACTIVO</span>`
+                    badge: estatusBadge
                 });
             }
         });
     }
 
-    // 2. Procesar Recepciones de Carga / Despachos FIFO (Salidas/Consumos)
+    // Recepciones FIFO
     if ((filtroTipo === "todos" || filtroTipo === "despachos") && cacheHistorialDespachos && cacheHistorialDespachos.length > 0) {
         cacheHistorialDespachos.forEach(h => {
             if (!filtroProv || h.proveedor === filtroProv) {
@@ -1118,14 +1193,13 @@ function renderizarTablaReportes() {
                     tasa: h.tasaRecepcion || h.tasaOrigen,
                     totalUsd: totalUsd,
                     totalBs: totalBsRecepcion,
-                    tipo: 'RECEPCION',
                     badge: `<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold">DESCARGO FIFO</span>`
                 });
             }
         });
     }
 
-    // Actualizar KPIs Globales de Auditoría
+    // Actualizar KPIs de la parte superior
     if (document.getElementById("aud-kpi-total-prepago-bs")) document.getElementById("aud-kpi-total-prepago-bs").innerText = formatearMonto(totalPrepagoBs);
     if (document.getElementById("aud-kpi-total-liquidado-bs")) document.getElementById("aud-kpi-total-liquidado-bs").innerText = formatearMonto(totalLiquidadoBs);
     
@@ -1136,14 +1210,14 @@ function renderizarTablaReportes() {
     }
     if (document.getElementById("aud-kpi-total-ops")) document.getElementById("aud-kpi-total-ops").innerText = contadorOps;
 
+    // Renderizar filas de la tabla de movimientos
     if (listaRender.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-6 text-center text-xs text-slate-500 italic">No hay registros de auditoría que coincidan con el filtro.</td></tr>`;
+        tbodyMovs.innerHTML = `<tr><td colspan="9" class="px-6 py-6 text-center text-xs text-slate-500 italic">No hay registros para mostrar.</td></tr>`;
         return;
     }
 
-    // Dibujar la tabla
     listaRender.forEach(item => {
-        tbody.insertAdjacentHTML("beforeend", `
+        tbodyMovs.insertAdjacentHTML("beforeend", `
             <tr class="hover:bg-slate-900/50 border-b border-slate-800">
                 <td class="px-4 py-3 font-mono text-slate-400">${item.fecha}</td>
                 <td class="px-4 py-3 font-mono font-bold text-blue-400">${item.referencia}</td>
@@ -1158,7 +1232,6 @@ function renderizarTablaReportes() {
         `);
     });
 }
-
 // Función para generar un informe impreso corporativo
 function imprimirReporteAuditoria() {
     const prov = document.getElementById("reporte-filtro-proveedor").value || "Todos los Proveedores";
