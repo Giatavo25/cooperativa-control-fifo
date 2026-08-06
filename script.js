@@ -19,7 +19,7 @@ function inicializarGraficos() {
     try {
         if (typeof google !== 'undefined' && google.charts) {
             google.charts.load('current', {'packages':['corechart', 'bar']});
-            google.charts.setOnLoadCallback(function() { chartsCargados = true; });
+            google.charts.setOnCallback(function() { chartsCargados = true; });
         }
     } catch (e) { console.warn("Google Charts no disponible."); }
 }
@@ -148,7 +148,6 @@ function renderizarDashboard(data) {
         }
     });
 
-    // Si todos los lotes están en 0, muestra este mensaje limpio en la tabla
     if (lotesMostrados === 0) {
         tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-400 italic">✅ No hay lotes pendientes. Toda la mercancía ha sido recibida en almacén.</td></tr>`;
     }
@@ -202,7 +201,6 @@ function actualizarFlujoProveedorPrepago(prov) {
     const iniciales = prov.substring(0, 3).toUpperCase();
     let maxCorrelativo = 0;
 
-    // 1. Unificar todos los registros para inspeccionar IDs históricos y activos
     const todosLosRegistros = [];
     if (typeof cacheUltimosDatos !== 'undefined' && cacheUltimosDatos && cacheUltimosDatos.data) {
         if (Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
@@ -213,7 +211,6 @@ function actualizarFlujoProveedorPrepago(prov) {
         todosLosRegistros.push(...cacheHistorialDespachos);
     }
 
-    // 2. Extraer el número más alto del formato "ABC-000"
     todosLosRegistros.forEach(item => {
         if (item.proveedor === prov && item.idLote) {
             const partes = String(item.idLote).split('-');
@@ -226,7 +223,6 @@ function actualizarFlujoProveedorPrepago(prov) {
         }
     });
 
-    // 3. Asignar el siguiente correlativo secuencial
     const nuevoCorrelativo = maxCorrelativo + 1;
     document.getElementById("pre-lote-sugerido").innerText = `${iniciales}-${String(nuevoCorrelativo).padStart(3, '0')}`;
 
@@ -501,7 +497,7 @@ function imprimirReciboPrepago() {
 }
 
 function procesarEnvioPrepago(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const btn = document.getElementById("btn-guardar-prepago");
     if (btn) { btn.disabled = true; btn.innerText = "⏳ Guardando..."; }
 
@@ -539,7 +535,7 @@ function procesarEnvioPrepago(e) {
             document.getElementById("form-prepago").reset();
             document.getElementById("contenedor-items-prepago").innerHTML = "";
             calcularTotalesPrepago();
-            cambiarModulo("mod-dashboard");
+            cargarDatos(); // Actualiza los datos en segundo plano sin cambiar de módulo
         } else {
             alert("⚠️ " + (res && res.message ? res.message : "El servidor devolvió una alerta."));
             if (btn) { btn.disabled = false; btn.innerText = "💾 Procesar Guardado"; }
@@ -569,15 +565,11 @@ function actualizarFlujoProveedorRecepcion(prov) {
     actualizarTablaRecepcionCascada();
 }
 
-/**
- * Función que recalcula la tabla FIFO y vincula MONTO TOTAL FACTURA (Bs) con Valor Hoy (Bs), Ajuste / Valorización y Total Hoy (Bs)
- */
 function actualizarTablaRecepcionCascada() {
     const inputMontoBs = document.getElementById("rec-monto-bs");
     const elKpiBsActual = document.getElementById("rec-kpi-bs-actual");
     const valorBsDirecto = parseFloat(inputMontoBs ? inputMontoBs.value : 0) || 0;
 
-    // Actualizar el KPI Valor Hoy (Bs)
     if (elKpiBsActual) {
         if ('value' in elKpiBsActual) {
             elKpiBsActual.value = valorBsDirecto;
@@ -612,7 +604,6 @@ function actualizarTablaRecepcionCascada() {
         return;
     }
 
-    // Paso 1: Pre-cálculo para determinar la cantidad tomada y el total en USD tomado en cola FIFO
     let remanenteTemp = cantRecepcion;
     let sumUsdOriginal = 0;
     const itemsProcesados = [];
@@ -639,7 +630,6 @@ function actualizarTablaRecepcionCascada() {
         });
     });
 
-    // Paso 2: Renderizado de la tabla FIFO y cómputo de Costo Origen y Total Hoy (Bs)
     let remanentePorDespachar = cantRecepcion;
     let sumBsOriginal = 0;
     let sumBsActual = 0;
@@ -658,7 +648,6 @@ function actualizarTablaRecepcionCascada() {
 
         const totalBsOrigenTomado = totalUsdTomado * tasaOrigen;
         
-        // Distribución del Valor Hoy (Bs) en la tabla FIFO proporcionalmente al USD de cada lote
         let totalBsActualTomado = 0;
         if (valorBsDirecto > 0 && sumUsdOriginal > 0 && cantTomada > 0) {
             totalBsActualTomado = (totalUsdTomado / sumUsdOriginal) * valorBsDirecto;
@@ -682,7 +671,6 @@ function actualizarTablaRecepcionCascada() {
         tbody.appendChild(row);
     });
 
-    // Paso 3: Cálculo del Ajuste / Valorización = Valor Hoy (Bs) - Costo Origen (Bs)
     const valorHoyFinal = valorBsDirecto > 0 ? valorBsDirecto : sumBsActual;
     const ajusteValorizacionBs = valorHoyFinal - sumBsOriginal;
 
@@ -756,7 +744,6 @@ function resetearKPIsRecepcion() {
     }
 }
 
-// IMPRESIÓN COMPROBANTE RECEPCIÓN DE CARGA
 function imprimirComprobanteRecepcion() {
     const prov = document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "";
     const prod = document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "";
@@ -926,8 +913,8 @@ function imprimirComprobanteRecepcion() {
 }
 
 function procesarEnvioRecepcion(e) {
-    e.preventDefault();
-    const btn = document.getElementById("btn-guardar-recepcion") || e.target.querySelector('button[type="submit"]');
+    if (e && e.preventDefault) e.preventDefault();
+    const btn = document.getElementById("btn-guardar-recepcion") || (e && e.target ? e.target.querySelector('button[type="submit"]') : null);
     if (btn) {
         btn.disabled = true;
         btn.innerText = "⏳ Descargando de cola FIFO...";
@@ -978,7 +965,6 @@ function procesarEnvioRecepcion(e) {
             if (form) form.reset();
             resetearKPIsRecepcion();
             cargarDatos();
-            cambiarModulo("mod-dashboard");
         } else {
             alert("⚠️ " + (res && res.message ? res.message : "Error procesando la recepción en el servidor."));
             if (btn) {
@@ -1010,7 +996,7 @@ function procesarEnvioRecepcion(e) {
 
 // PROVEEDORES
 function procesarEnvioProveedor(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const btn = document.getElementById("btn-guardar-proveedor");
     if (btn) { btn.disabled = true; btn.innerText = "⏳ Guardando..."; }
 
@@ -1068,7 +1054,6 @@ function procesarEnvioProveedor(e) {
 }
 
 // REPORTES Y AUDITORÍA
-// Renderizado completo de Reportes y Auditoría
 function renderizarTablaReportes() {
     const tbodyMovs = document.getElementById("tabla-reportes-body");
     const tbodyProds = document.getElementById("tabla-productos-activos-body");
@@ -1084,12 +1069,10 @@ function renderizarTablaReportes() {
     let totalAjusteBs = 0;
     let contadorOps = 0;
 
-    // Estructura para agrupar inventario activo por producto
     const resumenProductos = {}; 
     let granTotalBultosActivos = 0;
     let granTotalUsdActivos = 0;
 
-    // 1. PROCESAR MERCANCÍA PREPAGADA ACTIVA Y ACUMULAR POR PRODUCTO
     if (cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes) {
         cacheUltimosDatos.data.detallesLotes.forEach(l => {
             if (!filtroProv || l.proveedor === filtroProv) {
@@ -1119,7 +1102,6 @@ function renderizarTablaReportes() {
         });
     }
 
-    // Dibujar la tabla de resumen por productos activos
     if (tbodyProds) {
         const nombresProductos = Object.keys(resumenProductos);
         if (nombresProductos.length === 0) {
@@ -1147,16 +1129,12 @@ function renderizarTablaReportes() {
         }
     }
 
-    // Actualizar Totales del Encabezado de Mercancía Activa
     if (document.getElementById("resumen-total-bultos-activos")) document.getElementById("resumen-total-bultos-activos").innerText = `${formatearMonto(granTotalBultosActivos)} bultos`;
     if (document.getElementById("resumen-total-usd-activos")) document.getElementById("resumen-total-usd-activos").innerText = `$${formatearMonto(granTotalUsdActivos)}`;
     if (document.getElementById("aud-kpi-total-usd-activo")) document.getElementById("aud-kpi-total-usd-activo").innerText = `$${formatearMonto(granTotalUsdActivos)}`;
 
-
-    // 2. CONSTRUIR HISTORIAL COMPLETO DE MOVIMIENTOS Y REGISTROS
     const listaRender = [];
 
-    // Prepagos
     if ((filtroTipo === "todos" || filtroTipo === "prepagos") && cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes) {
         cacheUltimosDatos.data.detallesLotes.forEach(l => {
             if (!filtroProv || l.proveedor === filtroProv) {
@@ -1185,7 +1163,6 @@ function renderizarTablaReportes() {
         });
     }
 
-    // Recepciones FIFO
     if ((filtroTipo === "todos" || filtroTipo === "despachos") && cacheHistorialDespachos && cacheHistorialDespachos.length > 0) {
         cacheHistorialDespachos.forEach(h => {
             if (!filtroProv || h.proveedor === filtroProv) {
@@ -1213,7 +1190,6 @@ function renderizarTablaReportes() {
         });
     }
 
-    // Actualizar KPIs de la parte superior
     if (document.getElementById("aud-kpi-total-prepago-bs")) document.getElementById("aud-kpi-total-prepago-bs").innerText = formatearMonto(totalPrepagoBs);
     if (document.getElementById("aud-kpi-total-liquidado-bs")) document.getElementById("aud-kpi-total-liquidado-bs").innerText = formatearMonto(totalLiquidadoBs);
     
@@ -1224,7 +1200,6 @@ function renderizarTablaReportes() {
     }
     if (document.getElementById("aud-kpi-total-ops")) document.getElementById("aud-kpi-total-ops").innerText = contadorOps;
 
-    // Renderizar filas de la tabla de movimientos
     if (listaRender.length === 0) {
         tbodyMovs.innerHTML = `<tr><td colspan="9" class="px-6 py-6 text-center text-xs text-slate-500 italic">No hay registros para mostrar.</td></tr>`;
         return;
@@ -1246,7 +1221,7 @@ function renderizarTablaReportes() {
         `);
     });
 }
-// Función para generar un informe impreso corporativo
+
 function imprimirReporteAuditoria() {
     const prov = document.getElementById("reporte-filtro-proveedor").value || "Todos los Proveedores";
     const tipo = document.getElementById("reporte-filtro-tipo").options[document.getElementById("reporte-filtro-tipo").selectedIndex].text;
