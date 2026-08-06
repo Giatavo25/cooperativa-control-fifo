@@ -33,7 +33,7 @@ function cargarDatos() {
 
     window.procesarRespuestaGoogle = function(resultado) {
         try {
-            if (resultado && resultado.status === "success") {
+            if (resultado && resultado.status === "success" && resultado.data) {
                 cacheUltimosDatos = resultado;
                 cacheProveedores = resultado.data.proveedores || [];
                 cacheHistorialDespachos = resultado.data.historialDespachos || [];
@@ -81,9 +81,11 @@ function cambiarModulo(idModulo) {
 }
 
 function agregarCampoMercancia() {
+    const contenedor = document.getElementById('contenedor-mercancias');
+    if (!contenedor) return;
     const div = document.createElement('div'); div.className = "flex gap-2 mt-1";
     div.innerHTML = `<input type="text" class="input-mercancia w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" placeholder="Producto" required><button type="button" onclick="this.parentElement.remove()" class="bg-red-900/80 text-red-200 px-3 rounded-lg font-bold hover:bg-red-800 text-xs">-</button>`;
-    document.getElementById('contenedor-mercancias').appendChild(div);
+    contenedor.appendChild(div);
 }
 
 function actualizarInterfacesProveedores() {
@@ -122,27 +124,28 @@ function renderizarDashboard(data) {
     const tbody = document.getElementById("tabla-lotes"); if (!tbody) return;
     tbody.innerHTML = "";
     
-    if (!data.detallesLotes || data.detallesLotes.length === 0) {
+    if (!data || !data.detallesLotes || data.detallesLotes.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-xs text-slate-500 italic">No hay lotes registrados</td></tr>`;
         return;
     }
 
     data.detallesLotes.forEach(l => {
-        const rec = l.cantOriginal - l.cantDisponible; 
-        p += l.cantOriginal; 
-        pe += l.cantDisponible; 
+        const cantOrig = parseFloat(l.cantOriginal) || 0;
+        const cantDisp = parseFloat(l.cantDisponible) || 0;
+        const rec = cantOrig - cantDisp; 
+        p += cantOrig; 
+        pe += cantDisp; 
         r += rec;
 
-        // FILTRO: Solo dibuja la fila si el lote tiene mercancía disponible (> 0)
-        if (parseFloat(l.cantDisponible) > 0) {
+        if (cantDisp > 0) {
             lotesMostrados++;
             tbody.insertAdjacentHTML("beforeend", `
                 <tr class="hover:bg-slate-900/50 border-b border-slate-800">
                     <td class="px-6 py-4 font-mono text-xs font-bold text-blue-400">${l.idLote}</td>
                     <td class="px-6 py-4 font-medium">${l.proveedor}</td>
                     <td class="px-6 py-4">${l.producto}</td>
-                    <td class="px-6 py-4 text-right font-mono">${formatearMonto(l.cantOriginal)}</td>
-                    <td class="px-6 py-4 text-right font-mono font-bold text-amber-400">${formatearMonto(l.cantDisponible)}</td>
+                    <td class="px-6 py-4 text-right font-mono">${formatearMonto(cantOrig)}</td>
+                    <td class="px-6 py-4 text-right font-mono font-bold text-amber-400">${formatearMonto(cantDisp)}</td>
                 </tr>
             `);
         }
@@ -163,7 +166,7 @@ function dibujarGraficos(resumen) {
     try {
         const pDom = document.getElementById('chart-progreso');
         const dDom = document.getElementById('chart-distribucion');
-        if (!pDom || !dDom) return;
+        if (!pDom || !dDom || !Array.isArray(resumen)) return;
 
         const dtP = new google.visualization.DataTable();
         dtP.addColumn('string', 'Proveedor'); dtP.addColumn('number', 'Recibido'); dtP.addColumn('number', 'Pendiente');
@@ -177,24 +180,21 @@ function dibujarGraficos(resumen) {
 }
 
 function configurarFechaPorDefecto() {
+    const hoy = new Date().toISOString().split('T')[0];
     const el = document.getElementById("pre-fecha");
-    if (el && !el.value) {
-        const hoy = new Date().toISOString().split('T')[0];
-        el.value = hoy;
-    }
+    if (el && !el.value) el.value = hoy;
+    
     const elRec = document.getElementById("rec-fecha");
-    if (elRec && !elRec.value) {
-        const hoy = new Date().toISOString().split('T')[0];
-        elRec.value = hoy;
-    }
+    if (elRec && !elRec.value) elRec.value = hoy;
 }
 
 function actualizarFlujoProveedorPrepago(prov) {
     const container = document.getElementById("contenedor-items-prepago");
     if (container) container.innerHTML = "";
     
+    const elSugerido = document.getElementById("pre-lote-sugerido");
     if (!prov) {
-        document.getElementById("pre-lote-sugerido").innerText = "AUTO-GEN";
+        if (elSugerido) elSugerido.innerText = "AUTO-GEN";
         return;
     }
 
@@ -202,12 +202,10 @@ function actualizarFlujoProveedorPrepago(prov) {
     let maxCorrelativo = 0;
 
     const todosLosRegistros = [];
-    if (typeof cacheUltimosDatos !== 'undefined' && cacheUltimosDatos && cacheUltimosDatos.data) {
-        if (Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
-            todosLosRegistros.push(...cacheUltimosDatos.data.detallesLotes);
-        }
+    if (cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
+        todosLosRegistros.push(...cacheUltimosDatos.data.detallesLotes);
     }
-    if (typeof cacheHistorialDespachos !== 'undefined' && Array.isArray(cacheHistorialDespachos)) {
+    if (Array.isArray(cacheHistorialDespachos)) {
         todosLosRegistros.push(...cacheHistorialDespachos);
     }
 
@@ -224,7 +222,7 @@ function actualizarFlujoProveedorPrepago(prov) {
     });
 
     const nuevoCorrelativo = maxCorrelativo + 1;
-    document.getElementById("pre-lote-sugerido").innerText = `${iniciales}-${String(nuevoCorrelativo).padStart(3, '0')}`;
+    if (elSugerido) elSugerido.innerText = `${iniciales}-${String(nuevoCorrelativo).padStart(3, '0')}`;
 
     if (typeof agregarFilaMercanciaPrepago === 'function') {
         agregarFilaMercanciaPrepago();
@@ -232,7 +230,8 @@ function actualizarFlujoProveedorPrepago(prov) {
 }
 
 function agregarFilaMercanciaPrepago() {
-    const prov = document.getElementById("pre-proveedor").value;
+    const elProv = document.getElementById("pre-proveedor");
+    const prov = elProv ? elProv.value : "";
     if (!prov) { alert("Por favor, seleccione primero un proveedor."); return; }
 
     const pData = cacheProveedores.find(x => x.nombre === prov);
@@ -262,24 +261,31 @@ function agregarFilaMercanciaPrepago() {
             <button type="button" onclick="this.parentElement.parentElement.remove(); calcularTotalesPrepago();" class="text-red-500 hover:text-red-400 font-bold text-sm">✕</button>
         </td>
     `;
-    document.getElementById("contenedor-items-prepago").appendChild(tr);
+    
+    const cont = document.getElementById("contenedor-items-prepago");
+    if (cont) cont.appendChild(tr);
     calcularTotalesPrepago();
 }
 
 function calcularTotalesPrepago() {
-    const tasa = parseFloat(document.getElementById("pre-tasa").value) || 0;
+    const elTasa = document.getElementById("pre-tasa");
+    const tasa = parseFloat(elTasa ? elTasa.value : 0) || 0;
     let sumatoriaUsd = 0;
 
     document.querySelectorAll(".item-fila-prepago").forEach(fila => {
-        const cant = parseFloat(fila.querySelector(".item-cantidad").value) || 0;
-        const costoUsd = parseFloat(fila.querySelector(".item-costo-usd").value) || 0;
+        const cantInp = fila.querySelector(".item-cantidad");
+        const costoInp = fila.querySelector(".item-costo-usd");
+        const cant = parseFloat(cantInp ? cantInp.value : 0) || 0;
+        const costoUsd = parseFloat(costoInp ? costoInp.value : 0) || 0;
         
         const tUsd = cant * costoUsd;
         const tBs = tUsd * tasa;
         sumatoriaUsd += tUsd;
 
-        fila.querySelector(".item-total-usd-txt").innerText = formatearMonto(tUsd);
-        fila.querySelector(".item-total-bs-txt").innerText = formatearMonto(tBs);
+        const txtUsd = fila.querySelector(".item-total-usd-txt");
+        const txtBs = fila.querySelector(".item-total-bs-txt");
+        if (txtUsd) txtUsd.innerText = formatearMonto(tUsd);
+        if (txtBs) txtBs.innerText = formatearMonto(tBs);
     });
 
     const totalBsObligatorio = sumatoriaUsd * tasa;
@@ -295,9 +301,9 @@ function calcularTotalesPrepago() {
 
     const diferencia = totalBsObligatorio - sumatoriaBancos;
 
-    document.getElementById("txt-total-usd").innerText = formatearMonto(sumatoriaUsd);
-    document.getElementById("txt-total-bs").innerText = formatearMonto(totalBsObligatorio);
-    document.getElementById("txt-total-bancos").innerText = formatearMonto(sumatoriaBancos);
+    if (document.getElementById("txt-total-usd")) document.getElementById("txt-total-usd").innerText = formatearMonto(sumatoriaUsd);
+    if (document.getElementById("txt-total-bs")) document.getElementById("txt-total-bs").innerText = formatearMonto(totalBsObligatorio);
+    if (document.getElementById("txt-total-bancos")) document.getElementById("txt-total-bancos").innerText = formatearMonto(sumatoriaBancos);
     
     const txtDiffEl = document.getElementById("txt-diferencia");
     if (txtDiffEl) txtDiffEl.innerText = formatearMonto(Math.abs(diferencia));
@@ -306,51 +312,58 @@ function calcularTotalesPrepago() {
     const btnGuardar = document.getElementById("btn-guardar-prepago");
     const btnImprimir = document.getElementById("btn-imprimir-prepago");
 
-    if (totalBsObligatorio > 0 && Math.abs(diferencia) <= 1) {
-        wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-emerald-950/60 border border-emerald-800 text-emerald-400";
-        wrapperDiff.innerText = "✅ Cuadrado / Conciliación Bancaria Exitosa";
-        
-        if (btnGuardar) {
-            btnGuardar.disabled = false;
-            btnGuardar.className = "bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
-        }
-        
-        if (btnImprimir) {
-            btnImprimir.disabled = false;
-            btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full";
-        }
-    } else {
-        wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-red-950/60 border border-red-800 text-red-400";
-        
-        if (diferencia >= 0) {
-            wrapperDiff.innerHTML = `Falta por conciliar: <span class="font-mono">${formatearMonto(diferencia)}</span> Bs`;
+    if (wrapperDiff) {
+        if (totalBsObligatorio > 0 && Math.abs(diferencia) <= 1) {
+            wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-emerald-950/60 border border-emerald-800 text-emerald-400";
+            wrapperDiff.innerText = "✅ Cuadrado / Conciliación Bancaria Exitosa";
+            
+            if (btnGuardar) {
+                btnGuardar.disabled = false;
+                btnGuardar.className = "bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
+            }
+            
+            if (btnImprimir) {
+                btnImprimir.disabled = false;
+                btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full";
+            }
         } else {
-            wrapperDiff.innerHTML = `Monto excedido en bancos: <span class="font-mono">${formatearMonto(Math.abs(diferencia))}</span> Bs`;
-        }
-        
-        if (btnGuardar) {
-            btnGuardar.disabled = true;
-            btnGuardar.className = "bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
-        }
-        
-        if (btnImprimir) {
-            btnImprimir.disabled = true;
-            btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
+            wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-red-950/60 border border-red-800 text-red-400";
+            
+            if (diferencia >= 0) {
+                wrapperDiff.innerHTML = `Falta por conciliar: <span class="font-mono">${formatearMonto(diferencia)}</span> Bs`;
+            } else {
+                wrapperDiff.innerHTML = `Monto excedido en bancos: <span class="font-mono">${formatearMonto(Math.abs(diferencia))}</span> Bs`;
+            }
+            
+            if (btnGuardar) {
+                btnGuardar.disabled = true;
+                btnGuardar.className = "bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
+            }
+            
+            if (btnImprimir) {
+                btnImprimir.disabled = true;
+                btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
+            }
         }
     }
 }
 
 function imprimirReciboPrepago() {
-    const prov = document.getElementById("pre-proveedor").value;
-    const lote = document.getElementById("pre-lote-sugerido").innerText;
-    const tasa = parseFloat(document.getElementById("pre-tasa").value) || 1;
-    const fecha = document.getElementById("pre-fecha").value;
+    const elProv = document.getElementById("pre-proveedor");
+    const elLote = document.getElementById("pre-lote-sugerido");
+    const elTasa = document.getElementById("pre-tasa");
+    const elFecha = document.getElementById("pre-fecha");
+
+    const prov = elProv ? elProv.value : "";
+    const lote = elLote ? elLote.innerText : "";
+    const tasa = parseFloat(elTasa ? elTasa.value : 1) || 1;
+    const fecha = elFecha ? elFecha.value : "";
     
     let htmlItems = "";
     document.querySelectorAll(".item-fila-prepago").forEach(fila => {
-        const prod = fila.querySelector(".item-producto").value;
-        const cant = parseFloat(fila.querySelector(".item-cantidad").value) || 0;
-        const cost = parseFloat(fila.querySelector(".item-costo-usd").value) || 0;
+        const prod = fila.querySelector(".item-producto") ? fila.querySelector(".item-producto").value : "";
+        const cant = parseFloat(fila.querySelector(".item-cantidad") ? fila.querySelector(".item-cantidad").value : 0) || 0;
+        const cost = parseFloat(fila.querySelector(".item-costo-usd") ? fila.querySelector(".item-costo-usd").value : 0) || 0;
         const totUsd = cant * cost;
         const totBs = totUsd * tasa;
         htmlItems += `
@@ -384,10 +397,14 @@ function imprimirReciboPrepago() {
         }
     });
 
-    const tUsd = document.getElementById("txt-total-usd").innerText;
-    const tBs = document.getElementById("txt-total-bs").innerText;
+    const elUsd = document.getElementById("txt-total-usd");
+    const elBs = document.getElementById("txt-total-bs");
+    const tUsd = elUsd ? elUsd.innerText : "0,00";
+    const tBs = elBs ? elBs.innerText : "0,00";
 
     const ventanaImpresion = window.open('', '_blank', 'width=850,height=1100');
+    if (!ventanaImpresion) return;
+
     ventanaImpresion.document.write(`
         <html>
         <head>
@@ -498,7 +515,7 @@ function imprimirReciboPrepago() {
                     window.print();
                     setTimeout(function() { window.close(); }, 500);
                 };
-            <\/script>
+            </script>
         </body>
         </html>
     `);
@@ -512,10 +529,13 @@ function procesarEnvioPrepago(e) {
 
     const items = [];
     document.querySelectorAll(".item-fila-prepago").forEach(fila => {
+        const prodInp = fila.querySelector(".item-producto");
+        const cantInp = fila.querySelector(".item-cantidad");
+        const costInp = fila.querySelector(".item-costo-usd");
         items.push({
-            producto: fila.querySelector(".item-producto").value,
-            cantidad: parseFloat(fila.querySelector(".item-cantidad").value) || 0,
-            costoUsd: parseFloat(fila.querySelector(".item-costo-usd").value) || 0
+            producto: prodInp ? prodInp.value : "",
+            cantidad: parseFloat(cantInp ? cantInp.value : 0) || 0,
+            costoUsd: parseFloat(costInp ? costInp.value : 0) || 0
         });
     });
 
@@ -524,13 +544,18 @@ function procesarEnvioPrepago(e) {
         return el ? (parseFloat(el.value) || 0) : 0;
     };
 
+    const elLote = document.getElementById("pre-lote-sugerido");
+    const elProv = document.getElementById("pre-proveedor");
+    const elFecha = document.getElementById("pre-fecha");
+    const elTasa = document.getElementById("pre-tasa");
+
     const payload = {
         accion: "registrar_prepago_consolidado",
         data: {
-            idLote: document.getElementById("pre-lote-sugerido").innerText,
-            proveedor: document.getElementById("pre-proveedor").value,
-            fecha: document.getElementById("pre-fecha").value,
-            tasa: parseFloat(document.getElementById("pre-tasa").value) || 1,
+            idLote: elLote ? elLote.innerText : "",
+            proveedor: elProv ? elProv.value : "",
+            fecha: elFecha ? elFecha.value : "",
+            tasa: parseFloat(elTasa ? elTasa.value : 1) || 1,
             items: items,
             bancos: {
                 BANESCO: getMontoBanco("pago-banesco"),
@@ -548,7 +573,8 @@ function procesarEnvioPrepago(e) {
             alert(`🚀 Transmisión limpia: Lote ${payload.data.idLote} guardado con éxito.`);
             const formPrepago = document.getElementById("form-prepago");
             if (formPrepago) formPrepago.reset();
-            document.getElementById("contenedor-items-prepago").innerHTML = "";
+            const cont = document.getElementById("contenedor-items-prepago");
+            if (cont) cont.innerHTML = "";
             calcularTotalesPrepago();
             cargarDatos();
         } else {
@@ -601,7 +627,7 @@ function actualizarTablaRecepcionCascada() {
     if (!tbody) return;
     tbody.innerHTML = "";
 
-    if (!prov || !prod || !cacheUltimosDatos || !cacheUltimosDatos.data || !cacheUltimosDatos.data.detallesLotes) {
+    if (!prov || !prod || !cacheUltimosDatos || !cacheUltimosDatos.data || !Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
         tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-4 text-center text-xs text-slate-500 italic">Seleccione proveedor y producto para cargar desglose FIFO</td></tr>`;
         resetearKPIsRecepcion();
         return;
@@ -610,7 +636,7 @@ function actualizarTablaRecepcionCascada() {
     const lotesDisponibles = cacheUltimosDatos.data.detallesLotes.filter(l => 
         l.proveedor === prov && 
         l.producto === prod && 
-        l.cantDisponible > 0
+        (parseFloat(l.cantDisponible) || 0) > 0
     );
 
     if (lotesDisponibles.length === 0) {
@@ -624,7 +650,7 @@ function actualizarTablaRecepcionCascada() {
     const itemsProcesados = [];
 
     lotesDisponibles.forEach(lote => {
-        const cantDisponible = lote.cantDisponible;
+        const cantDisponible = parseFloat(lote.cantDisponible) || 0;
         let cantTomada = 0;
 
         if (remanenteTemp > 0) {
@@ -632,7 +658,7 @@ function actualizarTablaRecepcionCascada() {
             remanenteTemp -= cantTomada;
         }
 
-        const costoUsdUnit = lote.costoUsd || 0;
+        const costoUsdUnit = parseFloat(lote.costoUsd) || 0;
         const totalUsdTomado = cantTomada * costoUsdUnit;
         sumUsdOriginal += totalUsdTomado;
 
@@ -655,7 +681,7 @@ function actualizarTablaRecepcionCascada() {
         const cantTomada = item.cantTomada;
         const costoUsdUnit = item.costoUsdUnit;
         const totalUsdTomado = item.totalUsdTomado;
-        const tasaOrigen = lote.tasaOriginal || 0;
+        const tasaOrigen = parseFloat(lote.tasaOriginal) || 0;
 
         if (remanentePorDespachar > 0 && cantTomada > 0) {
             remanentePorDespachar -= cantTomada;
@@ -811,6 +837,8 @@ function imprimirComprobanteRecepcion() {
     }
 
     const ventanaImpresion = window.open('', '_blank', 'width=850,height=1100');
+    if (!ventanaImpresion) return;
+
     ventanaImpresion.document.write(`
         <html>
         <head>
@@ -920,7 +948,7 @@ function imprimirComprobanteRecepcion() {
                     window.print();
                     setTimeout(function() { window.close(); }, 500);
                 };
-            <\/script>
+            </script>
         </body>
         </html>
     `);
@@ -940,18 +968,18 @@ function procesarEnvioRecepcion(e) {
     const valorBsDirecto = parseFloat(inputMontoBs ? inputMontoBs.value : 0) || 0;
 
     let tasaCalculada = 1;
-    if (valorBsDirecto > 0 && cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes) {
+    if (valorBsDirecto > 0 && cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
         const prov = document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "";
         const prod = document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "";
         const cant = parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0;
-        const lotes = cacheUltimosDatos.data.detallesLotes.filter(l => l.proveedor === prov && l.producto === prod && l.cantDisponible > 0);
+        const lotes = cacheUltimosDatos.data.detallesLotes.filter(l => l.proveedor === prov && l.producto === prod && (parseFloat(l.cantDisponible) || 0) > 0);
         let rem = cant;
         let usdTotal = 0;
         lotes.forEach(l => {
             if (rem > 0) {
-                const tom = Math.min(rem, l.cantDisponible);
+                const tom = Math.min(rem, parseFloat(l.cantDisponible) || 0);
                 rem -= tom;
-                usdTotal += tom * (l.costoUsd || 0);
+                usdTotal += tom * (parseFloat(l.costoUsd) || 0);
             }
         });
         if (usdTotal > 0) {
@@ -1015,7 +1043,8 @@ function procesarEnvioProveedor(e) {
     const btn = document.getElementById("btn-guardar-proveedor");
     if (btn) { btn.disabled = true; btn.innerText = "⏳ Guardando..."; }
 
-    const nombre = document.getElementById("prov-nombre").value.trim();
+    const elNombre = document.getElementById("prov-nombre");
+    const nombre = elNombre ? elNombre.value.trim() : "";
     const inputsMercancia = document.querySelectorAll(".input-mercancia");
     const productos = [];
 
@@ -1038,12 +1067,16 @@ function procesarEnvioProveedor(e) {
     window.respuestaProveedorGoogle = function(res) {
         if (res && res.status === "success") {
             alert(`🤝 Proveedor "${nombre}" registrado exitosamente.`);
-            document.getElementById("form-proveedor").reset();
-            document.getElementById("contenedor-mercancias").innerHTML = `
-                <div class="flex gap-2 text-xs">
-                    <input type="text" class="input-mercancia w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-white" placeholder="Producto" required>
-                </div>
-            `;
+            const form = document.getElementById("form-proveedor");
+            if (form) form.reset();
+            const cont = document.getElementById("contenedor-mercancias");
+            if (cont) {
+                cont.innerHTML = `
+                    <div class="flex gap-2 text-xs">
+                        <input type="text" class="input-mercancia w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-white" placeholder="Producto" required>
+                    </div>
+                `;
+            }
             cargarDatos();
         } else {
             alert("⚠️ " + (res && res.message ? res.message : "Error al guardar el proveedor."));
@@ -1088,7 +1121,7 @@ function renderizarTablaReportes() {
     let granTotalBultosActivos = 0;
     let granTotalUsdActivos = 0;
 
-    if (cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes) {
+    if (cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
         cacheUltimosDatos.data.detallesLotes.forEach(l => {
             if (!filtroProv || l.proveedor === filtroProv) {
                 const bultosDisponibles = parseFloat(l.cantDisponible) || 0;
@@ -1150,17 +1183,22 @@ function renderizarTablaReportes() {
 
     const listaRender = [];
 
-    if ((filtroTipo === "todos" || filtroTipo === "prepagos") && cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes) {
+    if ((filtroTipo === "todos" || filtroTipo === "prepagos") && cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
         cacheUltimosDatos.data.detallesLotes.forEach(l => {
             if (!filtroProv || l.proveedor === filtroProv) {
-                const totalUsd = (l.cantOriginal || 0) * (l.costoUsd || 0);
-                const totalBs = totalUsd * (l.tasaOriginal || 0);
+                const cantOrig = parseFloat(l.cantOriginal) || 0;
+                const costoUsd = parseFloat(l.costoUsd) || 0;
+                const tasaOrig = parseFloat(l.tasaOriginal) || 0;
+                const cantDisp = parseFloat(l.cantDisponible) || 0;
+
+                const totalUsd = cantOrig * costoUsd;
+                const totalBs = totalUsd * tasaOrig;
                 
                 totalPrepagoBs += totalBs;
                 contadorOps++;
 
-                const estatusBadge = (l.cantDisponible > 0) 
-                    ? `<span class="bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded text-[10px] font-bold">ACTIVO (${formatearMonto(l.cantDisponible)} PEND.)</span>`
+                const estatusBadge = (cantDisp > 0) 
+                    ? `<span class="bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded text-[10px] font-bold">ACTIVO (${formatearMonto(cantDisp)} PEND.)</span>`
                     : `<span class="bg-slate-800 text-slate-400 border border-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">LIQUIDADO / CERRADO</span>`;
 
                 listaRender.push({
@@ -1168,8 +1206,8 @@ function renderizarTablaReportes() {
                     referencia: l.idLote,
                     proveedor: l.proveedor,
                     producto: l.producto,
-                    cantidad: l.cantOriginal,
-                    tasa: l.tasaOriginal,
+                    cantidad: cantOrig,
+                    tasa: tasaOrig,
                     totalUsd: totalUsd,
                     totalBs: totalBs,
                     badge: estatusBadge
@@ -1178,12 +1216,17 @@ function renderizarTablaReportes() {
         });
     }
 
-    if ((filtroTipo === "todos" || filtroTipo === "despachos") && cacheHistorialDespachos && cacheHistorialDespachos.length > 0) {
+    if ((filtroTipo === "todos" || filtroTipo === "despachos") && Array.isArray(cacheHistorialDespachos) && cacheHistorialDespachos.length > 0) {
         cacheHistorialDespachos.forEach(h => {
             if (!filtroProv || h.proveedor === filtroProv) {
-                const totalUsd = (h.cantidadDespachada || 0) * (h.costoUsdUnit || 0);
-                const totalBsRecepcion = h.totalBsRecepcion || (totalUsd * (h.tasaRecepcion || 1));
-                const totalBsOrigen = totalUsd * (h.tasaOrigen || h.tasaRecepcion || 1);
+                const cantDesp = parseFloat(h.cantidadDespachada) || 0;
+                const costoUnit = parseFloat(h.costoUsdUnit) || 0;
+                const tasaRec = parseFloat(h.tasaRecepcion) || 1;
+                const tasaOrg = parseFloat(h.tasaOrigen) || tasaRec;
+
+                const totalUsd = cantDesp * costoUnit;
+                const totalBsRecepcion = parseFloat(h.totalBsRecepcion) || (totalUsd * tasaRec);
+                const totalBsOrigen = totalUsd * tasaOrg;
                 const ajusteCambiario = totalBsRecepcion - totalBsOrigen;
 
                 totalLiquidadoBs += totalBsRecepcion;
@@ -1195,8 +1238,8 @@ function renderizarTablaReportes() {
                     referencia: `${h.idLote} / Fact: ${h.nroFactura || 'S/N'}`,
                     proveedor: h.proveedor,
                     producto: h.producto,
-                    cantidad: h.cantidadDespachada,
-                    tasa: h.tasaRecepcion || h.tasaOrigen,
+                    cantidad: cantDesp,
+                    tasa: tasaRec || tasaOrg,
                     totalUsd: totalUsd,
                     totalBs: totalBsRecepcion,
                     badge: `<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold">DESCARGO FIFO</span>`
@@ -1238,13 +1281,20 @@ function renderizarTablaReportes() {
 }
 
 function imprimirReporteAuditoria() {
-    const prov = document.getElementById("reporte-filtro-proveedor").value || "Todos los Proveedores";
-    const tipo = document.getElementById("reporte-filtro-tipo").options[document.getElementById("reporte-filtro-tipo").selectedIndex].text;
+    const elProv = document.getElementById("reporte-filtro-proveedor");
+    const elTipo = document.getElementById("reporte-filtro-tipo");
+    
+    const prov = (elProv && elProv.value) ? elProv.value : "Todos los Proveedores";
+    const tipo = (elTipo && elTipo.selectedIndex >= 0) ? elTipo.options[elTipo.selectedIndex].text : "Todos";
     const fechaImpresion = new Date().toLocaleDateString('es-VE');
 
-    const prepagoBs = document.getElementById("aud-kpi-total-prepago-bs").innerText;
-    const liquidadoBs = document.getElementById("aud-kpi-total-liquidado-bs").innerText;
-    const ajusteBs = document.getElementById("aud-kpi-ajuste-neto").innerText;
+    const elPrepagoBs = document.getElementById("aud-kpi-total-prepago-bs");
+    const elLiquidadoBs = document.getElementById("aud-kpi-total-liquidado-bs");
+    const elAjusteBs = document.getElementById("aud-kpi-ajuste-neto");
+
+    const prepagoBs = elPrepagoBs ? elPrepagoBs.innerText : "0,00";
+    const liquidadoBs = elLiquidadoBs ? elLiquidadoBs.innerText : "0,00";
+    const ajusteBs = elAjusteBs ? elAjusteBs.innerText : "0,00 Bs";
 
     let filasHtml = "";
     const tbody = document.getElementById("tabla-reportes-body");
@@ -1271,6 +1321,8 @@ function imprimirReporteAuditoria() {
     }
 
     const win = window.open('', '_blank', 'width=900,height=1100');
+    if (!win) return;
+
     win.document.write(`
         <html>
         <head>
@@ -1316,7 +1368,7 @@ function imprimirReporteAuditoria() {
                     ${filasHtml}
                 </tbody>
             </table>
-            <script>window.onload = function() { window.print(); window.close(); };<\/script>
+            <script>window.onload = function() { window.print(); window.close(); };</script>
         </body>
         </html>
     `);
