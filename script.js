@@ -1054,57 +1054,194 @@ function procesarEnvioProveedor(e) {
 }
 
 // REPORTES Y AUDITORÍA
+// Renderizado completo de Reportes y Auditoría
 function renderizarTablaReportes() {
     const tbody = document.getElementById("tabla-reportes-body");
     const filtroProv = document.getElementById("reporte-filtro-proveedor") ? document.getElementById("reporte-filtro-proveedor").value : "";
-    if (!tbody) return;
+    const filtroTipo = document.getElementById("reporte-filtro-tipo") ? document.getElementById("reporte-filtro-tipo").value : "todos";
 
+    if (!tbody) return;
     tbody.innerHTML = "";
 
-    if (!cacheHistorialDespachos || cacheHistorialDespachos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-xs text-slate-500 italic">No existen registros de auditoría o despachos consumidos</td></tr>`;
+    let totalPrepagoBs = 0;
+    let totalLiquidadoBs = 0;
+    let totalAjusteBs = 0;
+    let contadorOps = 0;
+
+    const listaRender = [];
+
+    // 1. Procesar Lotes Prepagados (Entradas)
+    if ((filtroTipo === "todos" || filtroTipo === "prepagos") && cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes) {
+        cacheUltimosDatos.data.detallesLotes.forEach(l => {
+            if (!filtroProv || l.proveedor === filtroProv) {
+                const totalUsd = (l.cantOriginal || 0) * (l.costoUsd || 0);
+                const totalBs = totalUsd * (l.tasaOriginal || 0);
+                
+                totalPrepagoBs += totalBs;
+                contadorOps++;
+
+                listaRender.push({
+                    fecha: l.fecha || '-',
+                    referencia: l.idLote,
+                    proveedor: l.proveedor,
+                    producto: l.producto,
+                    cantidad: l.cantOriginal,
+                    tasa: l.tasaOriginal,
+                    totalUsd: totalUsd,
+                    totalBs: totalBs,
+                    tipo: 'PREPAGO',
+                    badge: `<span class="bg-blue-950 text-blue-400 border border-blue-800 px-2 py-0.5 rounded text-[10px] font-bold">PREPAGO ACTIVO</span>`
+                });
+            }
+        });
+    }
+
+    // 2. Procesar Recepciones de Carga / Despachos FIFO (Salidas/Consumos)
+    if ((filtroTipo === "todos" || filtroTipo === "despachos") && cacheHistorialDespachos && cacheHistorialDespachos.length > 0) {
+        cacheHistorialDespachos.forEach(h => {
+            if (!filtroProv || h.proveedor === filtroProv) {
+                const totalUsd = (h.cantidadDespachada || 0) * (h.costoUsdUnit || 0);
+                const totalBsRecepcion = h.totalBsRecepcion || (totalUsd * (h.tasaRecepcion || 1));
+                const totalBsOrigen = totalUsd * (h.tasaOrigen || h.tasaRecepcion || 1);
+                const ajusteCambiario = totalBsRecepcion - totalBsOrigen;
+
+                totalLiquidadoBs += totalBsRecepcion;
+                totalAjusteBs += ajusteCambiario;
+                contadorOps++;
+
+                listaRender.push({
+                    fecha: h.fecha || '-',
+                    referencia: `${h.idLote} / Fact: ${h.nroFactura || 'S/N'}`,
+                    proveedor: h.proveedor,
+                    producto: h.producto,
+                    cantidad: h.cantidadDespachada,
+                    tasa: h.tasaRecepcion || h.tasaOrigen,
+                    totalUsd: totalUsd,
+                    totalBs: totalBsRecepcion,
+                    tipo: 'RECEPCION',
+                    badge: `<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold">DESCARGO FIFO</span>`
+                });
+            }
+        });
+    }
+
+    // Actualizar KPIs Globales de Auditoría
+    if (document.getElementById("aud-kpi-total-prepago-bs")) document.getElementById("aud-kpi-total-prepago-bs").innerText = formatearMonto(totalPrepagoBs);
+    if (document.getElementById("aud-kpi-total-liquidado-bs")) document.getElementById("aud-kpi-total-liquidado-bs").innerText = formatearMonto(totalLiquidadoBs);
+    
+    const elAjuste = document.getElementById("aud-kpi-ajuste-neto");
+    if (elAjuste) {
+        elAjuste.innerText = `${totalAjusteBs >= 0 ? '+' : ''}${formatearMonto(totalAjusteBs)} Bs`;
+        elAjuste.className = `font-mono text-xl font-bold ${totalAjusteBs >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
+    }
+    if (document.getElementById("aud-kpi-total-ops")) document.getElementById("aud-kpi-total-ops").innerText = contadorOps;
+
+    if (listaRender.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-6 text-center text-xs text-slate-500 italic">No hay registros de auditoría que coincidan con el filtro.</td></tr>`;
         return;
     }
 
-    const datosFiltrados = filtroProv 
-        ? cacheHistorialDespachos.filter(h => h.proveedor === filtroProv) 
-        : cacheHistorialDespachos;
-
-    datosFiltrados.forEach(h => {
+    // Dibujar la tabla
+    listaRender.forEach(item => {
         tbody.insertAdjacentHTML("beforeend", `
-            <tr class="hover:bg-slate-900/50 border-b border-slate-800 text-xs">
-                <td class="px-4 py-3 font-mono text-slate-400">${h.fecha || '-'}</td>
-                <td class="px-4 py-3 font-mono font-bold text-blue-400">${h.idLote}</td>
-                <td class="px-4 py-3 font-medium text-white">${h.proveedor}</td>
-                <td class="px-4 py-3 text-slate-300">${h.producto}</td>
-                <td class="px-4 py-3 text-right font-mono text-emerald-400 font-bold">${formatearMonto(h.cantidadDespachada)}</td>
-                <td class="px-4 py-3 text-right font-mono text-slate-300">$${formatearMonto(h.costoUsdUnit)}</td>
-                <td class="px-4 py-3 text-right font-mono font-bold text-blue-400">Bs. ${formatearMonto(h.totalBsRecepcion)}</td>
+            <tr class="hover:bg-slate-900/50 border-b border-slate-800">
+                <td class="px-4 py-3 font-mono text-slate-400">${item.fecha}</td>
+                <td class="px-4 py-3 font-mono font-bold text-blue-400">${item.referencia}</td>
+                <td class="px-4 py-3 font-medium text-white">${item.proveedor}</td>
+                <td class="px-4 py-3 text-slate-300">${item.producto}</td>
+                <td class="px-4 py-3 text-right font-mono font-bold text-white">${formatearMonto(item.cantidad)}</td>
+                <td class="px-4 py-3 text-right font-mono text-slate-400">Bs. ${formatearMonto(item.tasa)}</td>
+                <td class="px-4 py-3 text-right font-mono font-bold text-slate-200">$${formatearMonto(item.totalUsd)}</td>
+                <td class="px-4 py-3 text-right font-mono font-bold text-blue-400">Bs. ${formatearMonto(item.totalBs)}</td>
+                <td class="px-4 py-3 text-center">${item.badge}</td>
             </tr>
         `);
     });
 }
 
-// Event Listeners Globales
-document.addEventListener("DOMContentLoaded", function() {
-    cargarDatos();
+// Función para generar un informe impreso corporativo
+function imprimirReporteAuditoria() {
+    const prov = document.getElementById("reporte-filtro-proveedor").value || "Todos los Proveedores";
+    const tipo = document.getElementById("reporte-filtro-tipo").options[document.getElementById("reporte-filtro-tipo").selectedIndex].text;
+    const fechaImpresion = new Date().toLocaleDateString('es-VE');
 
-    const recMontoBs = document.getElementById("rec-monto-bs");
-    if (recMontoBs) {
-        recMontoBs.addEventListener("input", actualizarTablaRecepcionCascada);
+    const prepagoBs = document.getElementById("aud-kpi-total-prepago-bs").innerText;
+    const liquidadoBs = document.getElementById("aud-kpi-total-liquidado-bs").innerText;
+    const ajusteBs = document.getElementById("aud-kpi-ajuste-neto").innerText;
+
+    let filasHtml = "";
+    const tbody = document.getElementById("tabla-reportes-body");
+    if (tbody) {
+        const trs = tbody.querySelectorAll("tr");
+        trs.forEach(tr => {
+            const cols = tr.querySelectorAll("td");
+            if (cols.length >= 9) {
+                filasHtml += `
+                    <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+                        <td style="padding: 6px;">${cols[0].innerText}</td>
+                        <td style="padding: 6px; font-weight: bold; font-family: monospace;">${cols[1].innerText}</td>
+                        <td style="padding: 6px;">${cols[2].innerText}</td>
+                        <td style="padding: 6px;">${cols[3].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[4].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[5].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[6].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace; font-weight: bold;">${cols[7].innerText}</td>
+                        <td style="padding: 6px; text-align: center;">${cols[8].innerText}</td>
+                    </tr>
+                `;
+            }
+        });
     }
 
-    const recCantidad = document.getElementById("rec-cantidad");
-    if (recCantidad) {
-        recCantidad.addEventListener("input", actualizarTablaRecepcionCascada);
-    }
+    const win = window.open('', '_blank', 'width=900,height=1100');
+    win.document.write(`
+        <html>
+        <head>
+            <title>Informe de Auditoría y Trazabilidad - SICOOP</title>
+            <style>
+                @page { size: letter landscape; margin: 30px; }
+                body { font-family: sans-serif; color: #1e293b; font-size: 12px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                th { background: #0f172a; color: white; padding: 8px; font-size: 10px; text-transform: uppercase; }
+            </style>
+        </head>
+        <body>
+            <h2>SICOOP COOPERATIVA - INFORME GENERAL DE AUDITORÍA</h2>
+            <p><strong>Proveedor:</strong> ${prov} | <strong>Filtro:</strong> ${tipo} | <strong>Fecha de emisión:</strong> ${fechaImpresion}</p>
+            
+            <div style="display: flex; gap: 20px; margin: 15px 0;">
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
+                    <small>Total Prepagado</small><br><strong>Bs. ${prepagoBs}</strong>
+                </div>
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
+                    <small>Total Liquidado</small><br><strong>Bs. ${liquidadoBs}</strong>
+                </div>
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
+                    <small>Ajuste Cambiario Neto</small><br><strong>${ajusteBs}</strong>
+                </div>
+            </div>
 
-    const formPrepago = document.getElementById("form-prepago");
-    if (formPrepago) formPrepago.addEventListener("submit", procesarEnvioPrepago);
-
-    const formRecepcion = document.getElementById("form-recepcion");
-    if (formRecepcion) formRecepcion.addEventListener("submit", procesarEnvioRecepcion);
-
-    const formProveedor = document.getElementById("form-proveedor");
-    if (formProveedor) formProveedor.addEventListener("submit", procesarEnvioProveedor);
-});
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Lote / Factura</th>
+                        <th>Proveedor</th>
+                        <th>Producto</th>
+                        <th style="text-align:right;">Cantidad</th>
+                        <th style="text-align:right;">Tasa BCV</th>
+                        <th style="text-align:right;">Total ($)</th>
+                        <th style="text-align:right;">Monto Bs.</th>
+                        <th>Estatus</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filasHtml}
+                </tbody>
+            </table>
+            <script>window.onload = function() { window.print(); window.close(); };<\/script>
+        </body>
+        </html>
+    `);
+    win.document.close();
+}
