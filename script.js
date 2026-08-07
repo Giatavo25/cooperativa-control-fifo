@@ -5,6 +5,10 @@ let cacheHistorialDespachos = [];
 let cacheUltimosDatos = null;
 let chartsCargados = false;
 
+// ==========================================
+// UTILIDADES Y FORMATO
+// ==========================================
+
 // Formateador numérico regional (Miles: Punto | Decimales: Coma)
 function formatearMonto(valor) {
     const numero = parseFloat(valor);
@@ -15,11 +19,24 @@ function formatearMonto(valor) {
     }).format(numero);
 }
 
+function configurarFechaPorDefecto() {
+    const hoy = new Date().toISOString().split('T')[0];
+    const el = document.getElementById("pre-fecha");
+    if (el && !el.value) el.value = hoy;
+    
+    const elRec = document.getElementById("rec-fecha");
+    if (elRec && !elRec.value) elRec.value = hoy;
+}
+
+// ==========================================
+// CARGA DE DATOS Y CONEXIÓN GOOGLE SHEETS
+// ==========================================
+
 function inicializarGraficos() {
     try {
         if (typeof google !== 'undefined' && google.charts) {
             google.charts.load('current', {'packages':['corechart', 'bar']});
-            google.charts.setOnLoadCallback(function() { 
+            google.charts.setOnCallback(function() { 
                 chartsCargados = true; 
                 if (cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.resumenConsolidated) {
                     dibujarGraficos(cacheUltimosDatos.data.resumenConsolidated);
@@ -65,6 +82,10 @@ function cargarDatos() {
     document.body.appendChild(script);
 }
 
+// ==========================================
+// NAVEGACIÓN Y MÓDULOS
+// ==========================================
+
 function cambiarModulo(idModulo) {
     const target = document.getElementById(idModulo); if (!target) return;
     document.querySelectorAll('.modulo').forEach(m => m.classList.add('hidden'));
@@ -98,43 +119,9 @@ function cambiarModulo(idModulo) {
     }
 }
 
-function agregarCampoMercancia() {
-    const contenedor = document.getElementById('contenedor-mercancias');
-    if (!contenedor) return;
-    const div = document.createElement('div'); div.className = "flex gap-2 mt-1";
-    div.innerHTML = `<input type="text" class="input-mercancia w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" placeholder="Producto" required><button type="button" onclick="this.parentElement.remove()" class="bg-red-900/80 text-red-200 px-3 rounded-lg font-bold hover:bg-red-800 text-xs">-</button>`;
-    contenedor.appendChild(div);
-}
-
-function actualizarInterfacesProveedores() {
-    document.querySelectorAll('.select-proveedores').forEach(sel => {
-        const val = sel.value;
-        sel.innerHTML = '<option value="">-- Seleccione un proveedor --</option>';
-        cacheProveedores.forEach(p => sel.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`);
-        if (val) sel.value = val;
-    });
-
-    const lista = document.getElementById('lista-proveedores-completa');
-    if (lista) {
-        lista.innerHTML = "";
-        cacheProveedores.forEach(p => {
-            const prods = Array.isArray(p.productos) ? p.productos : [];
-            const chips = prods.map(pr => `<span class="bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded border border-slate-700">${pr}</span>`).join(' ');
-            lista.innerHTML += `<div class="p-3 bg-slate-950 rounded-lg border border-slate-800"><p class="font-bold text-sm text-white">${p.nombre}</p><div class="flex flex-wrap gap-1 mt-2">${chips || '<span class="text-xs text-slate-600 italic">Sin mercancía</span>'}</div></div>`;
-        });
-    }
-}
-
-function filtrarProductosPorProveedor(prov, idDestino) {
-    const dest = document.getElementById(idDestino); if (!dest) return;
-    dest.innerHTML = "";
-    if (!prov) { dest.innerHTML = '<option value="">-- Seleccione primero un proveedor --</option>'; return; }
-    const item = cacheProveedores.find(p => p.nombre === prov);
-    if (item && Array.isArray(item.productos) && item.productos.length > 0) {
-        dest.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
-        item.productos.forEach(pr => dest.innerHTML += `<option value="${pr}">${pr}</option>`);
-    } else { dest.innerHTML = '<option value="">⚠️ Sin mercancía registrada</option>'; }
-}
+// ==========================================
+// DASHBOARD GENERAL Y GRÁFICOS
+// ==========================================
 
 function renderizarDashboard(data) {
     let p = 0, pe = 0, r = 0;
@@ -201,14 +188,9 @@ function dibujarGraficos(resumen) {
     } catch (e) { console.error("Error dibujando gráficas:", e); }
 }
 
-function configurarFechaPorDefecto() {
-    const hoy = new Date().toISOString().split('T')[0];
-    const el = document.getElementById("pre-fecha");
-    if (el && !el.value) el.value = hoy;
-    
-    const elRec = document.getElementById("rec-fecha");
-    if (elRec && !elRec.value) elRec.value = hoy;
-}
+// ==========================================
+// MÓDULO DE PREPAGOS Y CONCILIACIÓN
+// ==========================================
 
 function actualizarFlujoProveedorPrepago(prov) {
     const container = document.getElementById("contenedor-items-prepago");
@@ -246,9 +228,7 @@ function actualizarFlujoProveedorPrepago(prov) {
     const nuevoCorrelativo = maxCorrelativo + 1;
     if (elSugerido) elSugerido.innerText = `${iniciales}-${String(nuevoCorrelativo).padStart(3, '0')}`;
 
-    if (typeof agregarFilaMercanciaPrepago === 'function') {
-        agregarFilaMercanciaPrepago();
-    }
+    agregarFilaMercanciaPrepago();
 }
 
 function agregarFilaMercanciaPrepago() {
@@ -622,7 +602,10 @@ function procesarEnvioPrepago(e) {
     document.body.appendChild(scriptEnvio);
 }
 
+// ==========================================
 // RECEPCIÓN DE CARGA Y MOTOR FIFO CASCADA
+// ==========================================
+
 function actualizarFlujoProveedorRecepcion(prov) {
     filtrarProductosPorProveedor(prov, "rec-producto");
     actualizarTablaRecepcionCascada();
@@ -1059,7 +1042,48 @@ function procesarEnvioRecepcion(e) {
     document.body.appendChild(scriptEnvio);
 }
 
-// PROVEEDORES
+// ==========================================
+// MÓDULO DE PROVEEDORES
+// ==========================================
+
+function agregarCampoMercancia() {
+    const contenedor = document.getElementById('contenedor-mercancias');
+    if (!contenedor) return;
+    const div = document.createElement('div'); div.className = "flex gap-2 mt-1";
+    div.innerHTML = `<input type="text" class="input-mercancia w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white" placeholder="Producto" required><button type="button" onclick="this.parentElement.remove()" class="bg-red-900/80 text-red-200 px-3 rounded-lg font-bold hover:bg-red-800 text-xs">-</button>`;
+    contenedor.appendChild(div);
+}
+
+function actualizarInterfacesProveedores() {
+    document.querySelectorAll('.select-proveedores').forEach(sel => {
+        const val = sel.value;
+        sel.innerHTML = '<option value="">-- Seleccione un proveedor --</option>';
+        cacheProveedores.forEach(p => sel.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`);
+        if (val) sel.value = val;
+    });
+
+    const lista = document.getElementById('lista-proveedores-completa');
+    if (lista) {
+        lista.innerHTML = "";
+        cacheProveedores.forEach(p => {
+            const prods = Array.isArray(p.productos) ? p.productos : [];
+            const chips = prods.map(pr => `<span class="bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded border border-slate-700">${pr}</span>`).join(' ');
+            lista.innerHTML += `<div class="p-3 bg-slate-950 rounded-lg border border-slate-800"><p class="font-bold text-sm text-white">${p.nombre}</p><div class="flex flex-wrap gap-1 mt-2">${chips || '<span class="text-xs text-slate-600 italic">Sin mercancía</span>'}</div></div>`;
+        });
+    }
+}
+
+function filtrarProductosPorProveedor(prov, idDestino) {
+    const dest = document.getElementById(idDestino); if (!dest) return;
+    dest.innerHTML = "";
+    if (!prov) { dest.innerHTML = '<option value="">-- Seleccione primero un proveedor --</option>'; return; }
+    const item = cacheProveedores.find(p => p.nombre === prov);
+    if (item && Array.isArray(item.productos) && item.productos.length > 0) {
+        dest.innerHTML = '<option value="">-- Seleccione Mercancía --</option>';
+        item.productos.forEach(pr => dest.innerHTML += `<option value="${pr}">${pr}</option>`);
+    } else { dest.innerHTML = '<option value="">⚠️ Sin mercancía registrada</option>'; }
+}
+
 function procesarEnvioProveedor(e) {
     if (e && e.preventDefault) e.preventDefault();
     const btn = document.getElementById("btn-guardar-proveedor");
@@ -1123,7 +1147,10 @@ function procesarEnvioProveedor(e) {
     document.body.appendChild(scriptEnvio);
 }
 
-// REPORTES Y AUDITORÍA
+// ==========================================
+// REPORTES, AUDITORÍA Y PRODUCTOS ACTIVOS
+// ==========================================
+
 function renderizarTablaReportes() {
     const tbodyMovs = document.getElementById("tabla-reportes-body");
     const tbodyProds = document.getElementById("tabla-productos-activos-body");
@@ -1302,9 +1329,105 @@ function renderizarTablaReportes() {
     });
 }
 
+function imprimirReporteAuditoria() {
+    const elProv = document.getElementById("reporte-filtro-proveedor");
+    const elTipo = document.getElementById("reporte-filtro-tipo");
+    
+    const prov = (elProv && elProv.value) ? elProv.value : "Todos los Proveedores";
+    const tipo = (elTipo && elTipo.selectedIndex >= 0) ? elTipo.options[elTipo.selectedIndex].text : "Todos";
+    const fechaImpresion = new Date().toLocaleDateString('es-VE');
+
+    const elPrepagoBs = document.getElementById("aud-kpi-total-prepago-bs");
+    const elLiquidadoBs = document.getElementById("aud-kpi-total-liquidado-bs");
+    const elAjusteBs = document.getElementById("aud-kpi-ajuste-neto");
+
+    const prepagoBs = elPrepagoBs ? elPrepagoBs.innerText : "0,00";
+    const liquidadoBs = elLiquidadoBs ? elLiquidadoBs.innerText : "0,00";
+    const ajusteBs = elAjusteBs ? elAjusteBs.innerText : "0,00 Bs";
+
+    let filasHtml = "";
+    const tbody = document.getElementById("tabla-reportes-body");
+    if (tbody) {
+        const trs = tbody.querySelectorAll("tr");
+        trs.forEach(tr => {
+            const cols = tr.querySelectorAll("td");
+            if (cols.length >= 9) {
+                filasHtml += `
+                    <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+                        <td style="padding: 6px;">${cols[0].innerText}</td>
+                        <td style="padding: 6px; font-weight: bold; font-family: monospace;">${cols[1].innerText}</td>
+                        <td style="padding: 6px;">${cols[2].innerText}</td>
+                        <td style="padding: 6px;">${cols[3].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[4].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[5].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[6].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace; font-weight: bold;">${cols[7].innerText}</td>
+                        <td style="padding: 6px; text-align: center;">${cols[8].innerText}</td>
+                    </tr>
+                `;
+            }
+        });
+    }
+
+    const win = window.open('', '_blank', 'width=900,height=1100');
+    if (!win) return;
+
+    win.document.write(`
+        <html>
+        <head>
+            <title>Informe de Auditoría y Trazabilidad - SICOOP</title>
+            <style>
+                @page { size: letter landscape; margin: 30px; }
+                body { font-family: sans-serif; color: #1e293b; font-size: 12px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                th { background: #0f172a; color: white; padding: 8px; font-size: 10px; text-transform: uppercase; }
+            </style>
+        </head>
+        <body>
+            <h2>SICOOP COOPERATIVA - INFORME GENERAL DE AUDITORÍA</h2>
+            <p><strong>Proveedor:</strong> ${prov} | <strong>Filtro:</strong> ${tipo} | <strong>Fecha de emisión:</strong> ${fechaImpresion}</p>
+            
+            <div style="display: flex; gap: 20px; margin: 15px 0;">
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
+                    <small>Total Prepagado</small><br><strong>Bs. ${prepagoBs}</strong>
+                </div>
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
+                    <small>Total Liquidado</small><br><strong>Bs. ${liquidadoBs}</strong>
+                </div>
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
+                    <small>Ajuste Cambiario Neto</small><br><strong>${ajusteBs}</strong>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Lote / Factura</th>
+                        <th>Proveedor</th>
+                        <th>Producto</th>
+                        <th style="text-align:right;">Cantidad</th>
+                        <th style="text-align:right;">Tasa BCV</th>
+                        <th style="text-align:right;">Total ($)</th>
+                        <th style="text-align:right;">Monto Bs.</th>
+                        <th>Estatus</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filasHtml}
+                </tbody>
+            </table>
+            <script>window.onload = function() { window.print(); window.close(); };</script>
+        </body>
+        </html>
+    `);
+    win.document.close();
+}
+
 // ==========================================
-// LIBRO MAYOR CONTABLE (NUEVO MÓDULO INTEGRADO)
+// LIBRO MAYOR CONTABLE INTEGRADO
 // ==========================================
+
 function renderizarLibroMayor() {
     const tbody = document.getElementById("tabla-libro-mayor-body");
     const elDesde = document.getElementById("mayor-fecha-desde");
@@ -1517,102 +1640,10 @@ function imprimirLibroMayor() {
     win.document.close();
 }
 
-function imprimirReporteAuditoria() {
-    const elProv = document.getElementById("reporte-filtro-proveedor");
-    const elTipo = document.getElementById("reporte-filtro-tipo");
-    
-    const prov = (elProv && elProv.value) ? elProv.value : "Todos los Proveedores";
-    const tipo = (elTipo && elTipo.selectedIndex >= 0) ? elTipo.options[elTipo.selectedIndex].text : "Todos";
-    const fechaImpresion = new Date().toLocaleDateString('es-VE');
+// ==========================================
+// INICIALIZACIÓN Y EVENTOS DOM
+// ==========================================
 
-    const elPrepagoBs = document.getElementById("aud-kpi-total-prepago-bs");
-    const elLiquidadoBs = document.getElementById("aud-kpi-total-liquidado-bs");
-    const elAjusteBs = document.getElementById("aud-kpi-ajuste-neto");
-
-    const prepagoBs = elPrepagoBs ? elPrepagoBs.innerText : "0,00";
-    const liquidadoBs = elLiquidadoBs ? elLiquidadoBs.innerText : "0,00";
-    const ajusteBs = elAjusteBs ? elAjusteBs.innerText : "0,00 Bs";
-
-    let filasHtml = "";
-    const tbody = document.getElementById("tabla-reportes-body");
-    if (tbody) {
-        const trs = tbody.querySelectorAll("tr");
-        trs.forEach(tr => {
-            const cols = tr.querySelectorAll("td");
-            if (cols.length >= 9) {
-                filasHtml += `
-                    <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
-                        <td style="padding: 6px;">${cols[0].innerText}</td>
-                        <td style="padding: 6px; font-weight: bold; font-family: monospace;">${cols[1].innerText}</td>
-                        <td style="padding: 6px;">${cols[2].innerText}</td>
-                        <td style="padding: 6px;">${cols[3].innerText}</td>
-                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[4].innerText}</td>
-                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[5].innerText}</td>
-                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[6].innerText}</td>
-                        <td style="padding: 6px; text-align: right; font-family: monospace; font-weight: bold;">${cols[7].innerText}</td>
-                        <td style="padding: 6px; text-align: center;">${cols[8].innerText}</td>
-                    </tr>
-                `;
-            }
-        });
-    }
-
-    const win = window.open('', '_blank', 'width=900,height=1100');
-    if (!win) return;
-
-    win.document.write(`
-        <html>
-        <head>
-            <title>Informe de Auditoría y Trazabilidad - SICOOP</title>
-            <style>
-                @page { size: letter landscape; margin: 30px; }
-                body { font-family: sans-serif; color: #1e293b; font-size: 12px; }
-                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-                th { background: #0f172a; color: white; padding: 8px; font-size: 10px; text-transform: uppercase; }
-            </style>
-        </head>
-        <body>
-            <h2>SICOOP COOPERATIVA - INFORME GENERAL DE AUDITORÍA</h2>
-            <p><strong>Proveedor:</strong> ${prov} | <strong>Filtro:</strong> ${tipo} | <strong>Fecha de emisión:</strong> ${fechaImpresion}</p>
-            
-            <div style="display: flex; gap: 20px; margin: 15px 0;">
-                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
-                    <small>Total Prepagado</small><br><strong>Bs. ${prepagoBs}</strong>
-                </div>
-                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
-                    <small>Total Liquidado</small><br><strong>Bs. ${liquidadoBs}</strong>
-                </div>
-                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
-                    <small>Ajuste Cambiario Neto</small><br><strong>${ajusteBs}</strong>
-                </div>
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Lote / Factura</th>
-                        <th>Proveedor</th>
-                        <th>Producto</th>
-                        <th style="text-align:right;">Cantidad</th>
-                        <th style="text-align:right;">Tasa BCV</th>
-                        <th style="text-align:right;">Total ($)</th>
-                        <th style="text-align:right;">Monto Bs.</th>
-                        <th>Estatus</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${filasHtml}
-                </tbody>
-            </table>
-            <script>window.onload = function() { window.print(); window.close(); };</script>
-        </body>
-        </html>
-    `);
-    win.document.close();
-}
-
-// INICIALIZACIÓN Y ENLACE AUTOMÁTICO DE EVENTOS EN EL DOM
 document.addEventListener("DOMContentLoaded", function() {
     cargarDatos();
 
@@ -1636,7 +1667,7 @@ document.addEventListener("DOMContentLoaded", function() {
         elTasaPrepago.addEventListener("input", calcularTotalesPrepago);
     }
 
-    // Eventos para filtros del Libro Mayor Contable
+    // Eventos de filtro para el Libro Mayor Contable
     const elMayorDesde = document.getElementById("mayor-fecha-desde");
     if (elMayorDesde) {
         elMayorDesde.addEventListener("change", renderizarLibroMayor);
@@ -1648,7 +1679,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-// Redibujar gráficos automáticamente al cambiar el tamaño de la pantalla
+// Redibujar gráficos si cambia el tamaño de la ventana
 window.addEventListener('resize', function() {
     if (chartsCargados && cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.resumenConsolidated) {
         const modDashboard = document.getElementById('mod-dashboard');
