@@ -1322,6 +1322,26 @@ function renderizarTablaReportes() {
 // ==========================================
 // LIBRO MAYOR CONTABLE (NUEVO MÓDULO INTEGRADO)
 // ==========================================
+function parsearFechaSegura(strFecha) {
+    if (!strFecha) return new Date(0);
+    if (strFecha instanceof Date) return isNaN(strFecha) ? new Date(0) : strFecha;
+    
+    // Si es formato YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(strFecha)) {
+        const d = new Date(strFecha.substring(0, 10) + "T00:00:00");
+        return isNaN(d) ? new Date(0) : d;
+    }
+    // Si es formato DD/MM/YYYY
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(strFecha)) {
+        const partes = strFecha.split('/');
+        const d = new Date(`${partes[2]}-${partes[1]}-${partes[0]}T00:00:00`);
+        return isNaN(d) ? new Date(0) : d;
+    }
+    
+    const d = new Date(strFecha);
+    return isNaN(d) ? new Date(0) : d;
+}
+
 function renderizarLibroMayor() {
     const tbody = document.getElementById("tabla-libro-mayor-body");
     const elDesde = document.getElementById("mayor-fecha-desde");
@@ -1338,17 +1358,18 @@ function renderizarLibroMayor() {
     // 1. Unificar Prepagos (DEBE)
     if (cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
         cacheUltimosDatos.data.detallesLotes.forEach(l => {
-            const cantOrig = parseFloat(l.cantOriginal) || 0;
-            const costoUsd = parseFloat(l.costoUsd) || 0;
-            const tasaOrig = parseFloat(l.tasaOriginal) || 0;
-            const debeBs = cantOrig * costoUsd * tasaOrig;
+            const cantOrig = parseFloat(l.cantOriginal || l.cantidad || l.cantUnidades) || 0;
+            const costoUsd = parseFloat(l.costoUsd || l.precioUsd) || 0;
+            const tasaOrig = parseFloat(l.tasaOriginal || l.tasa) || 0;
+            const debeBs = parseFloat(l.totalBs || l.montoBs || l.montoTotalBs) || (cantOrig * costoUsd * tasaOrig);
+            const fechaVal = l.fecha || l.fechaPrepago || l.fechaRegistro;
 
             movimientos.push({
-                fechaStr: formatearFecha(l.fecha),
-                fechaObj: l.fecha ? new Date(l.fecha) : new Date(0),
-                proveedor: l.proveedor || '-',
-                producto: l.producto || '-',
-                referencia: l.idLote || '-',
+                fechaStr: formatearFecha(fechaVal),
+                fechaObj: parsearFechaSegura(fechaVal),
+                proveedor: l.proveedor || l.nombreProveedor || '-',
+                producto: l.producto || l.nombreProducto || '-',
+                referencia: l.idLote || l.lote || l.numLote || '-',
                 cantidad: cantOrig,
                 debe: debeBs,
                 haber: 0
@@ -1356,21 +1377,27 @@ function renderizarLibroMayor() {
         });
     }
 
-    // 2. Unificar Recepciones (HABER)
+    // 2. Unificar Recepciones (HABER) - Con respaldo para múltiples nombres de propiedades
     if (Array.isArray(cacheHistorialDespachos)) {
         cacheHistorialDespachos.forEach(h => {
-            const cantDesp = parseFloat(h.cantidadDespachada) || 0;
-            const costoUnit = parseFloat(h.costoUsdUnit) || 0;
-            const tasaRec = parseFloat(h.tasaRecepcion) || 1;
+            const cantDesp = parseFloat(h.cantidadDespachada || h.cantidad || h.cantRecibida || h.unidades) || 0;
+            const costoUnit = parseFloat(h.costoUsdUnit || h.costoUnitario || h.precioUsd) || 0;
+            const tasaRec = parseFloat(h.tasaRecepcion || h.tasa || 1) || 1;
             const totalUsd = cantDesp * costoUnit;
-            const haberBs = parseFloat(h.totalBsRecepcion) || (totalUsd * tasaRec);
+            
+            // Captura flexible del monto en bolívares del haber
+            const haberBs = parseFloat(h.totalBsRecepcion || h.montoBs || h.totalBs || h.montoRecepcion || h.montoTotalBs) || (totalUsd * tasaRec);
+            
+            const fechaVal = h.fecha || h.fechaRecepcion || h.fechaRegistro || h.fechaDespacho;
+            const loteRef = h.idLote || h.lote || h.numLote || '-';
+            const facturaRef = h.nroFactura || h.factura || h.numeroFactura || 'S/N';
 
             movimientos.push({
-                fechaStr: formatearFecha(h.fecha),
-                fechaObj: h.fecha ? new Date(h.fecha) : new Date(0),
-                proveedor: h.proveedor || '-',
-                producto: h.producto || '-',
-                referencia: `${h.idLote} / Fact: ${h.nroFactura || 'S/N'}`,
+                fechaStr: formatearFecha(fechaVal),
+                fechaObj: parsearFechaSegura(fechaVal),
+                proveedor: h.proveedor || h.nombreProveedor || '-',
+                producto: h.producto || h.nombreProducto || '-',
+                referencia: `${loteRef} / Fact: ${facturaRef}`,
                 cantidad: cantDesp,
                 debe: 0,
                 haber: haberBs
@@ -1420,118 +1447,6 @@ function renderizarLibroMayor() {
     if (document.getElementById("mayor-total-debe")) document.getElementById("mayor-total-debe").innerText = "Bs. " + formatearMonto(totalDebe);
     if (document.getElementById("mayor-total-haber")) document.getElementById("mayor-total-haber").innerText = "Bs. " + formatearMonto(totalHaber);
     if (document.getElementById("mayor-saldo-final")) document.getElementById("mayor-saldo-final").innerText = "Bs. " + formatearMonto(saldoAcumulado);
-}
-
-function imprimirLibroMayor() {
-    const elDesde = document.getElementById("mayor-fecha-desde");
-    const elHasta = document.getElementById("mayor-fecha-hasta");
-    
-    const fDesde = (elDesde && elDesde.value) ? formatearFecha(elDesde.value) : "Inicio";
-    const fHasta = (elHasta && elHasta.value) ? formatearFecha(elHasta.value) : "Actualidad";
-    const fechaImpresion = formatearFecha(new Date().toISOString());
-
-    const totalDebe = document.getElementById("mayor-total-debe") ? document.getElementById("mayor-total-debe").innerText : "Bs. 0,00";
-    const totalHaber = document.getElementById("mayor-total-haber") ? document.getElementById("mayor-total-haber").innerText : "Bs. 0,00";
-    const saldoFinal = document.getElementById("mayor-saldo-final") ? document.getElementById("mayor-saldo-final").innerText : "Bs. 0,00";
-
-    let filasHtml = "";
-    const tbody = document.getElementById("tabla-libro-mayor-body");
-    if (tbody) {
-        const trs = tbody.querySelectorAll("tr");
-        trs.forEach(tr => {
-            const cols = tr.querySelectorAll("td");
-            if (cols.length >= 8) {
-                filasHtml += `
-                    <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
-                        <td style="padding: 6px;">${cols[0].innerText}</td>
-                        <td style="padding: 6px; font-weight: bold;">${cols[1].innerText}</td>
-                        <td style="padding: 6px;">${cols[2].innerText}</td>
-                        <td style="padding: 6px; font-family: monospace; color: #1e3a8a;">${cols[3].innerText}</td>
-                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[4].innerText}</td>
-                        <td style="padding: 6px; text-align: right; font-family: monospace; font-weight: bold; color: #047857;">${cols[5].innerText}</td>
-                        <td style="padding: 6px; text-align: right; font-family: monospace; font-weight: bold; color: #b45309;">${cols[6].innerText}</td>
-                        <td style="padding: 6px; text-align: right; font-family: monospace; font-weight: bold; color: #1d4ed8;">${cols[7].innerText}</td>
-                    </tr>
-                `;
-            }
-        });
-    }
-
-    const win = window.open('', '_blank', 'width=950,height=1100');
-    if (!win) return;
-
-    win.document.write(`
-        <html>
-        <head>
-            <title>Libro Mayor Contable - SICOOP</title>
-            <style>
-                @page { size: letter landscape; margin: 30px; }
-                body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; font-size: 12px; margin:0; padding:15px; }
-                h2 { color: #1e3a8a; margin-bottom: 5px; }
-                .header-box { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 15px; }
-                .kpi-container { display: flex; gap: 15px; margin-bottom: 20px; }
-                .kpi-card { border: 1px solid #cbd5e1; background: #f8fafc; padding: 10px 15px; border-radius: 6px; flex: 1; }
-                .kpi-card small { color: #64748b; font-size: 10px; text-transform: uppercase; font-weight: bold; }
-                .kpi-card div { font-size: 16px; font-weight: bold; font-family: monospace; margin-top: 4px; }
-                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                th { background: #1e3a8a; color: white; padding: 8px; font-size: 10px; text-transform: uppercase; text-align: left; }
-                th.num { text-align: right; }
-            </style>
-        </head>
-        <body>
-            <div class="header-box">
-                <div>
-                    <h2>SICOOP COOPERATIVA</h2>
-                    <span style="color:#64748b; font-weight:bold;">LIBRO MAYOR CONTABLE</span>
-                </div>
-                <div style="text-align: right; font-size: 11px; color: #475569;">
-                    <strong>Rango:</strong> ${fDesde} al ${fHasta}<br>
-                    <strong>Fecha Emisión:</strong> ${fechaImpresion}
-                </div>
-            </div>
-
-            <div class="kpi-container">
-                <div class="kpi-card">
-                    <small>Total Debe (Prepagado)</small>
-                    <div style="color: #047857;">${totalDebe}</div>
-                </div>
-                <div class="kpi-card">
-                    <small>Total Haber (Recibido)</small>
-                    <div style="color: #b45309;">${totalHaber}</div>
-                </div>
-                <div class="kpi-card">
-                    <small>Saldo Mayor Actual</small>
-                    <div style="color: #1d4ed8;">${saldoFinal}</div>
-                </div>
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Proveedor</th>
-                        <th>Producto</th>
-                        <th>Lote / Factura</th>
-                        <th class="num">Cant. Uni</th>
-                        <th class="num">Debe (Prepago) Bs.</th>
-                        <th class="num">Haber (Recibido) Bs.</th>
-                        <th class="num">Saldo Bs.</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${filasHtml}
-                </tbody>
-            </table>
-            <script>
-                window.onload = function() {
-                    window.print();
-                    setTimeout(function(){ window.close(); }, 500);
-                };
-            </script>
-        </body>
-        </html>
-    `);
-    win.document.close();
 }
 
 function imprimirReporteAuditoria() {
