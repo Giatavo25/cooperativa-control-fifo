@@ -19,7 +19,6 @@ function inicializarGraficos() {
     try {
         if (typeof google !== 'undefined' && google.charts) {
             google.charts.load('current', {'packages':['corechart', 'bar']});
-            // CORREGIDO: Método correcto para registrar el callback oficial de Google Charts
             google.charts.setOnLoadCallback(function() { 
                 chartsCargados = true; 
                 if (cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.resumenConsolidated) {
@@ -27,7 +26,7 @@ function inicializarGraficos() {
                 }
             });
         }
-    } catch (e) { console.warn("Google Charts no disponible."); }
+    } catch (e) { console.warn("Google Charts no disponible.", e); }
 }
 
 function cargarDatos() {
@@ -47,6 +46,7 @@ function cargarDatos() {
                 renderizarDashboard(resultado.data);
                 actualizarInterfacesProveedores();
                 renderizarTablaReportes();
+                renderizarLibroMayor(); // Carga automática del Libro Mayor
                 configurarFechaPorDefecto();
             }
         } catch (err) { console.error("Error procesando datos:", err); }
@@ -60,6 +60,7 @@ function cargarDatos() {
     script.src = WEB_APP_URL + (WEB_APP_URL.includes('?') ? '&' : '?') + 'callback=procesarRespuestaGoogle';
     script.onerror = function() {
         if (elProgreso) elProgreso.innerText = "⚠️ Error de conexión con Google.";
+        const l = document.getElementById('jsonp-script-loader'); if (l) l.remove();
     };
     document.body.appendChild(script);
 }
@@ -86,12 +87,14 @@ function cambiarModulo(idModulo) {
     
     if (idModulo === 'mod-dashboard') {
         cargarDatos();
-        // Redibujar gráficos si se cambia al dashboard y los datos ya están en memoria
         if (chartsCargados && cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.resumenConsolidated) {
             setTimeout(() => {
                 dibujarGraficos(cacheUltimosDatos.data.resumenConsolidated);
             }, 100);
         }
+    } else if (idModulo === 'mod-reportes') {
+        renderizarTablaReportes();
+        renderizarLibroMayor();
     }
 }
 
@@ -183,7 +186,6 @@ function dibujarGraficos(resumen) {
         const dDom = document.getElementById('chart-distribucion');
         if (!pDom || !dDom || !Array.isArray(resumen)) return;
 
-        // Limpiar contenido previo para evitar acumulación de HTML de carga
         pDom.innerHTML = "";
         dDom.innerHTML = "";
 
@@ -1300,6 +1302,221 @@ function renderizarTablaReportes() {
     });
 }
 
+// ==========================================
+// LIBRO MAYOR CONTABLE (NUEVO MÓDULO INTEGRADO)
+// ==========================================
+function renderizarLibroMayor() {
+    const tbody = document.getElementById("tabla-libro-mayor-body");
+    const elDesde = document.getElementById("mayor-fecha-desde");
+    const elHasta = document.getElementById("mayor-fecha-hasta");
+    
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    const fechaDesde = elDesde && elDesde.value ? new Date(elDesde.value + "T00:00:00") : null;
+    const fechaHasta = elHasta && elHasta.value ? new Date(elHasta.value + "T23:59:59") : null;
+
+    let movimientos = [];
+
+    // 1. Unificar Prepagos (DEBE)
+    if (cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
+        cacheUltimosDatos.data.detallesLotes.forEach(l => {
+            const cantOrig = parseFloat(l.cantOriginal) || 0;
+            const costoUsd = parseFloat(l.costoUsd) || 0;
+            const tasaOrig = parseFloat(l.tasaOriginal) || 0;
+            const debeBs = cantOrig * costoUsd * tasaOrig;
+
+            movimientos.push({
+                fechaStr: l.fecha || '-',
+                fechaObj: l.fecha ? new Date(l.fecha + "T00:00:00") : new Date(0),
+                proveedor: l.proveedor || '-',
+                producto: l.producto || '-',
+                referencia: l.idLote || '-',
+                cantidad: cantOrig,
+                debe: debeBs,
+                haber: 0
+            });
+        });
+    }
+
+    // 2. Unificar Recepciones (HABER)
+    if (Array.isArray(cacheHistorialDespachos)) {
+        cacheHistorialDespachos.forEach(h => {
+            const cantDesp = parseFloat(h.cantidadDespachada) || 0;
+            const costoUnit = parseFloat(h.costoUsdUnit) || 0;
+            const tasaRec = parseFloat(h.tasaRecepcion) || 1;
+            const totalUsd = cantDesp * costoUnit;
+            const haberBs = parseFloat(h.totalBsRecepcion) || (totalUsd * tasaRec);
+
+            movimientos.push({
+                fechaStr: h.fecha || '-',
+                fechaObj: h.fecha ? new Date(h.fecha + "T00:00:00") : new Date(0),
+                proveedor: h.proveedor || '-',
+                producto: h.producto || '-',
+                referencia: `${h.idLote} / Fact: ${h.nroFactura || 'S/N'}`,
+                cantidad: cantDesp,
+                debe: 0,
+                haber: haberBs
+            });
+        });
+    }
+
+    // 3. Ordenar cronológicamente por fecha para cálculo continuo de saldo
+    movimientos.sort((a, b) => a.fechaObj - b.fechaObj);
+
+    let saldoAcumulado = 0;
+    let totalDebe = 0;
+    let totalHaber = 0;
+    let contadorFilas = 0;
+
+    movimientos.forEach(m => {
+        // Cálculo del Saldo (DEBE suma, HABER resta)
+        saldoAcumulado += (m.debe - m.haber);
+
+        // Filtro por fecha desde / hasta
+        if (fechaDesde && m.fechaObj < fechaDesde) return;
+        if (fechaHasta && m.fechaObj > fechaHasta) return;
+
+        totalDebe += m.debe;
+        totalHaber += m.haber;
+        contadorFilas++;
+
+        tbody.insertAdjacentHTML("beforeend", `
+            <tr class="hover:bg-slate-900/50 border-b border-slate-800">
+                <td class="px-4 py-3 font-mono text-xs text-slate-400">${m.fechaStr}</td>
+                <td class="px-4 py-3 text-xs font-medium text-white">${m.proveedor}</td>
+                <td class="px-4 py-3 text-xs text-slate-300">${m.producto}</td>
+                <td class="px-4 py-3 font-mono text-xs font-bold text-blue-400">${m.referencia}</td>
+                <td class="px-4 py-3 text-right font-mono text-xs text-white">${formatearMonto(m.cantidad)}</td>
+                <td class="px-4 py-3 text-right font-mono text-xs font-bold text-emerald-400">${m.debe > 0 ? 'Bs. ' + formatearMonto(m.debe) : '-'}</td>
+                <td class="px-4 py-3 text-right font-mono text-xs font-bold text-amber-400">${m.haber > 0 ? 'Bs. ' + formatearMonto(m.haber) : '-'}</td>
+                <td class="px-4 py-3 text-right font-mono text-xs font-bold ${saldoAcumulado >= 0 ? 'text-blue-400' : 'text-red-400'}">Bs. ${formatearMonto(saldoAcumulado)}</td>
+            </tr>
+        `);
+    });
+
+    if (contadorFilas === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-6 text-center text-xs text-slate-500 italic">No se encontraron movimientos en el rango de fechas seleccionado.</td></tr>`;
+    }
+
+    // Actualización de KPIs del Libro Mayor
+    if (document.getElementById("mayor-total-debe")) document.getElementById("mayor-total-debe").innerText = "Bs. " + formatearMonto(totalDebe);
+    if (document.getElementById("mayor-total-haber")) document.getElementById("mayor-total-haber").innerText = "Bs. " + formatearMonto(totalHaber);
+    if (document.getElementById("mayor-saldo-final")) document.getElementById("mayor-saldo-final").innerText = "Bs. " + formatearMonto(saldoAcumulado);
+}
+
+function imprimirLibroMayor() {
+    const elDesde = document.getElementById("mayor-fecha-desde");
+    const elHasta = document.getElementById("mayor-fecha-hasta");
+    
+    const fDesde = (elDesde && elDesde.value) ? elDesde.value : "Inicio";
+    const fHasta = (elHasta && elHasta.value) ? elHasta.value : "Actualidad";
+    const fechaImpresion = new Date().toLocaleDateString('es-VE');
+
+    const totalDebe = document.getElementById("mayor-total-debe") ? document.getElementById("mayor-total-debe").innerText : "Bs. 0,00";
+    const totalHaber = document.getElementById("mayor-total-haber") ? document.getElementById("mayor-total-haber").innerText : "Bs. 0,00";
+    const saldoFinal = document.getElementById("mayor-saldo-final") ? document.getElementById("mayor-saldo-final").innerText : "Bs. 0,00";
+
+    let filasHtml = "";
+    const tbody = document.getElementById("tabla-libro-mayor-body");
+    if (tbody) {
+        const trs = tbody.querySelectorAll("tr");
+        trs.forEach(tr => {
+            const cols = tr.querySelectorAll("td");
+            if (cols.length >= 8) {
+                filasHtml += `
+                    <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+                        <td style="padding: 6px;">${cols[0].innerText}</td>
+                        <td style="padding: 6px; font-weight: bold;">${cols[1].innerText}</td>
+                        <td style="padding: 6px;">${cols[2].innerText}</td>
+                        <td style="padding: 6px; font-family: monospace; color: #1e3a8a;">${cols[3].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[4].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace; font-weight: bold; color: #047857;">${cols[5].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace; font-weight: bold; color: #b45309;">${cols[6].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace; font-weight: bold; color: #1d4ed8;">${cols[7].innerText}</td>
+                    </tr>
+                `;
+            }
+        });
+    }
+
+    const win = window.open('', '_blank', 'width=950,height=1100');
+    if (!win) return;
+
+    win.document.write(`
+        <html>
+        <head>
+            <title>Libro Mayor Contable - SICOOP</title>
+            <style>
+                @page { size: letter landscape; margin: 30px; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; font-size: 12px; margin:0; padding:15px; }
+                h2 { color: #1e3a8a; margin-bottom: 5px; }
+                .header-box { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 15px; }
+                .kpi-container { display: flex; gap: 15px; margin-bottom: 20px; }
+                .kpi-card { border: 1px solid #cbd5e1; background: #f8fafc; padding: 10px 15px; border-radius: 6px; flex: 1; }
+                .kpi-card small { color: #64748b; font-size: 10px; text-transform: uppercase; font-weight: bold; }
+                .kpi-card div { font-size: 16px; font-weight: bold; font-family: monospace; margin-top: 4px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                th { background: #1e3a8a; color: white; padding: 8px; font-size: 10px; text-transform: uppercase; text-align: left; }
+                th.num { text-align: right; }
+            </style>
+        </head>
+        <body>
+            <div class="header-box">
+                <div>
+                    <h2>SICOOP COOPERATIVA</h2>
+                    <span style="color:#64748b; font-weight:bold;">LIBRO MAYOR CONTABLE</span>
+                </div>
+                <div style="text-align: right; font-size: 11px; color: #475569;">
+                    <strong>Rango:</strong> ${fDesde} al ${fHasta}<br>
+                    <strong>Fecha Emisión:</strong> ${fechaImpresion}
+                </div>
+            </div>
+
+            <div class="kpi-container">
+                <div class="kpi-card">
+                    <small>Total Debe (Prepagado)</small>
+                    <div style="color: #047857;">${totalDebe}</div>
+                </div>
+                <div class="kpi-card">
+                    <small>Total Haber (Recibido)</small>
+                    <div style="color: #b45309;">${totalHaber}</div>
+                </div>
+                <div class="kpi-card">
+                    <small>Saldo Mayor Actual</small>
+                    <div style="color: #1d4ed8;">${saldoFinal}</div>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Proveedor</th>
+                        <th>Producto</th>
+                        <th>Lote / Factura</th>
+                        <th class="num">Cant. Uni</th>
+                        <th class="num">Debe (Prepago) Bs.</th>
+                        <th class="num">Haber (Recibido) Bs.</th>
+                        <th class="num">Saldo Bs.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filasHtml}
+                </tbody>
+            </table>
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function(){ window.close(); }, 500);
+                };
+            </script>
+        </body>
+        </html>
+    `);
+    win.document.close();
+}
+
 function imprimirReporteAuditoria() {
     const elProv = document.getElementById("reporte-filtro-proveedor");
     const elTipo = document.getElementById("reporte-filtro-tipo");
@@ -1412,6 +1629,22 @@ document.addEventListener("DOMContentLoaded", function() {
     const formProveedor = document.getElementById("form-proveedor");
     if (formProveedor) {
         formProveedor.addEventListener("submit", procesarEnvioProveedor);
+    }
+
+    const elTasaPrepago = document.getElementById("pre-tasa");
+    if (elTasaPrepago) {
+        elTasaPrepago.addEventListener("input", calcularTotalesPrepago);
+    }
+
+    // Eventos para filtros del Libro Mayor Contable
+    const elMayorDesde = document.getElementById("mayor-fecha-desde");
+    if (elMayorDesde) {
+        elMayorDesde.addEventListener("change", renderizarLibroMayor);
+    }
+
+    const elMayorHasta = document.getElementById("mayor-fecha-hasta");
+    if (elMayorHasta) {
+        elMayorHasta.addEventListener("change", renderizarLibroMayor);
     }
 });
 
