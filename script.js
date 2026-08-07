@@ -15,6 +15,23 @@ function formatearMonto(valor) {
     }).format(numero);
 }
 
+// Formateador de Fecha a DD/MM/AAAA
+function formatearFecha(fechaStr) {
+    if (!fechaStr || fechaStr === '-') return '-';
+    try {
+        const fecha = new Date(fechaStr);
+        if (isNaN(fecha.getTime())) return fechaStr;
+        
+        const dia = String(fecha.getUTCDate()).padStart(2, '0');
+        const mes = String(fecha.getUTCMonth() + 1).padStart(2, '0');
+        const anio = fecha.getUTCFullYear();
+        
+        return `${dia}/${mes}/${anio}`;
+    } catch (e) {
+        return fechaStr;
+    }
+}
+
 function inicializarGraficos() {
     try {
         if (typeof google !== 'undefined' && google.charts) {
@@ -379,7 +396,7 @@ function imprimirReciboPrepago() {
     const prov = elProv ? elProv.value : "";
     const lote = elLote ? elLote.innerText : "";
     const tasa = parseFloat(elTasa ? elTasa.value : 1) || 1;
-    const fecha = elFecha ? elFecha.value : "";
+    const fecha = elFecha ? formatearFecha(elFecha.value) : "";
     
     let htmlItems = "";
     document.querySelectorAll(".item-fila-prepago").forEach(fila => {
@@ -811,7 +828,7 @@ function imprimirComprobanteRecepcion() {
     const prov = document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "";
     const prod = document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "";
     const cant = parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0;
-    const fecha = document.getElementById("rec-fecha") ? document.getElementById("rec-fecha").value : new Date().toISOString().split('T')[0];
+    const fecha = document.getElementById("rec-fecha") ? formatearFecha(document.getElementById("rec-fecha").value) : formatearFecha(new Date().toISOString());
     const montoBsInput = parseFloat(document.getElementById("rec-monto-bs") ? document.getElementById("rec-monto-bs").value : 0) || 0;
     
     const numFacturaInput = document.getElementById("rec-guia") || document.getElementById("rec-factura") || document.querySelector('input[placeholder*="FACTURA"]');
@@ -1224,7 +1241,7 @@ function renderizarTablaReportes() {
                     : `<span class="bg-slate-800 text-slate-400 border border-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">LIQUIDADO / CERRADO</span>`;
 
                 listaRender.push({
-                    fecha: l.fecha || '-',
+                    fecha: formatearFecha(l.fecha),
                     referencia: l.idLote,
                     proveedor: l.proveedor,
                     producto: l.producto,
@@ -1256,7 +1273,7 @@ function renderizarTablaReportes() {
                 contadorOps++;
 
                 listaRender.push({
-                    fecha: h.fecha || '-',
+                    fecha: formatearFecha(h.fecha),
                     referencia: `${h.idLote} / Fact: ${h.nroFactura || 'S/N'}`,
                     proveedor: h.proveedor,
                     producto: h.producto,
@@ -1327,8 +1344,8 @@ function renderizarLibroMayor() {
             const debeBs = cantOrig * costoUsd * tasaOrig;
 
             movimientos.push({
-                fechaStr: l.fecha || '-',
-                fechaObj: l.fecha ? new Date(l.fecha + "T00:00:00") : new Date(0),
+                fechaStr: formatearFecha(l.fecha),
+                fechaObj: l.fecha ? new Date(l.fecha) : new Date(0),
                 proveedor: l.proveedor || '-',
                 producto: l.producto || '-',
                 referencia: l.idLote || '-',
@@ -1349,8 +1366,8 @@ function renderizarLibroMayor() {
             const haberBs = parseFloat(h.totalBsRecepcion) || (totalUsd * tasaRec);
 
             movimientos.push({
-                fechaStr: h.fecha || '-',
-                fechaObj: h.fecha ? new Date(h.fecha + "T00:00:00") : new Date(0),
+                fechaStr: formatearFecha(h.fecha),
+                fechaObj: h.fecha ? new Date(h.fecha) : new Date(0),
                 proveedor: h.proveedor || '-',
                 producto: h.producto || '-',
                 referencia: `${h.idLote} / Fact: ${h.nroFactura || 'S/N'}`,
@@ -1409,9 +1426,9 @@ function imprimirLibroMayor() {
     const elDesde = document.getElementById("mayor-fecha-desde");
     const elHasta = document.getElementById("mayor-fecha-hasta");
     
-    const fDesde = (elDesde && elDesde.value) ? elDesde.value : "Inicio";
-    const fHasta = (elHasta && elHasta.value) ? elHasta.value : "Actualidad";
-    const fechaImpresion = new Date().toLocaleDateString('es-VE');
+    const fDesde = (elDesde && elDesde.value) ? formatearFecha(elDesde.value) : "Inicio";
+    const fHasta = (elHasta && elHasta.value) ? formatearFecha(elHasta.value) : "Actualidad";
+    const fechaImpresion = formatearFecha(new Date().toISOString());
 
     const totalDebe = document.getElementById("mayor-total-debe") ? document.getElementById("mayor-total-debe").innerText : "Bs. 0,00";
     const totalHaber = document.getElementById("mayor-total-haber") ? document.getElementById("mayor-total-haber").innerText : "Bs. 0,00";
@@ -1523,7 +1540,7 @@ function imprimirReporteAuditoria() {
     
     const prov = (elProv && elProv.value) ? elProv.value : "Todos los Proveedores";
     const tipo = (elTipo && elTipo.selectedIndex >= 0) ? elTipo.options[elTipo.selectedIndex].text : "Todos";
-    const fechaImpresion = new Date().toLocaleDateString('es-VE');
+    const fechaImpresion = formatearFecha(new Date().toISOString());
 
     const elPrepagoBs = document.getElementById("aud-kpi-total-prepago-bs");
     const elLiquidadoBs = document.getElementById("aud-kpi-total-liquidado-bs");
