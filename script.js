@@ -1358,9 +1358,9 @@ function renderizarLibroMayor() {
     // 1. Unificar Prepagos (DEBE)
     if (cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
         cacheUltimosDatos.data.detallesLotes.forEach(l => {
-            const cantOrig = parseFloat(l.cantOriginal || l.cantidad || l.cantUnidades) || 0;
-            const costoUsd = parseFloat(l.costoUsd || l.precioUsd) || 0;
-            const tasaOrig = parseFloat(l.tasaOriginal || l.tasa) || 0;
+            const cantOrig = parseFloat(l.cantOriginal || l.cantidad || l.cantUnidades || l.cantidadTotal) || 0;
+            const costoUsd = parseFloat(l.costoUsd || l.precioUsd || l.costoUnitario) || 0;
+            const tasaOrig = parseFloat(l.tasaOriginal || l.tasa || l.tasaCambio) || 0;
             const debeBs = parseFloat(l.totalBs || l.montoBs || l.montoTotalBs) || (cantOrig * costoUsd * tasaOrig);
             const fechaVal = l.fecha || l.fechaPrepago || l.fechaRegistro;
 
@@ -1377,26 +1377,40 @@ function renderizarLibroMayor() {
         });
     }
 
-    // 2. Unificar Recepciones (HABER) - Con respaldo para múltiples nombres de propiedades
+    // 2. Unificar Recepciones (HABER) - Con depuración y captura universal
     if (Array.isArray(cacheHistorialDespachos)) {
-        cacheHistorialDespachos.forEach(h => {
-            const cantDesp = parseFloat(h.cantidadDespachada || h.cantidad || h.cantRecibida || h.unidades) || 0;
-            const costoUnit = parseFloat(h.costoUsdUnit || h.costoUnitario || h.precioUsd) || 0;
-            const tasaRec = parseFloat(h.tasaRecepcion || h.tasa || 1) || 1;
+        cacheHistorialDespachos.forEach((h, index) => {
+            // Imprime en la consola del navegador (F12) exactamente qué propiedades trae cada recepción
+            console.log(`Inspeccionando recepción [${index}]:`, h);
+
+            // Búsqueda exhaustiva de cantidad en cualquier variante posible
+            const cantDesp = parseFloat(
+                h.cantDespachada || h.cantidadDespachada || h.cantidad || 
+                h.cantRecibida || h.cantidadRecibida || h.unidades || 
+                h.cantidadConsumida || h.cantConsumida || h.qty || 0
+            );
+
+            // Búsqueda exhaustiva de costos y tasas
+            const costoUnit = parseFloat(h.costoUsdUnit || h.costoUnitario || h.precioUsd || h.costoUsd || h.costo || 0);
+            const tasaRec = parseFloat(h.tasaRecepcion || h.tasa || h.tasaCambio || 1) || 1;
             const totalUsd = cantDesp * costoUnit;
             
-            // Captura flexible del monto en bolívares del haber
-            const haberBs = parseFloat(h.totalBsRecepcion || h.montoBs || h.totalBs || h.montoRecepcion || h.montoTotalBs) || (totalUsd * tasaRec);
-            
+            // Búsqueda exhaustiva del monto en bolívares (Haber)
+            const haberBs = parseFloat(
+                h.totalBsRecepcion || h.montoBs || h.totalBs || 
+                h.montoRecepcion || h.montoTotalBs || h.totalBsDespacho || 
+                h.montoBsDespacho || h.totalBolivares || h.subtotalBs || h.total || 0
+            ) || (totalUsd * tasaRec);
+
             const fechaVal = h.fecha || h.fechaRecepcion || h.fechaRegistro || h.fechaDespacho;
-            const loteRef = h.idLote || h.lote || h.numLote || '-';
-            const facturaRef = h.nroFactura || h.factura || h.numeroFactura || 'S/N';
+            const loteRef = h.idLote || h.lote || h.numLote || h.loteAsignado || '-';
+            const facturaRef = h.nroFactura || h.factura || h.numeroFactura || h.facturaProveedor || 'S/N';
 
             movimientos.push({
                 fechaStr: formatearFecha(fechaVal),
                 fechaObj: parsearFechaSegura(fechaVal),
-                proveedor: h.proveedor || h.nombreProveedor || '-',
-                producto: h.producto || h.nombreProducto || '-',
+                proveedor: h.proveedor || h.nombreProveedor || h.proveedorNombre || '-',
+                producto: h.producto || h.nombreProducto || h.productoNombre || '-',
                 referencia: `${loteRef} / Fact: ${facturaRef}`,
                 cantidad: cantDesp,
                 debe: 0,
