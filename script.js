@@ -1362,8 +1362,8 @@ function renderizarLibroMayor() {
             const idLoteKey = l.idLote || l.lote || l.numLote;
             if (idLoteKey) {
                 mapaLotes[idLoteKey] = {
-                    costoUsd: parseFloat(l.costoUsd || l.precioUsd) || 0,
-                    tasaOriginal: parseFloat(l.tasaOriginal || l.tasa) || 0,
+                    costoUsd: parseFloat(l.costoUsd || l.precioUsd || l.costoUnitario) || 0,
+                    tasaOriginal: parseFloat(l.tasaOriginal || l.tasa || l.tasaCambio) || 0,
                     proveedor: l.proveedor || l.nombreProveedor || '-',
                     producto: l.producto || l.nombreProducto || '-'
                 };
@@ -1374,9 +1374,9 @@ function renderizarLibroMayor() {
     // 1. Unificar Prepagos (DEBE)
     if (cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
         cacheUltimosDatos.data.detallesLotes.forEach(l => {
-            const cantOrig = parseFloat(l.cantOriginal || l.cantidad || l.cantUnidades) || 0;
-            const costoUsd = parseFloat(l.costoUsd || l.precioUsd) || 0;
-            const tasaOrig = parseFloat(l.tasaOriginal || l.tasa) || 0;
+            const cantOrig = parseFloat(l.cantOriginal || l.cantidad || l.cantUnidades || l.cantidadTotal) || 0;
+            const costoUsd = parseFloat(l.costoUsd || l.precioUsd || l.costoUnitario) || 0;
+            const tasaOrig = parseFloat(l.tasaOriginal || l.tasa || l.tasaCambio) || 0;
             const debeBs = parseFloat(l.totalBs || l.montoBs || l.montoTotalBs) || (cantOrig * costoUsd * tasaOrig);
             const fechaVal = l.fecha || l.fechaPrepago || l.fechaRegistro;
 
@@ -1393,19 +1393,48 @@ function renderizarLibroMayor() {
         });
     }
 
-    // 2. Unificar Recepciones / Despachos (HABER) - Calculado al precio/tasa de origen del lote
+    // 2. Unificar Recepciones / Despachos (HABER) - Escaneo inteligente y universal
     if (Array.isArray(cacheHistorialDespachos)) {
         cacheHistorialDespachos.forEach(h => {
-            const cantDesp = parseFloat(h.cantidadDespachada || h.cantidad || h.cantRecibida || h.unidades) || 0;
-            const idLoteRef = h.idLote || h.lote || h.numLote || '';
-            
-            // Buscar los datos de origen del lote relacionado
+            // Búsqueda inteligente de la cantidad de unidades
+            let cantDesp = 0;
+            const possibleCantKeys = ['cantidadDespachada', 'cantDespachada', 'cantidad', 'cantRecibida', 'cantidadRecibida', 'unidades', 'cantidadUnidades', 'cantUnidades', 'cantidadConsumida', 'cantConsumida', 'qty', 'cantidadMovimiento', 'cant'];
+            for (let key of possibleCantKeys) {
+                if (h[key] !== undefined && h[key] !== null && !isNaN(parseFloat(h[key]))) {
+                    cantDesp = parseFloat(h[key]);
+                    if (cantDesp > 0) break;
+                }
+            }
+            if (cantDesp === 0) {
+                for (let k in h) {
+                    if (k.toLowerCase().includes('cant') || k.toLowerCase().includes('unid') || k.toLowerCase().includes('qty')) {
+                        const val = parseFloat(h[k]);
+                        if (!isNaN(val) && val > 0) {
+                            cantDesp = val;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            const idLoteRef = h.idLote || h.lote || h.numLote || h.loteAsignado || '';
             const loteInfo = mapaLotes[idLoteRef] || {};
-            const costoUsd = loteInfo.costoUsd || parseFloat(h.costoUsdUnit || h.costoUnitario || h.precioUsd) || 0;
-            const tasaOrig = loteInfo.tasaOriginal || parseFloat(h.tasaRecepcion || h.tasa) || 1;
             
-            // Cálculo exacto: Cantidad Recibida x Costo USD x Tasa de Origen
-            const haberBs = (cantDesp * costoUsd * tasaOrig) || parseFloat(h.totalBsRecepcion || h.montoBs || h.totalBs || h.montoRecepcion) || 0;
+            const costoUsd = loteInfo.costoUsd || parseFloat(h.costoUsdUnit || h.costoUnitario || h.precioUsd || h.costoUsd || h.costo) || 0;
+            const tasaOrig = loteInfo.tasaOriginal || parseFloat(h.tasaRecepcion || h.tasa || h.tasaCambio || 1) || 1;
+            
+            // Búsqueda inteligente del monto en bolívares (Haber)
+            let haberBs = 0;
+            const possibleBsKeys = ['totalBsRecepcion', 'montoBs', 'totalBs', 'montoRecepcion', 'montoTotalBs', 'totalBsDespacho', 'montoBsDespacho', 'totalBolivares', 'subtotalBs', 'total', 'monto', 'importeBs'];
+            for (let key of possibleBsKeys) {
+                if (h[key] !== undefined && h[key] !== null && !isNaN(parseFloat(h[key]))) {
+                    haberBs = parseFloat(h[key]);
+                    if (haberBs > 0) break;
+                }
+            }
+            if (haberBs === 0) {
+                haberBs = cantDesp * costoUsd * tasaOrig;
+            }
             
             const fechaVal = h.fecha || h.fechaRecepcion || h.fechaRegistro || h.fechaDespacho;
             const facturaRef = h.nroFactura || h.factura || h.numeroFactura || 'S/N';
@@ -1413,9 +1442,9 @@ function renderizarLibroMayor() {
             movimientos.push({
                 fechaStr: formatearFecha(fechaVal),
                 fechaObj: parsearFechaSegura(fechaVal),
-                proveedor: h.proveedor || loteInfo.proveedor || '-',
-                producto: h.producto || loteInfo.producto || '-',
-                referencia: `${idLoteRef} / Fact: ${facturaRef}`,
+                proveedor: h.proveedor || loteInfo.proveedor || h.nombreProveedor || '-',
+                producto: h.producto || loteInfo.producto || h.nombreProducto || '-',
+                referencia: `${idLoteRef || 'S/L'} / Fact: ${facturaRef}`,
                 cantidad: cantDesp,
                 debe: 0,
                 haber: haberBs
