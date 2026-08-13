@@ -1633,6 +1633,247 @@ window.addEventListener('resize', function() {
         const modDashboard = document.getElementById('mod-dashboard');
         if (modDashboard && !modDashboard.classList.contains('hidden')) {
             dibujarGraficos(cacheUltimosDatos.data.resumenConsolidated);
+    // Función de impresión para el Libro Mayor Contable
+function imprimirLibroMayor() {
+    const elDesde = document.getElementById("mayor-fecha-desde");
+    const elHasta = document.getElementById("mayor-fecha-hasta");
+    const fechaDesde = elDesde && elDesde.value ? formatearFecha(elDesde.value) : "Inicio";
+    const fechaHasta = elHasta && elHasta.value ? formatearFecha(elHasta.value) : "Actualidad";
+    const fechaImpresion = formatearFecha(new Date().toISOString());
+
+    const elTotalDebe = document.getElementById("mayor-total-debe");
+    const elTotalHaber = document.getElementById("mayor-total-haber");
+    const elSaldoFinal = document.getElementById("mayor-saldo-final");
+
+    const totalDebe = elTotalDebe ? elTotalDebe.innerText : "Bs. 0,00";
+    const totalHaber = elTotalHaber ? elTotalHaber.innerText : "Bs. 0,00";
+    const saldoFinal = elSaldoFinal ? elSaldoFinal.innerText : "Bs. 0,00";
+
+    let filasHtml = "";
+    const tbody = document.getElementById("tabla-libro-mayor-body");
+    if (tbody) {
+        const trs = tbody.querySelectorAll("tr");
+        trs.forEach(tr => {
+            const cols = tr.querySelectorAll("td");
+            if (cols.length >= 8) {
+                filasHtml += `
+                    <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+                        <td style="padding: 6px; font-family: monospace;">${cols[0].innerText}</td>
+                        <td style="padding: 6px;">${cols[1].innerText}</td>
+                        <td style="padding: 6px;">${cols[2].innerText}</td>
+                        <td style="padding: 6px; font-family: monospace; font-weight: bold; color: #1e3a8a;">${cols[3].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[4].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace; color: #047857; font-weight: bold;">${cols[5].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace; color: #b45309; font-weight: bold;">${cols[6].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace; font-weight: bold; color: #2563eb;">${cols[7].innerText}</td>
+                    </tr>
+                `;
+            }
+        });
+    }
+
+    const win = window.open('', '_blank', 'width=900,height=1100');
+    if (!win) return;
+
+    win.document.write(`
+        <html>
+        <head>
+            <title>Libro Mayor Contable (Auxiliar de Prepagos) - SICOOP</title>
+            <style>
+                @page { size: letter landscape; margin: 30px; }
+                body { font-family: sans-serif; color: #1e293b; font-size: 12px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                th { background: #1e3a8a; color: white; padding: 8px; font-size: 10px; text-transform: uppercase; }
+            </style>
+        </head>
+        <body>
+            <h2 style="color: #1e3a8a; margin-bottom: 5px;">SICOOP COOPERATIVA - LIBRO MAYOR CONTABLE</h2>
+            <p style="margin-top: 0; color: #64748b;"><strong>Rango de Fechas:</strong> Desde ${fechaDesde} Hasta ${fechaHasta} | <strong>Fecha de emisión:</strong> ${fechaImpresion}</p>
+            
+            <div style="display: flex; gap: 20px; margin: 15px 0;">
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%; background: #f8fafc;">
+                    <small style="color: #64748b;">Total Debe (Prepagos)</small><br><strong style="color: #047857; font-size: 14px;">${totalDebe}</strong>
+                </div>
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%; background: #f8fafc;">
+                    <small style="color: #64748b;">Total Haber (Recepciones)</small><br><strong style="color: #b45309; font-size: 14px;">${totalHaber}</strong>
+                </div>
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%; background: #f8fafc;">
+                    <small style="color: #64748b;">Saldo Acumulado Final</small><br><strong style="color: #2563eb; font-size: 14px;">${saldoFinal}</strong>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="text-align:left;">Fecha</th>
+                        <th style="text-align:left;">Proveedor</th>
+                        <th style="text-align:left;">Producto</th>
+                        <th style="text-align:left;">Referencia / Lote</th>
+                        <th style="text-align:right;">Cantidad</th>
+                        <th style="text-align:right;">Debe (Prepago) Bs.</th>
+                        <th style="text-align:right;">Haber (Recibido) Bs.</th>
+                        <th style="text-align:right;">Saldo Bs.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filasHtml}
+                </tbody>
+            </table>
+            <script>window.onload = function() { window.print(); window.close(); };</script>
+        </body>
+        </html>
+    `);
+    win.document.close();
+}
+
+function imprimirReporteAuditoria() {
+    const elProv = document.getElementById("reporte-filtro-proveedor");
+    const elTipo = document.getElementById("reporte-filtro-tipo");
+    
+    const prov = (elProv && elProv.value) ? elProv.value : "Todos los Proveedores";
+    const tipo = (elTipo && elTipo.selectedIndex >= 0) ? elTipo.options[elTipo.selectedIndex].text : "Todos";
+    const fechaImpresion = formatearFecha(new Date().toISOString());
+
+    const elPrepagoBs = document.getElementById("aud-kpi-total-prepago-bs");
+    const elLiquidadoBs = document.getElementById("aud-kpi-total-liquidado-bs");
+    const elAjusteBs = document.getElementById("aud-kpi-ajuste-neto");
+
+    const prepagoBs = elPrepagoBs ? elPrepagoBs.innerText : "0,00";
+    const liquidadoBs = elLiquidadoBs ? elLiquidadoBs.innerText : "0,00";
+    const ajusteBs = elAjusteBs ? elAjusteBs.innerText : "0,00 Bs";
+
+    let filasHtml = "";
+    const tbody = document.getElementById("tabla-reportes-body");
+    if (tbody) {
+        const trs = tbody.querySelectorAll("tr");
+        trs.forEach(tr => {
+            const cols = tr.querySelectorAll("td");
+            if (cols.length >= 9) {
+                filasHtml += `
+                    <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+                        <td style="padding: 6px;">${cols[0].innerText}</td>
+                        <td style="padding: 6px; font-weight: bold; font-family: monospace;">${cols[1].innerText}</td>
+                        <td style="padding: 6px;">${cols[2].innerText}</td>
+                        <td style="padding: 6px;">${cols[3].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[4].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[5].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[6].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace; font-weight: bold;">${cols[7].innerText}</td>
+                        <td style="padding: 6px; text-align: center;">${cols[8].innerText}</td>
+                    </tr>
+                `;
+            }
+        });
+    }
+
+    const win = window.open('', '_blank', 'width=900,height=1100');
+    if (!win) return;
+
+    win.document.write(`
+        <html>
+        <head>
+            <title>Informe de Auditoría y Trazabilidad - SICOOP</title>
+            <style>
+                @page { size: letter landscape; margin: 30px; }
+                body { font-family: sans-serif; color: #1e293b; font-size: 12px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                th { background: #0f172a; color: white; padding: 8px; font-size: 10px; text-transform: uppercase; }
+            </style>
+        </head>
+        <body>
+            <h2>SICOOP COOPERATIVA - INFORME GENERAL DE AUDITORÍA</h2>
+            <p><strong>Proveedor:</strong> ${prov} | <strong>Filtro:</strong> ${tipo} | <strong>Fecha de emisión:</strong> ${fechaImpresion}</p>
+            
+            <div style="display: flex; gap: 20px; margin: 15px 0;">
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
+                    <small>Total Prepagado</small><br><strong>Bs. ${prepagoBs}</strong>
+                </div>
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
+                    <small>Total Liquidado</small><br><strong>Bs. ${liquidadoBs}</strong>
+                </div>
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
+                    <small>Ajuste Cambiario Neto</small><br><strong>${ajusteBs}</strong>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Lote / Factura</th>
+                        <th>Proveedor</th>
+                        <th>Producto</th>
+                        <th style="text-align:right;">Cantidad</th>
+                        <th style="text-align:right;">Tasa BCV</th>
+                        <th style="text-align:right;">Total ($)</th>
+                        <th style="text-align:right;">Monto Bs.</th>
+                        <th>Estatus</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filasHtml}
+                </tbody>
+            </table>
+            <script>window.onload = function() { window.print(); window.close(); };</script>
+        </body>
+        </html>
+    `);
+    win.document.close();
+}
+
+// INICIALIZACIÓN Y ENLACE AUTOMÁTICO DE EVENTOS EN EL DOM
+document.addEventListener("DOMContentLoaded", function() {
+    cargarDatos();
+
+    const formPrepago = document.getElementById("form-prepago");
+    if (formPrepago) {
+        formPrepago.addEventListener("submit", procesarEnvioPrepago);
+    }
+
+    const formRecepcion = document.getElementById("form-recepcion");
+    if (formRecepcion) {
+        formRecepcion.addEventListener("submit", procesarEnvioRecepcion);
+    }
+
+    const formProveedor = document.getElementById("form-proveedor");
+    if (formProveedor) {
+        formProveedor.addEventListener("submit", procesarEnvioProveedor);
+    }
+
+    const elTasaPrepago = document.getElementById("pre-tasa");
+    if (elTasaPrepago) {
+        elTasaPrepago.addEventListener("input", calcularTotalesPrepago);
+    }
+
+    // Eventos para filtros del Libro Mayor Contable
+    const elMayorDesde = document.getElementById("mayor-fecha-desde");
+    if (elMayorDesde) {
+        elMayorDesde.addEventListener("change", renderizarLibroMayor);
+    }
+
+    const elMayorHasta = document.getElementById("mayor-fecha-hasta");
+    if (elMayorHasta) {
+        elMayorHasta.addEventListener("change", renderizarLibroMayor);
+    }
+
+    // Vincular automáticamente el botón de Imprimir Libro Mayor
+    const botones = document.querySelectorAll("button");
+    botones.forEach(btn => {
+        if (btn.textContent.includes("Imprimir Libro Mayor")) {
+            btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                imprimirLibroMayor();
+            });
+        }
+    });
+});
+
+// Redibujar gráficos automáticamente al cambiar el tamaño de la pantalla
+window.addEventListener('resize', function() {
+    if (chartsCargados && cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.resumenConsolidated) {
+        const modDashboard = document.getElementById('mod-dashboard');
+        if (modDashboard && !modDashboard.classList.contains('hidden')) {
+            dibujarGraficos(cacheUltimosDatos.data.resumenConsolidated);
         }
     }
-});
+});        
