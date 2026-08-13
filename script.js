@@ -1,9 +1,9 @@
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";[cite: 3]
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUTz-A1b6Q2QUZsU_uJC023IWgscqp2Ga-U2WxoORnQuYlLDvebCfIFlYjZBTfb2Ddiw/exec";
 
-let cacheProveedores = [];[cite: 3]
-let cacheHistorialDespachos = [];[cite: 3]
-let cacheUltimosDatos = null;[cite: 3]
-let chartsCargados = false;[cite: 3]
+let cacheProveedores = [];
+let cacheHistorialDespachos = [];
+let cacheUltimosDatos = null;
+let chartsCargados = false;
 
 // Formateador numérico regional (Miles: Punto | Decimales: Coma)
 function formatearMonto(valor) {
@@ -1496,99 +1496,6 @@ function renderizarLibroMayor() {
     if (document.getElementById("mayor-saldo-final")) document.getElementById("mayor-saldo-final").innerText = "Bs. " + formatearMonto(saldoAcumulado);
 }
 
-// Función de impresión para el Libro Mayor Contable
-function imprimirLibroMayor() {
-    const elDesde = document.getElementById("mayor-fecha-desde");
-    const elHasta = document.getElementById("mayor-fecha-hasta");
-    const fechaDesde = elDesde && elDesde.value ? formatearFecha(elDesde.value) : "Inicio";
-    const fechaHasta = elHasta && elHasta.value ? formatearFecha(elHasta.value) : "Actualidad";
-    const fechaImpresion = formatearFecha(new Date().toISOString());
-
-    const elTotalDebe = document.getElementById("mayor-total-debe");
-    const elTotalHaber = document.getElementById("mayor-total-haber");
-    const elSaldoFinal = document.getElementById("mayor-saldo-final");
-
-    const totalDebe = elTotalDebe ? elTotalDebe.innerText : "Bs. 0,00";
-    const totalHaber = elTotalHaber ? elTotalHaber.innerText : "Bs. 0,00";
-    const saldoFinal = elSaldoFinal ? elSaldoFinal.innerText : "Bs. 0,00";
-
-    let filasHtml = "";
-    const tbody = document.getElementById("tabla-libro-mayor-body");
-    if (tbody) {
-        const trs = tbody.querySelectorAll("tr");
-        trs.forEach(tr => {
-            const cols = tr.querySelectorAll("td");
-            if (cols.length >= 8) {
-                filasHtml += `
-                    <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
-                        <td style="padding: 6px; font-family: monospace;">${cols[0].innerText}</td>
-                        <td style="padding: 6px;">${cols[1].innerText}</td>
-                        <td style="padding: 6px;">${cols[2].innerText}</td>
-                        <td style="padding: 6px; font-family: monospace; font-weight: bold; color: #1e3a8a;">${cols[3].innerText}</td>
-                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[4].innerText}</td>
-                        <td style="padding: 6px; text-align: right; font-family: monospace; color: #047857; font-weight: bold;">${cols[5].innerText}</td>
-                        <td style="padding: 6px; text-align: right; font-family: monospace; color: #b45309; font-weight: bold;">${cols[6].innerText}</td>
-                        <td style="padding: 6px; text-align: right; font-family: monospace; font-weight: bold; color: #2563eb;">${cols[7].innerText}</td>
-                    </tr>
-                `;
-            }
-        });
-    }
-
-    const win = window.open('', '_blank', 'width=900,height=1100');
-    if (!win) return;
-
-    win.document.write(`
-        <html>
-        <head>
-            <title>Libro Mayor Contable (Auxiliar de Prepagos) - SICOOP</title>
-            <style>
-                @page { size: letter landscape; margin: 30px; }
-                body { font-family: sans-serif; color: #1e293b; font-size: 12px; }
-                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-                th { background: #1e3a8a; color: white; padding: 8px; font-size: 10px; text-transform: uppercase; }
-            </style>
-        </head>
-        <body>
-            <h2 style="color: #1e3a8a; margin-bottom: 5px;">SICOOP COOPERATIVA - LIBRO MAYOR CONTABLE</h2>
-            <p style="margin-top: 0; color: #64748b;"><strong>Rango de Fechas:</strong> Desde ${fechaDesde} Hasta ${fechaHasta} | <strong>Fecha de emisión:</strong> ${fechaImpresion}</p>
-            
-            <div style="display: flex; gap: 20px; margin: 15px 0;">
-                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%; background: #f8fafc;">
-                    <small style="color: #64748b;">Total Debe (Prepagos)</small><br><strong style="color: #047857; font-size: 14px;">${totalDebe}</strong>
-                </div>
-                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%; background: #f8fafc;">
-                    <small style="color: #64748b;">Total Haber (Recepciones)</small><br><strong style="color: #b45309; font-size: 14px;">${totalHaber}</strong>
-                </div>
-                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%; background: #f8fafc;">
-                    <small style="color: #64748b;">Saldo Acumulado Final</small><br><strong style="color: #2563eb; font-size: 14px;">${saldoFinal}</strong>
-                </div>
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th style="text-align:left;">Fecha</th>
-                        <th style="text-align:left;">Proveedor</th>
-                        <th style="text-align:left;">Producto</th>
-                        <th style="text-align:left;">Referencia / Lote</th>
-                        <th style="text-align:right;">Cantidad</th>
-                        <th style="text-align:right;">Debe (Prepago) Bs.</th>
-                        <th style="text-align:right;">Haber (Recibido) Bs.</th>
-                        <th style="text-align:right;">Saldo Bs.</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${filasHtml}
-                </tbody>
-            </table>
-            <script>window.onload = function() { window.print(); window.close(); };</script>
-        </body>
-        </html>
-    `);
-    win.document.close();
-}
-
 function imprimirReporteAuditoria() {
     const elProv = document.getElementById("reporte-filtro-proveedor");
     const elTipo = document.getElementById("reporte-filtro-tipo");
@@ -1718,17 +1625,6 @@ document.addEventListener("DOMContentLoaded", function() {
     if (elMayorHasta) {
         elMayorHasta.addEventListener("change", renderizarLibroMayor);
     }
-
-    // Vincular automáticamente el botón de Imprimir Libro Mayor
-    const botones = document.querySelectorAll("button");
-    botones.forEach(btn => {
-        if (btn.textContent.includes("Imprimir Libro Mayor")) {
-            btn.addEventListener("click", (e) => {
-                e.preventDefault();
-                imprimirLibroMayor();
-            });
-        }
-    });
 });
 
 // Redibujar gráficos automáticamente al cambiar el tamaño de la pantalla
