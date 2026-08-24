@@ -5,6 +5,11 @@ let cacheHistorialDespachos = [];
 let cacheUltimosDatos = null;
 let chartsCargados = false;
 
+// Variables globales para el sistema de seguridad dinámica y OTP
+let codigoOtpActual = null;
+let otpTimestamp = null;
+let accionPendienteSeguridad = null;
+
 // Formateador numérico regional (Miles: Punto | Decimales: Coma)
 function formatearMonto(valor) {
     const numero = parseFloat(valor);
@@ -63,7 +68,7 @@ function cargarDatos() {
                 renderizarDashboard(resultado.data);
                 actualizarInterfacesProveedores();
                 renderizarTablaReportes();
-                renderizarLibroMayor(); // Carga automática del Libro Mayor
+                renderizarLibroMayor(); 
                 configurarFechaPorDefecto();
             }
         } catch (err) { console.error("Error procesando datos:", err); }
@@ -1320,18 +1325,16 @@ function renderizarTablaReportes() {
 }
 
 // ==========================================
-// LIBRO MAYOR CONTABLE (NUEVO MÓDULO INTEGRADO)
+// LIBRO MAYOR CONTABLE
 // ==========================================
 function parsearFechaSegura(strFecha) {
     if (!strFecha) return new Date(0);
     if (strFecha instanceof Date) return isNaN(strFecha) ? new Date(0) : strFecha;
     
-    // Si es formato YYYY-MM-DD
     if (/^\d{4}-\d{2}-\d{2}/.test(strFecha)) {
         const d = new Date(strFecha.substring(0, 10) + "T00:00:00");
         return isNaN(d) ? new Date(0) : d;
     }
-    // Si es formato DD/MM/YYYY
     if (/^\d{2}\/\d{2}\/\d{4}/.test(strFecha)) {
         const partes = strFecha.split('/');
         const d = new Date(`${partes[2]}-${partes[1]}-${partes[0]}T00:00:00`);
@@ -1355,7 +1358,6 @@ function renderizarLibroMayor() {
 
     let movimientos = [];
 
-    // 0. Crear un mapa/diccionario de los lotes originales para buscar sus costos y tasas de origen
     let mapaLotes = {};
     if (cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
         cacheUltimosDatos.data.detallesLotes.forEach(l => {
@@ -1371,7 +1373,6 @@ function renderizarLibroMayor() {
         });
     }
 
-    // 1. Unificar Prepagos (DEBE)
     if (cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
         cacheUltimosDatos.data.detallesLotes.forEach(l => {
             const cantOrig = parseFloat(l.cantOriginal || l.cantidad || l.cantUnidades || l.cantidadTotal) || 0;
@@ -1393,10 +1394,8 @@ function renderizarLibroMayor() {
         });
     }
 
-    // 2. Unificar Recepciones / Despachos (HABER) - Escaneo inteligente y universal
     if (Array.isArray(cacheHistorialDespachos)) {
         cacheHistorialDespachos.forEach(h => {
-            // Búsqueda inteligente de la cantidad de unidades
             let cantDesp = 0;
             const possibleCantKeys = ['cantidadDespachada', 'cantDespachada', 'cantidad', 'cantRecibida', 'cantidadRecibida', 'unidades', 'cantidadUnidades', 'cantUnidades', 'cantidadConsumida', 'cantConsumida', 'qty', 'cantidadMovimiento', 'cant'];
             for (let key of possibleCantKeys) {
@@ -1423,7 +1422,6 @@ function renderizarLibroMayor() {
             const costoUsd = loteInfo.costoUsd || parseFloat(h.costoUsdUnit || h.costoUnitario || h.precioUsd || h.costoUsd || h.costo) || 0;
             const tasaOrig = loteInfo.tasaOriginal || parseFloat(h.tasaRecepcion || h.tasa || h.tasaCambio || 1) || 1;
             
-            // Búsqueda inteligente del monto en bolívares (Haber)
             let haberBs = 0;
             const possibleBsKeys = ['totalBsRecepcion', 'montoBs', 'totalBs', 'montoRecepcion', 'montoTotalBs', 'totalBsDespacho', 'montoBsDespacho', 'totalBolivares', 'subtotalBs', 'total', 'monto', 'importeBs'];
             for (let key of possibleBsKeys) {
@@ -1452,7 +1450,6 @@ function renderizarLibroMayor() {
         });
     }
 
-    // 3. Ordenar cronológicamente por fecha para cálculo continuo de saldo
     movimientos.sort((a, b) => a.fechaObj - b.fechaObj);
 
     let saldoAcumulado = 0;
@@ -1461,10 +1458,8 @@ function renderizarLibroMayor() {
     let contadorFilas = 0;
 
     movimientos.forEach(m => {
-        // Cálculo del Saldo (DEBE suma, HABER resta)
         saldoAcumulado += (m.debe - m.haber);
 
-        // Filtro por fecha desde / hasta
         if (fechaDesde && m.fechaObj < fechaDesde) return;
         if (fechaHasta && m.fechaObj > fechaHasta) return;
 
@@ -1490,7 +1485,6 @@ function renderizarLibroMayor() {
         tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-6 text-center text-xs text-slate-500 italic">No se encontraron movimientos en el rango de fechas seleccionado.</td></tr>`;
     }
 
-    // Actualización de KPIs del Libro Mayor
     if (document.getElementById("mayor-total-debe")) document.getElementById("mayor-total-debe").innerText = "Bs. " + formatearMonto(totalDebe);
     if (document.getElementById("mayor-total-haber")) document.getElementById("mayor-total-haber").innerText = "Bs. " + formatearMonto(totalHaber);
     if (document.getElementById("mayor-saldo-final")) document.getElementById("mayor-saldo-final").innerText = "Bs. " + formatearMonto(saldoAcumulado);
@@ -1591,6 +1585,154 @@ function imprimirReporteAuditoria() {
     win.document.close();
 }
 
+// ==========================================
+// SISTEMA DE SEGURIDAD DINÁMICA Y OTP POR CORREO
+// ==========================================
+function solicitarPinSeguridad(accion) {
+    accionPendienteSeguridad = accion;
+    const modal = document.getElementById("modal-seguridad");
+    if (!modal) {
+        alert("⚠️ No se encontró el componente visual del Modal de Seguridad en el HTML.");
+        return;
+    }
+    
+    const inputPin = document.getElementById("input-pin-seguridad");
+    if (inputPin) inputPin.value = "";
+    
+    const infoContainer = document.getElementById("info-envio-otp");
+    if (infoContainer) infoContainer.innerText = "Enviando código de seguridad a prepagodemercancia@gmail.com...";
+
+    modal.classList.remove("hidden");
+
+    const payload = {
+        accion: "enviar_pin_seguridad",
+        data: { correoDestino: "prepagodemercancia@gmail.com" }
+    };
+
+    window.respuestaPinGoogle = function(res) {
+        if (res && res.status === "success") {
+            codigoOtpActual = String(res.pin);
+            otpTimestamp = new Date().getTime();
+            if (infoContainer) infoContainer.innerText = "✅ Código enviado con éxito a prepagodemercancia@gmail.com. Revise su bandeja.";
+        } else {
+            if (infoContainer) infoContainer.innerText = "❌ Error al enviar el código por correo. Verifique Apps Script.";
+        }
+        const loader = document.getElementById('jsonp-pin-loader');
+        if (loader) loader.remove();
+    };
+
+    const scriptPin = document.createElement('script');
+    scriptPin.id = 'jsonp-pin-loader';
+    const datosSerializados = encodeURIComponent(JSON.stringify(payload));
+    scriptPin.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaPinGoogle&payload=${datosSerializados}`;
+    
+    scriptPin.onerror = function() {
+        if (infoContainer) infoContainer.innerText = "❌ Error de conexión al solicitar el PIN.";
+        const loader = document.getElementById('jsonp-pin-loader');
+        if (loader) loader.remove();
+    };
+
+    document.body.appendChild(scriptPin);
+}
+
+function cerrarModalSeguridad() {
+    const modal = document.getElementById("modal-seguridad");
+    if (modal) modal.classList.add("hidden");
+    accionPendienteSeguridad = null;
+    codigoOtpActual = null;
+}
+
+function validarPinSeguridad() {
+    const inputPin = document.getElementById("input-pin-seguridad");
+    const pinIngresado = inputPin ? inputPin.value.trim() : "";
+
+    if (!pinIngresado || pinIngresado.length !== 6) {
+        alert("⚠️ Por favor, ingrese un código PIN válido de 6 dígitos.");
+        return;
+    }
+
+    const ahora = new Date().getTime();
+    if (!codigoOtpActual || (ahora - otpTimestamp > 10 * 60 * 1000)) {
+        alert("⚠️ El código PIN ha expirado. Por favor, solicite uno nuevo.");
+        return;
+    }
+
+    if (pinIngresado === codigoOtpActual) {
+        alert("🔓 Acceso autorizado correctamente.");
+        cerrarModalSeguridad();
+
+        if (typeof accionPendienteSeguridad === 'function') {
+            accionPendienteSeguridad();
+        }
+    } else {
+        alert("❌ Código PIN incorrecto. Intente nuevamente.");
+    }
+}
+
+// Funciones protegidas de Edición y Reimpresión
+function iniciarEdicionPrepago(idLote) {
+    solicitarPinSeguridad(function() {
+        const loteEncontrado = cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes ? 
+            cacheUltimosDatos.data.detallesLotes.find(l => l.idLote === idLote) : null;
+        
+        if (!loteEncontrado) {
+            alert("No se encontró el lote para editar.");
+            return;
+        }
+
+        cambiarModulo('mod-prepagos');
+        
+        const elProv = document.getElementById("pre-proveedor");
+        if (elProv) {
+            elProv.value = loteEncontrado.proveedor;
+            actualizarFlujoProveedorPrepago(loteEncontrado.proveedor);
+        }
+
+        const elLoteSugerido = document.getElementById("pre-lote-sugerido");
+        if (elLoteSugerido) elLoteSugerido.innerText = loteEncontrado.idLote;
+
+        const elTasa = document.getElementById("pre-tasa");
+        if (elTasa) elTasa.value = loteEncontrado.tasaOriginal || 1;
+
+        const elFecha = document.getElementById("pre-fecha");
+        if (elFecha && loteEncontrado.fecha) {
+            elFecha.value = loteEncontrado.fecha.split('T')[0];
+        }
+
+        const contItems = document.getElementById("contenedor-items-prepago");
+        if (contItems) {
+            contItems.innerHTML = "";
+            agregarFilaMercanciaPrepago();
+            const fila = contItems.querySelector(".item-fila-prepago");
+            if (fila) {
+                const prodSel = fila.querySelector(".item-producto");
+                const cantInp = fila.querySelector(".item-cantidad");
+                const costoInp = fila.querySelector(".item-costo-usd");
+                
+                if (prodSel) prodSel.value = loteEncontrado.producto;
+                if (cantInp) cantInp.value = loteEncontrado.cantOriginal;
+                if (costoInp) costoInp.value = loteEncontrado.costoUsd;
+                
+                calcularTotalesPrepago();
+            }
+        }
+        
+        alert(`✏️ Modo Edición activado para el Lote: ${idLote}. Modifique los valores y presione Guardar.`);
+    });
+}
+
+function reimpresionSeguraPrepago() {
+    solicitarPinSeguridad(function() {
+        imprimirReciboPrepago();
+    });
+}
+
+function reimpresionSeguraRecepcion() {
+    solicitarPinSeguridad(function() {
+        imprimirComprobanteRecepcion();
+    });
+}
+
 // INICIALIZACIÓN Y ENLACE AUTOMÁTICO DE EVENTOS EN EL DOM
 document.addEventListener("DOMContentLoaded", function() {
     cargarDatos();
@@ -1615,7 +1757,6 @@ document.addEventListener("DOMContentLoaded", function() {
         elTasaPrepago.addEventListener("input", calcularTotalesPrepago);
     }
 
-    // Eventos para filtros del Libro Mayor Contable
     const elMayorDesde = document.getElementById("mayor-fecha-desde");
     if (elMayorDesde) {
         elMayorDesde.addEventListener("change", renderizarLibroMayor);
@@ -1627,7 +1768,6 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-// Redibujar gráficos automáticamente al cambiar el tamaño de la pantalla
 window.addEventListener('resize', function() {
     if (chartsCargados && cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.resumenConsolidated) {
         const modDashboard = document.getElementById('mod-dashboard');
