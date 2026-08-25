@@ -1650,7 +1650,7 @@ function validarPinSeguridad() {
     const pinIngresado = inputPin ? inputPin.value.trim() : "";
 
     // Clave maestra fija estricta solicitada
-    const CLAVE_MAESTRA = "010263"; 
+    const CLAVE_MAESTRA = "121963"; 
 
     if (!pinIngresado) {
         alert("⚠️ Por favor, ingrese la clave de acceso.");
