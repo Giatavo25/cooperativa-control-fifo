@@ -1646,21 +1646,26 @@ function validarPinSeguridad() {
     const inputPin = document.getElementById("input-pin-seguridad");
     const pinIngresado = inputPin ? inputPin.value.trim() : "";
 
-    // Define aquí tu contraseña maestra fija
-    const CLAVE_MAESTRA_FIJA = "010263"; 
+    // Clave maestra fija solicitada
+    const CLAVE_MAESTRA = "010263"; 
 
     if (!pinIngresado) {
         alert("⚠️ Por favor, ingrese la clave de acceso.");
         return;
     }
 
-    if (pinIngresado === CLAVE_MAESTRA_FIJA) {
+    if (pinIngresado === CLAVE_MAESTRA) {
         alert("🔓 Acceso autorizado correctamente.");
         cerrarModalSeguridad();
 
+        // 1. Ejecutar la acción pendiente original si existía
         if (typeof accionPendienteSeguridad === 'function') {
             accionPendienteSeguridad();
         }
+
+        // 2. Habilitar la opción de editar prepagos ya realizados y la recepción con reimpresión
+        habilitarFuncionesAdministrativas();
+
     } else {
         alert("❌ Clave de acceso incorrecta. Intente nuevamente.");
     }
