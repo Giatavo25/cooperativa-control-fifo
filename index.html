@@ -55,9 +55,9 @@
                 <button id="nav-mod-reportes" onclick="cambiarModulo('mod-reportes')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
                     📋 Reportes / Auditoría
                 </button>
-                <!-- NUEVO BOTÓN DE SEGURIDAD OTP -->
+                <!-- BOTÓN DE SEGURIDAD / CLAVE MAESTRA -->
                 <button id="nav-mod-seguridad-otp" onclick="solicitarPinSeguridad('Verificacion Manual')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
-                    🔑 Seguridad OTP
+                    🔑 Seguridad Clave Maestra
                 </button>
             </nav>
         </div>
@@ -138,8 +138,12 @@
                         <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
                             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                                 <h3 class="font-bold text-white text-sm">Datos Básicos del Prepago</h3>
-                                <div class="text-xs font-mono bg-blue-900/50 text-blue-300 border border-blue-700 px-3 py-1 rounded">
-                                    LOTE SUGERIDO: <span id="pre-lote-sugerido" class="font-bold">AUTO-GEN</span>
+                                <div class="flex items-center gap-2">
+                                    <!-- Botón para habilitar la edición de prepagos existentes -->
+                                    <button type="button" id="btn-editar-prepago" onclick="solicitarPinSeguridad('Editar Prepago')" class="hidden bg-amber-600 hover:bg-amber-500 text-white px-3 py-1 rounded text-xs font-bold transition">✏️ Habilitar Edición</button>
+                                    <div class="text-xs font-mono bg-blue-900/50 text-blue-300 border border-blue-700 px-3 py-1 rounded">
+                                        LOTE SUGERIDO: <span id="pre-lote-sugerido" class="font-bold">AUTO-GEN</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -232,7 +236,11 @@
             <section id="mod-recepcion" class="modulo hidden space-y-6">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <form id="form-recepcion" autocomplete="off" class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
-                        <h3 class="font-bold text-white text-sm border-b border-slate-800 pb-3">Registro de Carga Física</h3>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                            <h3 class="font-bold text-white text-sm">Registro de Carga Física</h3>
+                            <!-- Botón de reimpresión rápida de recepción protegido / accesible -->
+                            <button type="button" id="btn-reimprimir-recepcion" onclick="solicitarPinSeguridad('Reimprimir Recepcion')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded text-xs font-bold transition flex items-center gap-1">🖨️ Reimprimir</button>
+                        </div>
                         
                         <div>
                             <label for="rec-guia" class="block text-xs font-semibold text-slate-400 mb-1">NRO FACTURA / CONTROL</label>
@@ -538,6 +546,7 @@
             </p>
             <div>
                 <label class="block text-xs font-semibold text-slate-400 mb-1">CLAVE DE ACCESO</label>
+                <!-- ID CORREGIDO A input-codigo-seguridad PARA VALIDAR CON 010263 -->
                 <input type="password" id="input-codigo-seguridad" maxlength="6" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-center font-mono text-lg text-white tracking-widest focus:outline-none focus:border-blue-500" placeholder="------">
             </div>
             <div class="flex justify-end space-x-2 pt-2">
