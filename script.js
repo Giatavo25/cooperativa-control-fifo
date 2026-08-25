@@ -1241,8 +1241,11 @@ function renderizarTablaReportes() {
                 totalPrepagoBs += totalBs;
                 contadorOps++;
 
+                // Botón de Edición condicional integrado de forma limpia
+                const botonEditarHtml = `<button onclick="iniciarEdicionPrepago('${l.idLote}')" class="ml-2 bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-700 px-2 py-0.5 rounded text-[10px] font-bold transition">✏️ Editar</button>`;
+
                 const estatusBadge = (cantDisp > 0) 
-                    ? `<span class="bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded text-[10px] font-bold">ACTIVO (${formatearMonto(cantDisp)} PEND.)</span>`
+                    ? `<span class="bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded text-[10px] font-bold">ACTIVO (${formatearMonto(cantDisp)} PEND.)</span> ${botonEditarHtml}`
                     : `<span class="bg-slate-800 text-slate-400 border border-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">LIQUIDADO / CERRADO</span>`;
 
                 listaRender.push({
@@ -1324,9 +1327,7 @@ function renderizarTablaReportes() {
     });
 }
 
-// ==========================================
 // LIBRO MAYOR CONTABLE
-// ==========================================
 function parsearFechaSegura(strFecha) {
     if (!strFecha) return new Date(0);
     if (strFecha instanceof Date) return isNaN(strFecha) ? new Date(0) : strFecha;
@@ -1586,7 +1587,7 @@ function imprimirReporteAuditoria() {
 }
 
 // ==========================================
-// SISTEMA DE SEGURIDAD DINÁMICA Y OTP POR CORREO
+// SISTEMA DE SEGURIDAD DINÁMICA Y VALIDACIÓN MAESTRA
 // ==========================================
 function solicitarPinSeguridad(accion) {
     accionPendienteSeguridad = accion;
@@ -1596,11 +1597,12 @@ function solicitarPinSeguridad(accion) {
         return;
     }
     
-    const inputPin = document.getElementById("input-pin-seguridad");
+    // Soporte seguro para ambos IDs (`input-pin-seguridad` y `input-codigo-seguridad`)
+    const inputPin = document.getElementById("input-pin-seguridad") || document.getElementById("input-codigo-seguridad");
     if (inputPin) inputPin.value = "";
     
     const infoContainer = document.getElementById("info-envio-otp");
-    if (infoContainer) infoContainer.innerText = "Enviando código de seguridad a prepagodemercancia@gmail.com...";
+    if (infoContainer) infoContainer.innerText = "Enviando código de seguridad o ingrese su clave maestra...";
 
     modal.classList.remove("hidden");
 
@@ -1613,9 +1615,9 @@ function solicitarPinSeguridad(accion) {
         if (res && res.status === "success") {
             codigoOtpActual = String(res.pin);
             otpTimestamp = new Date().getTime();
-            if (infoContainer) infoContainer.innerText = "✅ Código enviado con éxito a prepagodemercancia@gmail.com. Revise su bandeja.";
+            if (infoContainer) infoContainer.innerText = "✅ Código enviado con éxito a prepagodemercancia@gmail.com. Revise su bandeja o ingrese la clave maestra.";
         } else {
-            if (infoContainer) infoContainer.innerText = "❌ Error al enviar el código por correo. Verifique Apps Script.";
+            if (infoContainer) infoContainer.innerText = "⚠️ Clave maestra o sistema alternativo listo.";
         }
         const loader = document.getElementById('jsonp-pin-loader');
         if (loader) loader.remove();
@@ -1627,7 +1629,7 @@ function solicitarPinSeguridad(accion) {
     scriptPin.src = `${WEB_APP_URL}${WEB_APP_URL.includes('?') ? '&' : '?'}callback=respuestaPinGoogle&payload=${datosSerializados}`;
     
     scriptPin.onerror = function() {
-        if (infoContainer) infoContainer.innerText = "❌ Error de conexión al solicitar el PIN.";
+        if (infoContainer) infoContainer.innerText = "⚠️ Validación por clave maestra activa.";
         const loader = document.getElementById('jsonp-pin-loader');
         if (loader) loader.remove();
     };
@@ -1643,10 +1645,11 @@ function cerrarModalSeguridad() {
 }
 
 function validarPinSeguridad() {
-    const inputPin = document.getElementById("input-pin-seguridad");
+    // Lectura robusta del input utilizando ambos IDs requeridos por compatibilidad HTML
+    const inputPin = document.getElementById("input-codigo-seguridad") || document.getElementById("input-pin-seguridad");
     const pinIngresado = inputPin ? inputPin.value.trim() : "";
 
-    // Clave maestra fija solicitada
+    // Clave maestra fija estricta solicitada
     const CLAVE_MAESTRA = "010263"; 
 
     if (!pinIngresado) {
@@ -1654,7 +1657,7 @@ function validarPinSeguridad() {
         return;
     }
 
-    if (pinIngresado === CLAVE_MAESTRA) {
+    if (pinIngresado === CLAVE_MAESTRA || (codigoOtpActual && pinIngresado === codigoOtpActual)) {
         alert("🔓 Acceso autorizado correctamente.");
         cerrarModalSeguridad();
 
@@ -1663,7 +1666,7 @@ function validarPinSeguridad() {
             accionPendienteSeguridad();
         }
 
-        // 2. Habilitar la opción de editar prepagos ya realizados y la recepción con reimpresión
+        // 2. Habilitar dinámicamente las funciones administrativas
         habilitarFuncionesAdministrativas();
 
     } else {
@@ -1671,7 +1674,24 @@ function validarPinSeguridad() {
     }
 }
 
-// Funciones protegidas de Edición y Reimpresión
+// Activación y habilitación limpia de botones de reimpresión y edición avanzada
+function habilitarFuncionesAdministrativas() {
+    // Activar botón o sección de reimpresión en el módulo de recepción si existe
+    const btnReimprimirRec = document.getElementById("btn-imprimir-recepcion");
+    if (btnReimprimirRec) {
+        btnReimprimirRec.disabled = false;
+        btnReimprimirRec.classList.remove("opacity-50", "cursor-not-allowed");
+    }
+
+    // Activar botón de reimpresión en prepagos
+    const btnReimprimirPre = document.getElementById("btn-imprimir-prepago");
+    if (btnReimprimirPre) {
+        btnReimprimirPre.disabled = false;
+        btnReimprimirPre.classList.remove("opacity-50", "cursor-not-allowed");
+    }
+}
+
+// Funciones protegidas de Edición y Reimpresión Seguras
 function iniciarEdicionPrepago(idLote) {
     solicitarPinSeguridad(function() {
         const loteEncontrado = cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes ? 
