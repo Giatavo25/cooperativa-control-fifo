@@ -1646,18 +1646,15 @@ function validarPinSeguridad() {
     const inputPin = document.getElementById("input-pin-seguridad");
     const pinIngresado = inputPin ? inputPin.value.trim() : "";
 
-    if (!pinIngresado || pinIngresado.length !== 6) {
-        alert("⚠️ Por favor, ingrese un código PIN válido de 6 dígitos.");
+    // Define aquí tu contraseña maestra fija
+    const CLAVE_MAESTRA_FIJA = "010263"; 
+
+    if (!pinIngresado) {
+        alert("⚠️ Por favor, ingrese la clave de acceso.");
         return;
     }
 
-    const ahora = new Date().getTime();
-    if (!codigoOtpActual || (ahora - otpTimestamp > 10 * 60 * 1000)) {
-        alert("⚠️ El código PIN ha expirado. Por favor, solicite uno nuevo.");
-        return;
-    }
-
-    if (pinIngresado === codigoOtpActual) {
+    if (pinIngresado === CLAVE_MAESTRA_FIJA) {
         alert("🔓 Acceso autorizado correctamente.");
         cerrarModalSeguridad();
 
@@ -1665,7 +1662,7 @@ function validarPinSeguridad() {
             accionPendienteSeguridad();
         }
     } else {
-        alert("❌ Código PIN incorrecto. Intente nuevamente.");
+        alert("❌ Clave de acceso incorrecta. Intente nuevamente.");
     }
 }
 
