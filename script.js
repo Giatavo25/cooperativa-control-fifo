@@ -10,6 +10,14 @@ let codigoOtpActual = null;
 let otpTimestamp = null;
 let accionPendienteSeguridad = null;
 
+// Variables globales para la selección manual de lote en Recepción de Carga
+// (excepción puntual al orden FIFO automático, ej: el proveedor despacha un lote
+// distinto al más viejo para cuadrar la capacidad de carga del vehículo)
+let modoSeleccionLoteActivo = false;
+let lotesSeleccionadosManual = [];
+let _recCascadaUltimoProv = null;
+let _recCascadaUltimoProd = null;
+
 // Formateador numérico regional (Miles: Punto | Decimales: Coma)
 function formatearMonto(valor) {
     const numero = parseFloat(valor);
@@ -667,27 +675,43 @@ function actualizarTablaRecepcionCascada() {
     const prod = document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "";
     const cantRecepcion = parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0;
 
+    // Si cambió el proveedor o el producto, la selección manual anterior ya no aplica
+    if (prov !== _recCascadaUltimoProv || prod !== _recCascadaUltimoProd) {
+        lotesSeleccionadosManual = [];
+        _recCascadaUltimoProv = prov;
+        _recCascadaUltimoProd = prod;
+    }
+
+    const colspanTabla = modoSeleccionLoteActivo ? 9 : 8;
     const tbody = document.getElementById("rec-tabla-lotes-body");
     if (!tbody) return;
     tbody.innerHTML = "";
 
     if (!prov || !prod || !cacheUltimosDatos || !cacheUltimosDatos.data || !Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
-        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-4 text-center text-xs text-slate-500 italic">Seleccione proveedor y producto para cargar desglose FIFO</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${colspanTabla}" class="px-4 py-4 text-center text-xs text-slate-500 italic">Seleccione proveedor y producto para cargar desglose FIFO</td></tr>`;
         resetearKPIsRecepcion();
         return;
     }
 
-    const lotesDisponibles = cacheUltimosDatos.data.detallesLotes.filter(l => 
+    let lotesDisponibles = cacheUltimosDatos.data.detallesLotes.filter(l => 
         l.proveedor === prov && 
         l.producto === prod && 
         (parseFloat(l.cantDisponible) || 0) > 0
     );
 
     if (lotesDisponibles.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-4 text-center text-xs text-amber-500 italic">⚠️ No hay lotes pendientes para este producto</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${colspanTabla}" class="px-4 py-4 text-center text-xs text-amber-500 italic">⚠️ No hay lotes pendientes para este producto</td></tr>`;
         resetearKPIsRecepcion();
         return;
     }
+
+    // MODO SELECCIÓN MANUAL: en vez del orden FIFO natural (más viejo primero), el "orden de
+    // consumo" para el cálculo pasa a ser únicamente los lotes marcados por el usuario, en el
+    // orden en que los marcó. Los lotes no marcados se siguen listando (con checkbox) pero con
+    // cantidad tomada = 0, para que el usuario pueda seguir eligiendo.
+    const ordenConsumo = modoSeleccionLoteActivo
+        ? lotesSeleccionadosManual.map(id => lotesDisponibles.find(l => l.idLote === id)).filter(Boolean)
+        : lotesDisponibles;
 
     let remanenteTemp = cantRecepcion;
     let sumUsdOriginal = 0;
@@ -695,24 +719,34 @@ function actualizarTablaRecepcionCascada() {
 
     lotesDisponibles.forEach(lote => {
         const cantDisponible = parseFloat(lote.cantDisponible) || 0;
+        const costoUsdUnit = parseFloat(lote.costoUsd) || 0;
         let cantTomada = 0;
 
-        if (remanenteTemp > 0) {
-            cantTomada = Math.min(remanenteTemp, cantDisponible);
-            remanenteTemp -= cantTomada;
-        }
-
-        const costoUsdUnit = parseFloat(lote.costoUsd) || 0;
-        const totalUsdTomado = cantTomada * costoUsdUnit;
-        sumUsdOriginal += totalUsdTomado;
+        // Solo entran en el reparto los lotes que forman parte del orden de consumo vigente
+        // (todos en modo automático; solo los seleccionados en modo manual).
+        const participaEnConsumo = ordenConsumo.some(l => l.idLote === lote.idLote);
 
         itemsProcesados.push({
             lote,
             cantDisponible,
             cantTomada,
             costoUsdUnit,
-            totalUsdTomado
+            totalUsdTomado: 0,
+            participaEnConsumo
         });
+    });
+
+    ordenConsumo.forEach(loteConsumo => {
+        if (remanenteTemp <= 0) return;
+        const item = itemsProcesados.find(i => i.lote.idLote === loteConsumo.idLote);
+        if (!item) return;
+
+        const cantTomada = Math.min(remanenteTemp, item.cantDisponible);
+        remanenteTemp -= cantTomada;
+
+        item.cantTomada = cantTomada;
+        item.totalUsdTomado = cantTomada * item.costoUsdUnit;
+        sumUsdOriginal += item.totalUsdTomado;
     });
 
     let remanentePorDespachar = cantRecepcion;
@@ -741,9 +775,15 @@ function actualizarTablaRecepcionCascada() {
         sumBsOriginal += totalBsOrigenTomado;
         sumBsActual += totalBsActualTomado;
 
+        const estaSeleccionado = lotesSeleccionadosManual.includes(lote.idLote);
+        const celdaCheckbox = modoSeleccionLoteActivo
+            ? `<td class="px-3 py-2 text-center"><input type="checkbox" class="accent-amber-500 w-3.5 h-3.5 cursor-pointer" ${estaSeleccionado ? 'checked' : ''} onchange="toggleLoteManualSeleccionado('${lote.idLote}', this.checked)"></td>`
+            : '';
+
         const row = document.createElement("tr");
         row.className = cantTomada > 0 ? "bg-blue-950/30 border-b border-slate-800" : "opacity-40 border-b border-slate-800";
         row.innerHTML = `
+            ${celdaCheckbox}
             <td class="px-3 py-2 font-mono text-xs font-bold text-blue-400">${lote.idLote}</td>
             <td class="px-3 py-2 font-mono text-xs text-right">${formatearMonto(cantDisponible)}</td>
             <td class="px-3 py-2 font-mono text-xs text-right text-emerald-400 font-bold">${formatearMonto(cantTomada)}</td>
@@ -775,7 +815,9 @@ function actualizarTablaRecepcionCascada() {
         if (btnProcesar) {
             btnProcesar.disabled = true;
             btnProcesar.className = "bg-amber-600/50 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full";
-            btnProcesar.innerText = `⚠️ Stock insuficiente (Faltan: ${formatearMonto(remanentePorDespachar)} und)`;
+            btnProcesar.innerText = (modoSeleccionLoteActivo && lotesSeleccionadosManual.length === 0)
+                ? "⚠️ Marque el o los lotes a cerrar"
+                : `⚠️ Stock insuficiente (Faltan: ${formatearMonto(remanentePorDespachar)} und)`;
         }
         if (btnImprimir) {
             btnImprimir.disabled = true;
@@ -802,6 +844,44 @@ function actualizarTablaRecepcionCascada() {
             btnImprimir.className = "bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full";
         }
     }
+}
+
+// Activa/desactiva el modo de selección manual de lote en Recepción de Carga.
+// Al desactivarse, se limpia la selección y el sistema vuelve al FIFO automático puro.
+function toggleSeleccionManualLotes() {
+    modoSeleccionLoteActivo = !modoSeleccionLoteActivo;
+    if (!modoSeleccionLoteActivo) {
+        lotesSeleccionadosManual = [];
+    }
+    actualizarBotonSeleccionLote();
+    actualizarTablaRecepcionCascada();
+}
+
+// Refleja visualmente si el modo de selección manual está activo (botón + columna "Sel." de la tabla)
+function actualizarBotonSeleccionLote() {
+    const btn = document.getElementById("btn-toggle-seleccion-lote");
+    const th = document.getElementById("th-seleccion-lote");
+
+    if (btn) {
+        if (modoSeleccionLoteActivo) {
+            btn.innerText = "🔒 Selección Manual Activa (click para cancelar)";
+            btn.className = "bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1 rounded text-xs font-bold transition flex items-center gap-1";
+        } else {
+            btn.innerText = "🔓 Selección Manual de Lote";
+            btn.className = "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1 rounded text-xs font-bold transition flex items-center gap-1";
+        }
+    }
+    if (th) th.classList.toggle("hidden", !modoSeleccionLoteActivo);
+}
+
+// Marca/desmarca un lote específico dentro de la selección manual y recalcula la cascada
+function toggleLoteManualSeleccionado(idLote, marcado) {
+    if (marcado) {
+        if (!lotesSeleccionadosManual.includes(idLote)) lotesSeleccionadosManual.push(idLote);
+    } else {
+        lotesSeleccionadosManual = lotesSeleccionadosManual.filter(l => l !== idLote);
+    }
+    actualizarTablaRecepcionCascada();
 }
 
 function resetearKPIsRecepcion() {
@@ -1016,7 +1096,10 @@ function procesarEnvioRecepcion(e) {
         const prov = document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "";
         const prod = document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "";
         const cant = parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0;
-        const lotes = cacheUltimosDatos.data.detallesLotes.filter(l => l.proveedor === prov && l.producto === prod && (parseFloat(l.cantDisponible) || 0) > 0);
+        let lotes = cacheUltimosDatos.data.detallesLotes.filter(l => l.proveedor === prov && l.producto === prod && (parseFloat(l.cantDisponible) || 0) > 0);
+        if (modoSeleccionLoteActivo && lotesSeleccionadosManual.length > 0) {
+            lotes = lotesSeleccionadosManual.map(id => lotes.find(l => l.idLote === id)).filter(Boolean);
+        }
         let rem = cant;
         let usdTotal = 0;
         lotes.forEach(l => {
@@ -1040,7 +1123,12 @@ function procesarEnvioRecepcion(e) {
             fecha: document.getElementById("rec-fecha") ? document.getElementById("rec-fecha").value : new Date().toISOString().split('T')[0],
             tasaRecepcion: tasaCalculada,
             montoTotalBs: valorBsDirecto,
-            nroFactura: numFacturaInput ? numFacturaInput.value : "N/A"
+            nroFactura: numFacturaInput ? numFacturaInput.value : "N/A",
+            // Si el usuario activó la selección manual y marcó lote(s), se envían aquí en el orden
+            // elegido; el backend cerrará SOLO esos lotes en ese orden en vez del FIFO automático.
+            lotesSeleccionados: (modoSeleccionLoteActivo && lotesSeleccionadosManual.length > 0)
+                ? lotesSeleccionadosManual.slice()
+                : null
         }
     };
 
@@ -1051,6 +1139,11 @@ function procesarEnvioRecepcion(e) {
             const form = document.getElementById("form-recepcion");
             if (form) form.reset();
             resetearKPIsRecepcion();
+            // La selección manual es válida solo para ESTA recepción; una vez guardada,
+            // el sistema vuelve automáticamente al modo FIFO automático (más viejo primero).
+            modoSeleccionLoteActivo = false;
+            lotesSeleccionadosManual = [];
+            actualizarBotonSeleccionLote();
             cargarDatos();
         } else {
             alert("⚠️ " + (res && res.message ? res.message : "Error procesando la recepción en el servidor."));

@@ -238,8 +238,12 @@
                     <form id="form-recepcion" autocomplete="off" class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
                         <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                             <h3 class="font-bold text-white text-sm">Registro de Carga Física</h3>
-                            <!-- Botón de reimpresión rápida de recepción protegido / accesible -->
-                            <button type="button" id="btn-reimprimir-recepcion" onclick="solicitarPinSeguridad('Reimprimir Recepcion')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded text-xs font-bold transition flex items-center gap-1">🖨️ Reimprimir</button>
+                            <div class="flex items-center gap-2">
+                                <!-- Botón para habilitar la selección manual del lote a cerrar (excepción al FIFO automático) -->
+                                <button type="button" id="btn-toggle-seleccion-lote" onclick="toggleSeleccionManualLotes()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1 rounded text-xs font-bold transition flex items-center gap-1">🔓 Selección Manual de Lote</button>
+                                <!-- Botón de reimpresión rápida de recepción protegido / accesible -->
+                                <button type="button" id="btn-reimprimir-recepcion" onclick="solicitarPinSeguridad('Reimprimir Recepcion')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded text-xs font-bold transition flex items-center gap-1">🖨️ Reimprimir</button>
+                            </div>
                         </div>
                         
                         <div>
@@ -309,6 +313,7 @@
                                 <table class="w-full text-left text-xs text-slate-300">
                                     <thead class="bg-slate-950 text-slate-400 uppercase">
                                         <tr>
+                                            <th id="th-seleccion-lote" class="px-3 py-2 w-8 hidden">Sel.</th>
                                             <th class="px-3 py-2">Lote</th>
                                             <th class="px-3 py-2 text-right">Disp.</th>
                                             <th class="px-3 py-2 text-right">Tomado</th>
