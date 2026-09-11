@@ -242,7 +242,7 @@
                                 <!-- Botón para habilitar la selección manual del lote a cerrar (excepción al FIFO automático) -->
                                 <button type="button" id="btn-toggle-seleccion-lote" onclick="toggleSeleccionManualLotes()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1 rounded text-xs font-bold transition flex items-center gap-1">🔓 Selección Manual de Lote</button>
                                 <!-- Botón de reimpresión rápida de recepción protegido / accesible -->
-                                <button type="button" id="btn-reimprimir-recepcion" onclick="solicitarPinSeguridad('Reimprimir Recepcion')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded text-xs font-bold transition flex items-center gap-1">🖨️ Reimprimir</button>
+                                <button type="button" id="btn-reimprimir-recepcion" onclick="reimpresionSeguraRecepcion()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded text-xs font-bold transition flex items-center gap-1">🖨️ Reimprimir</button>
                             </div>
                         </div>
                         
@@ -555,7 +555,7 @@
             </div>
             <div class="flex justify-end space-x-2 pt-2">
                 <button type="button" onclick="cerrarModalSeguridad()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded text-xs transition">Cancelar</button>
-                <button type="button" onclick="verificarCodigoSeguridad()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded text-xs font-bold transition">Verificar y Continuar</button>
+                <button type="button" onclick="validarPinSeguridad()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded text-xs font-bold transition">Verificar y Continuar</button>
             </div>
         </div>
     </div>
