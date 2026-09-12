@@ -43,10 +43,10 @@
                 <button id="nav-mod-dashboard" onclick="cambiarModulo('mod-dashboard')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white transition">
                     🏠 Dashboard
                 </button>
-                <button id="nav-mod-prepagos" onclick="cambiarModulo('mod-prepagos')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                <button id="nav-mod-prepagos" onclick="modoEdicionActivo=null; restaurarBotonPrepagoNormal(); cambiarModulo('mod-prepagos')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
                     💳 Registrar Prepago
                 </button>
-                <button id="nav-mod-recepcion" onclick="cambiarModulo('mod-recepcion')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                <button id="nav-mod-recepcion" onclick="modoEdicionActivo=null; restaurarBotonRecepcionNormal(); cambiarModulo('mod-recepcion')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
                     📦 Recepción Carga
                 </button>
                 <button id="nav-mod-proveedores" onclick="cambiarModulo('mod-proveedores')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
@@ -55,8 +55,8 @@
                 <button id="nav-mod-reportes" onclick="cambiarModulo('mod-reportes')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
                     📋 Reportes / Auditoría
                 </button>
-                <!-- BOTÓN DE SEGURIDAD / CLAVE MAESTRA -->
-                <button id="nav-mod-seguridad-otp" onclick="solicitarPinSeguridad('Verificacion Manual')" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+                <!-- BOTÓN DE SEGURIDAD / CLAVE MAESTRA: abre el asistente de edición y reimpresión -->
+                <button id="nav-mod-editor-registros" onclick="iniciarAsistenteEdicion()" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
                     🔑 Seguridad Clave Maestra
                 </button>
             </nav>
@@ -227,6 +227,7 @@
                                 <button type="submit" id="btn-guardar-prepago" disabled class="bg-blue-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full">💾 Procesar Guardado</button>
                                 <button type="button" id="btn-imprimir-prepago" onclick="imprimirReciboPrepago()" disabled class="bg-slate-800 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition flex items-center justify-center gap-1 w-full">🖨️ Imprimir</button>
                             </div>
+                            <button type="button" id="btn-cancelar-edicion-prepago" onclick="cancelarEdicionPrepago()" class="hidden w-full bg-transparent hover:bg-slate-800 text-red-400 border border-red-900 px-3 py-1.5 rounded-lg text-xs font-bold transition">✖️ Cancelar Edición</button>
                         </div>
                     </div>
                 </form>
@@ -277,10 +278,11 @@
                             </div>
                         </div>
 
-                        <div class="pt-2">
+                        <div class="pt-2 space-y-2">
                             <button type="submit" id="btn-guardar-recepcion" disabled class="bg-emerald-600 opacity-50 cursor-not-allowed font-bold py-2.5 rounded-lg text-xs text-white transition w-full">
                                 📦 Confirmar Recepción de Carga
                             </button>
+                            <button type="button" id="btn-cancelar-edicion-recepcion" onclick="cancelarEdicionRecepcion()" class="hidden w-full bg-transparent hover:bg-slate-800 text-red-400 border border-red-900 px-3 py-1.5 rounded-lg text-xs font-bold transition">✖️ Cancelar Edición</button>
                         </div>
                     </form>
 
@@ -535,6 +537,74 @@
                     </div>
                 </div>
 
+            </section>
+
+            <!-- MÓDULO 6: ASISTENTE DE EDICIÓN / REIMPRESIÓN (SEGURIDAD CLAVE MAESTRA) -->
+            <section id="mod-editor-registros" class="modulo hidden space-y-6">
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-6">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h3 class="font-bold text-white text-sm">🔑 Editar / Reimprimir un Registro Existente</h3>
+                        <button type="button" id="btn-reiniciar-asistente" onclick="resetearAsistenteEdicion()" class="hidden bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1 rounded text-xs font-bold transition">↺ Empezar de Nuevo</button>
+                    </div>
+
+                    <!-- PASO 1: TIPO DE REGISTRO -->
+                    <div id="asistente-paso-tipo" class="space-y-3">
+                        <p class="text-xs font-semibold text-slate-400">PASO 1 — ¿Qué desea editar o reimprimir?</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button type="button" onclick="seleccionarTipoAsistente('prepago')" class="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-blue-600 p-6 rounded-xl text-left transition">
+                                <div class="text-2xl mb-2">💳</div>
+                                <div class="font-bold text-white text-sm">Registro de Prepago</div>
+                                <div class="text-xs text-slate-400 mt-1">Editar o reimprimir un lote de mercancía prepagada</div>
+                            </button>
+                            <button type="button" onclick="seleccionarTipoAsistente('recepcion')" class="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-emerald-600 p-6 rounded-xl text-left transition">
+                                <div class="text-2xl mb-2">📦</div>
+                                <div class="font-bold text-white text-sm">Recepción de Carga</div>
+                                <div class="text-xs text-slate-400 mt-1">Editar o reimprimir un despacho FIFO ya recibido</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PASO 2: PROVEEDOR + MERCANCÍA -->
+                    <div id="asistente-paso-filtro" class="hidden space-y-4">
+                        <p class="text-xs font-semibold text-slate-400">PASO 2 — Seleccione proveedor y mercancía</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">PROVEEDOR</label>
+                                <select id="asistente-proveedor" onchange="actualizarProductosAsistente(this.value)" class="select-proveedores w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500">
+                                    <option value="">-- Seleccione --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">MERCANCÍA</label>
+                                <select id="asistente-producto" onchange="buscarHistorialAsistente()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-blue-500">
+                                    <option value="">-- Seleccione primero un proveedor --</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PASO 3: HISTORIAL DE REGISTROS -->
+                    <div id="asistente-paso-historial" class="hidden space-y-3">
+                        <p class="text-xs font-semibold text-slate-400">PASO 3 — Seleccione el registro que desea abrir</p>
+                        <div class="overflow-x-auto border border-slate-800 rounded-xl">
+                            <table class="w-full text-left text-xs text-slate-300">
+                                <thead class="bg-slate-950 text-slate-400 uppercase">
+                                    <tr>
+                                        <th class="px-3 py-2">Fecha</th>
+                                        <th class="px-3 py-2">Referencia</th>
+                                        <th class="px-3 py-2 text-right">Cantidad</th>
+                                        <th class="px-3 py-2 text-right">Monto</th>
+                                        <th class="px-3 py-2 text-center">Estado</th>
+                                        <th class="px-3 py-2 text-center"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="asistente-historial-body">
+                                    <tr><td colspan="6" class="px-4 py-4 text-center text-xs text-slate-500 italic">Seleccione proveedor y mercancía</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </section>
 
         </div>

@@ -108,6 +108,7 @@ function doGet(e) {
       for (var k = 1; k < dataDesp.length; k++) {
         if (dataDesp[k][0] || dataDesp[k][1] || dataDesp[k][3]) {
           historialDespachos.push({
+            fila: k + 1,
             idLote: dataDesp[k][0] ? dataDesp[k][0].toString() : "",
             nroFactura: dataDesp[k][1] ? dataDesp[k][1].toString() : "N/A",
             fechaRecepcion: dataDesp[k][2] ? Utilities.formatDate(new Date(dataDesp[k][2]), ss.getSpreadsheetTimeZone(), "yyyy-MM-dd") : "N/A",
@@ -347,6 +348,119 @@ function procesarAccionWeb(payload) {
     return { status: "success", message: "Despacho guardado en 'Despachos_Recibidos' y descontado con éxito." };
   }
   
+  // ACCIÓN 4: EDITAR UN PREPAGO YA EXISTENTE (actualiza en sitio la fila de Prepagos
+  // identificada por ID_Lote + Producto, en vez de crear una fila nueva)
+  if (payload.accion === "editar_prepago") {
+    var dEdit = payload.data;
+    var sheetPreEdit = ss.getSheetByName("Prepagos");
+    if (!sheetPreEdit) return { status: "error", message: "Pestaña 'Prepagos' no encontrada." };
+
+    var dataPreEdit = sheetPreEdit.getDataRange().getValues();
+    var filaEncontrada = -1;
+    for (var re = 1; re < dataPreEdit.length; re++) {
+      var idFilaE = dataPreEdit[re][0] ? dataPreEdit[re][0].toString() : "";
+      var prodFilaE = dataPreEdit[re][2] ? dataPreEdit[re][2].toString() : "";
+      if (idFilaE === (dEdit.idLote || "").toString() && prodFilaE === (dEdit.producto || "").toString()) {
+        filaEncontrada = re;
+        break;
+      }
+    }
+
+    if (filaEncontrada === -1) {
+      return { status: "error", message: "No se encontró el registro de prepago a editar (Lote " + dEdit.idLote + " / " + dEdit.producto + ")." };
+    }
+
+    var cantOriginalVieja = parseFloat(dataPreEdit[filaEncontrada][3]) || 0;
+    var cantDisponibleVieja = parseFloat(dataPreEdit[filaEncontrada][4]) || 0;
+    var yaConsumido = cantOriginalVieja - cantDisponibleVieja;
+
+    var nuevaCantidad = parseFloat(dEdit.cantidad) || 0;
+    var nuevoCostoUsd = parseFloat(dEdit.costoUsd) || 0;
+    var nuevaTasa = parseFloat(dEdit.tasa) || 1;
+    var nuevaFechaEdit = parsearFechaLocal(dEdit.fecha);
+
+    if (nuevaCantidad < yaConsumido) {
+      return {
+        status: "error",
+        message: "No se puede reducir la cantidad a " + nuevaCantidad + ": ya se han recibido " + yaConsumido + " unidades de este lote en Recepción de Carga."
+      };
+    }
+
+    var nuevaCantDisponible = nuevaCantidad - yaConsumido;
+    var nuevoTotalUsd = nuevaCantidad * nuevoCostoUsd;
+    var nuevoTotalBs = nuevoTotalUsd * nuevaTasa;
+
+    sheetPreEdit.getRange(filaEncontrada + 1, 1, 1, 10).setValues([[
+      dEdit.idLote, dEdit.proveedor, dEdit.producto, nuevaCantidad, nuevaCantDisponible,
+      nuevoCostoUsd, nuevoTotalUsd, nuevoTotalBs, nuevaTasa, nuevaFechaEdit
+    ]]);
+
+    return { status: "success", message: "Prepago del lote " + dEdit.idLote + " actualizado correctamente." };
+  }
+
+  // ACCIÓN 5: EDITAR UNA RECEPCIÓN (DESPACHO) YA REGISTRADA, identificada por su fila exacta
+  // en Despachos_Recibidos. Reajusta también la Cant_Disponible del lote de origen en Prepagos
+  // según la diferencia entre la cantidad vieja y la nueva.
+  if (payload.accion === "editar_despacho") {
+    var dDesp = payload.data;
+    var sheetDespEdit = ss.getSheetByName("Despachos_Recibidos");
+    var sheetPreParaDesp = ss.getSheetByName("Prepagos");
+    if (!sheetDespEdit) return { status: "error", message: "Pestaña 'Despachos_Recibidos' no encontrada." };
+    if (!sheetPreParaDesp) return { status: "error", message: "Pestaña 'Prepagos' no encontrada." };
+
+    var filaDesp = parseInt(dDesp.fila, 10);
+    if (!filaDesp || filaDesp < 2) return { status: "error", message: "Referencia de registro a editar inválida." };
+
+    var filaActualDesp = sheetDespEdit.getRange(filaDesp, 1, 1, 8).getValues()[0];
+    var idLoteDesp = filaActualDesp[0] ? filaActualDesp[0].toString() : "";
+    var provDesp = filaActualDesp[3] ? filaActualDesp[3].toString() : "";
+    var prodDesp = filaActualDesp[4] ? filaActualDesp[4].toString() : "";
+    var cantidadVieja = parseFloat(filaActualDesp[5]) || 0;
+
+    // Ubicar el lote de origen en Prepagos para reajustar su disponibilidad y tomar su costo/tasa origen
+    var dataPreParaDesp = sheetPreParaDesp.getDataRange().getValues();
+    var filaLotePre = -1;
+    for (var rp = 1; rp < dataPreParaDesp.length; rp++) {
+      var idFilaPre = dataPreParaDesp[rp][0] ? dataPreParaDesp[rp][0].toString() : "";
+      var prodFilaPre = dataPreParaDesp[rp][2] ? dataPreParaDesp[rp][2].toString() : "";
+      if (idFilaPre === idLoteDesp && prodFilaPre === prodDesp) { filaLotePre = rp; break; }
+    }
+    if (filaLotePre === -1) {
+      return { status: "error", message: "No se encontró el lote de origen (" + idLoteDesp + ") para recalcular la disponibilidad." };
+    }
+
+    var costoUsdUnitOrigen = parseFloat(dataPreParaDesp[filaLotePre][5]) || 0;
+    var tasaOrigenLote = parseFloat(dataPreParaDesp[filaLotePre][8]) || 1;
+    var cantDisponibleActualLote = parseFloat(dataPreParaDesp[filaLotePre][4]) || 0;
+
+    var nuevaCantidadDesp = parseFloat(dDesp.cantidad) || 0;
+    var deltaCantidad = nuevaCantidadDesp - cantidadVieja; // positivo = se toma MÁS del lote que antes
+    var nuevaCantDisponibleLote = cantDisponibleActualLote - deltaCantidad;
+
+    if (nuevaCantDisponibleLote < 0) {
+      return {
+        status: "error",
+        message: "No hay suficiente existencia disponible en el lote " + idLoteDesp + " para subir la cantidad recibida. Disponible actual: " + cantDisponibleActualLote
+      };
+    }
+
+    var nuevaTasaRecepcion = parseFloat(dDesp.tasaRecepcion) || tasaOrigenLote;
+    var nuevoMontoFacturaDesp = nuevaCantidadDesp * costoUsdUnitOrigen * nuevaTasaRecepcion;
+    var nuevoTotalOrigenDesp = nuevaCantidadDesp * costoUsdUnitOrigen * tasaOrigenLote;
+    var nuevaDifCambiariaDesp = nuevoMontoFacturaDesp - nuevoTotalOrigenDesp;
+    var nuevaFechaDesp = parsearFechaLocal(dDesp.fecha);
+    var nuevoNroFacturaDesp = dDesp.nroFactura || dDesp.factura || filaActualDesp[1];
+
+    sheetDespEdit.getRange(filaDesp, 1, 1, 8).setValues([[
+      idLoteDesp, nuevoNroFacturaDesp, nuevaFechaDesp, provDesp, prodDesp,
+      nuevaCantidadDesp, nuevoMontoFacturaDesp, nuevaDifCambiariaDesp
+    ]]);
+
+    sheetPreParaDesp.getRange(filaLotePre + 1, 5).setValue(nuevaCantDisponibleLote);
+
+    return { status: "success", message: "Recepción del lote " + idLoteDesp + " actualizada correctamente." };
+  }
+
   return { status: "error", message: "Acción '" + payload.accion + "' no es válida en el servidor." };
 }
 

@@ -18,6 +18,11 @@ let lotesSeleccionadosManual = [];
 let _recCascadaUltimoProv = null;
 let _recCascadaUltimoProd = null;
 
+// Variables globales del Asistente de Edición / Reimpresión (módulo "Seguridad Clave Maestra")
+let asistenteTipoActual = null;      // 'prepago' | 'recepcion'
+let modoEdicionActivo = null;        // null | 'prepago' | 'recepcion'
+let referenciaEdicionActual = null;  // { idLote, producto } para prepago, o número de fila para recepción
+
 // Formateador numérico regional (Miles: Punto | Decimales: Coma)
 function formatearMonto(valor) {
     const numero = parseFloat(valor);
@@ -111,7 +116,8 @@ function cambiarModulo(idModulo) {
         'mod-prepagos': 'Registrar Prepagos', 
         'mod-recepcion': 'Recepción de Carga', 
         'mod-proveedores': 'Ficha de Proveedores', 
-        'mod-reportes': 'Reportes y Auditoría' 
+        'mod-reportes': 'Reportes y Auditoría',
+        'mod-editor-registros': 'Editar / Reimprimir Registro'
     };
     const titleDom = document.getElementById('titulo-modulo'); if (titleDom) titleDom.innerText = titulos[idModulo] || 'Sistema';
     
@@ -364,6 +370,24 @@ function calcularTotalesPrepago() {
     const btnGuardar = document.getElementById("btn-guardar-prepago");
     const btnImprimir = document.getElementById("btn-imprimir-prepago");
 
+    // En modo edición no se re-captura el desglose bancario del lote, así que la
+    // conciliación no aplica: se permite guardar directamente.
+    if (modoEdicionActivo === 'prepago') {
+        if (wrapperDiff) {
+            wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-amber-950/60 border border-amber-800 text-amber-400";
+            wrapperDiff.innerText = "✏️ Modo edición: la conciliación bancaria no se re-valida aquí.";
+        }
+        if (btnGuardar) {
+            btnGuardar.disabled = false;
+            btnGuardar.className = "bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
+        }
+        if (btnImprimir) {
+            btnImprimir.disabled = false;
+            btnImprimir.className = "bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition flex items-center justify-center gap-1 w-full";
+        }
+        return;
+    }
+
     if (wrapperDiff) {
         if (totalBsObligatorio > 0 && Math.abs(diferencia) <= 1) {
             wrapperDiff.className = "p-3 rounded-lg text-center font-bold text-xs bg-emerald-950/60 border border-emerald-800 text-emerald-400";
@@ -601,37 +625,55 @@ function procesarEnvioPrepago(e) {
     const elFecha = document.getElementById("pre-fecha");
     const elTasa = document.getElementById("pre-tasa");
 
-    const payload = {
-        accion: "registrar_prepago_consolidado",
-        data: {
-            idLote: elLote ? elLote.innerText : "",
-            proveedor: elProv ? elProv.value : "",
-            fecha: elFecha ? elFecha.value : "",
-            tasa: parseFloat(elTasa ? elTasa.value : 1) || 1,
-            items: items,
-            bancos: {
-                BANESCO: getMontoBanco("pago-banesco"),
-                MERCANTIL: getMontoBanco("pago-mercantil"),
-                PROVINCIAL: getMontoBanco("pago-provincial"),
-                BANCARIBE: getMontoBanco("pago-bancaribe"),
-                BANCO_ACTIVO: getMontoBanco("pago-activo")
+    const enModoEdicion = modoEdicionActivo === 'prepago';
+
+    const payload = enModoEdicion
+        ? {
+            accion: "editar_prepago",
+            data: {
+                idLote: referenciaEdicionActual ? referenciaEdicionActual.idLote : (elLote ? elLote.innerText : ""),
+                producto: items[0] ? items[0].producto : "",
+                proveedor: elProv ? elProv.value : "",
+                fecha: elFecha ? elFecha.value : "",
+                tasa: parseFloat(elTasa ? elTasa.value : 1) || 1,
+                cantidad: items[0] ? items[0].cantidad : 0,
+                costoUsd: items[0] ? items[0].costoUsd : 0
             }
         }
-    };
+        : {
+            accion: "registrar_prepago_consolidado",
+            data: {
+                idLote: elLote ? elLote.innerText : "",
+                proveedor: elProv ? elProv.value : "",
+                fecha: elFecha ? elFecha.value : "",
+                tasa: parseFloat(elTasa ? elTasa.value : 1) || 1,
+                items: items,
+                bancos: {
+                    BANESCO: getMontoBanco("pago-banesco"),
+                    MERCANTIL: getMontoBanco("pago-mercantil"),
+                    PROVINCIAL: getMontoBanco("pago-provincial"),
+                    BANCARIBE: getMontoBanco("pago-bancaribe"),
+                    BANCO_ACTIVO: getMontoBanco("pago-activo")
+                }
+            }
+        };
 
     window.respuestaGuardadoGoogle = function(res) {
         if (res && res.status === "success") {
             imprimirReciboPrepago();
-            alert(`🚀 Transmisión limpia: Lote ${payload.data.idLote} guardado con éxito.`);
+            alert(enModoEdicion
+                ? `✅ Lote ${payload.data.idLote} actualizado y reimpreso con éxito.`
+                : `🚀 Transmisión limpia: Lote ${payload.data.idLote} guardado con éxito.`);
             const formPrepago = document.getElementById("form-prepago");
             if (formPrepago) formPrepago.reset();
             const cont = document.getElementById("contenedor-items-prepago");
             if (cont) cont.innerHTML = "";
+            restaurarBotonPrepagoNormal();
             calcularTotalesPrepago();
             cargarDatos();
         } else {
             alert("⚠️ " + (res && res.message ? res.message : "El servidor devolvió una alerta."));
-            if (btn) { btn.disabled = false; btn.innerText = "💾 Procesar Guardado"; }
+            if (btn) { btn.disabled = false; btn.innerText = enModoEdicion ? "💾 Guardar Cambios y Reimprimir" : "💾 Procesar Guardado"; }
         }
         const loader = document.getElementById('jsonp-guardar-loader');
         if (loader) loader.remove();
@@ -644,7 +686,7 @@ function procesarEnvioPrepago(e) {
     
     scriptEnvio.onerror = function() {
         alert("❌ Error de red al comunicarse con Google Apps Script.");
-        if (btn) { btn.disabled = false; btn.innerText = "💾 Procesar Guardado"; }
+        if (btn) { btn.disabled = false; btn.innerText = enModoEdicion ? "💾 Guardar Cambios y Reimprimir" : "💾 Procesar Guardado"; }
         const loader = document.getElementById('jsonp-guardar-loader');
         if (loader) loader.remove();
     };
@@ -810,6 +852,18 @@ function actualizarTablaRecepcionCascada() {
 
     const btnProcesar = document.getElementById("btn-guardar-recepcion");
     const btnImprimir = document.getElementById("btn-imprimir-recepcion");
+
+    // En modo edición de una recepción ya guardada, la vista previa de "Disponible" refleja el
+    // estado actual del lote (ya descontado por este mismo despacho), así que no es fiable para
+    // bloquear el guardado aquí: se deja el botón habilitado y el backend valida de verdad.
+    if (modoEdicionActivo === 'recepcion') {
+        if (btnProcesar) {
+            btnProcesar.disabled = false;
+            btnProcesar.className = "bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold py-2.5 rounded-lg text-xs cursor-pointer transition w-full text-center";
+            btnProcesar.innerText = "💾 Guardar Cambios y Reimprimir";
+        }
+        return;
+    }
 
     if (remanentePorDespachar > 0) {
         if (btnProcesar) {
@@ -1114,28 +1168,45 @@ function procesarEnvioRecepcion(e) {
         }
     }
 
-    const payload = {
-        accion: "registrar_despacho",
-        data: {
-            proveedor: document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "",
-            producto: document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "",
-            cantidad: parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0,
-            fecha: document.getElementById("rec-fecha") ? document.getElementById("rec-fecha").value : new Date().toISOString().split('T')[0],
-            tasaRecepcion: tasaCalculada,
-            montoTotalBs: valorBsDirecto,
-            nroFactura: numFacturaInput ? numFacturaInput.value : "N/A",
-            // Si el usuario activó la selección manual y marcó lote(s), se envían aquí en el orden
-            // elegido; el backend cerrará SOLO esos lotes en ese orden en vez del FIFO automático.
-            lotesSeleccionados: (modoSeleccionLoteActivo && lotesSeleccionadosManual.length > 0)
-                ? lotesSeleccionadosManual.slice()
-                : null
+    const enModoEdicionDesp = modoEdicionActivo === 'recepcion';
+
+    const payload = enModoEdicionDesp
+        ? {
+            accion: "editar_despacho",
+            data: {
+                fila: referenciaEdicionActual,
+                proveedor: document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "",
+                producto: document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "",
+                cantidad: parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0,
+                fecha: document.getElementById("rec-fecha") ? document.getElementById("rec-fecha").value : new Date().toISOString().split('T')[0],
+                tasaRecepcion: tasaCalculada,
+                nroFactura: numFacturaInput ? numFacturaInput.value : "N/A"
+            }
         }
-    };
+        : {
+            accion: "registrar_despacho",
+            data: {
+                proveedor: document.getElementById("rec-proveedor") ? document.getElementById("rec-proveedor").value : "",
+                producto: document.getElementById("rec-producto") ? document.getElementById("rec-producto").value : "",
+                cantidad: parseFloat(document.getElementById("rec-cantidad") ? document.getElementById("rec-cantidad").value : 0) || 0,
+                fecha: document.getElementById("rec-fecha") ? document.getElementById("rec-fecha").value : new Date().toISOString().split('T')[0],
+                tasaRecepcion: tasaCalculada,
+                montoTotalBs: valorBsDirecto,
+                nroFactura: numFacturaInput ? numFacturaInput.value : "N/A",
+                // Si el usuario activó la selección manual y marcó lote(s), se envían aquí en el orden
+                // elegido; el backend cerrará SOLO esos lotes en ese orden en vez del FIFO automático.
+                lotesSeleccionados: (modoSeleccionLoteActivo && lotesSeleccionadosManual.length > 0)
+                    ? lotesSeleccionadosManual.slice()
+                    : null
+            }
+        };
 
     window.respuestaRecepcionGoogle = function(res) {
         if (res && res.status === "success") {
             imprimirComprobanteRecepcion();
-            alert(`✅ Carga recibida exitosamente. El inventario FIFO fue actualizado en las tablas de la Cooperativa.`);
+            alert(enModoEdicionDesp
+                ? `✅ Recepción actualizada y reimpresa con éxito.`
+                : `✅ Carga recibida exitosamente. El inventario FIFO fue actualizado en las tablas de la Cooperativa.`);
             const form = document.getElementById("form-recepcion");
             if (form) form.reset();
             resetearKPIsRecepcion();
@@ -1144,12 +1215,13 @@ function procesarEnvioRecepcion(e) {
             modoSeleccionLoteActivo = false;
             lotesSeleccionadosManual = [];
             actualizarBotonSeleccionLote();
+            restaurarBotonRecepcionNormal();
             cargarDatos();
         } else {
             alert("⚠️ " + (res && res.message ? res.message : "Error procesando la recepción en el servidor."));
             if (btn) {
                 btn.disabled = false;
-                btn.innerText = "📦 Confirmar Recepción de Carga";
+                btn.innerText = enModoEdicionDesp ? "💾 Guardar Cambios y Reimprimir" : "📦 Confirmar Recepción de Carga";
             }
         }
         const loader = document.getElementById('jsonp-recepcion-loader');
@@ -1165,11 +1237,12 @@ function procesarEnvioRecepcion(e) {
         alert("❌ Error de comunicación con el servidor al registrar el despacho.");
         if (btn) {
             btn.disabled = false;
-            btn.innerText = "📦 Confirmar Recepción de Carga";
+            btn.innerText = enModoEdicionDesp ? "💾 Guardar Cambios y Reimprimir" : "📦 Confirmar Recepción de Carga";
         }
         const loader = document.getElementById('jsonp-recepcion-loader');
         if (loader) loader.remove();
     };
+
 
     document.body.appendChild(scriptEnvio);
 }
@@ -1335,7 +1408,7 @@ function renderizarTablaReportes() {
                 contadorOps++;
 
                 // Botón de Edición condicional integrado de forma limpia
-                const botonEditarHtml = `<button onclick="iniciarEdicionPrepago('${l.idLote}')" class="ml-2 bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-700 px-2 py-0.5 rounded text-[10px] font-bold transition">✏️ Editar</button>`;
+                const botonEditarHtml = `<button onclick="iniciarEdicionPrepago('${l.idLote}', '${(l.producto || '').replace(/'/g, "\\'")}')" class="ml-2 bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-700 px-2 py-0.5 rounded text-[10px] font-bold transition">✏️ Editar</button>`;
 
                 const estatusBadge = (cantDisp > 0) 
                     ? `<span class="bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded text-[10px] font-bold">ACTIVO (${formatearMonto(cantDisp)} PEND.)</span> ${botonEditarHtml}`
@@ -1785,10 +1858,10 @@ function habilitarFuncionesAdministrativas() {
 }
 
 // Funciones protegidas de Edición y Reimpresión Seguras
-function iniciarEdicionPrepago(idLote) {
+function iniciarEdicionPrepago(idLote, productoFiltro) {
     solicitarPinSeguridad(function() {
         const loteEncontrado = cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.detallesLotes ? 
-            cacheUltimosDatos.data.detallesLotes.find(l => l.idLote === idLote) : null;
+            cacheUltimosDatos.data.detallesLotes.find(l => l.idLote === idLote && (!productoFiltro || l.producto === productoFiltro)) : null;
         
         if (!loteEncontrado) {
             alert("No se encontró el lote para editar.");
@@ -1796,6 +1869,9 @@ function iniciarEdicionPrepago(idLote) {
         }
 
         cambiarModulo('mod-prepagos');
+
+        modoEdicionActivo = 'prepago';
+        referenciaEdicionActual = { idLote: loteEncontrado.idLote, producto: loteEncontrado.producto };
         
         const elProv = document.getElementById("pre-proveedor");
         if (elProv) {
@@ -1831,9 +1907,33 @@ function iniciarEdicionPrepago(idLote) {
                 calcularTotalesPrepago();
             }
         }
+
+        const btnGuardar = document.getElementById("btn-guardar-prepago");
+        if (btnGuardar) btnGuardar.innerText = "💾 Guardar Cambios y Reimprimir";
+        const btnCancelar = document.getElementById("btn-cancelar-edicion-prepago");
+        if (btnCancelar) btnCancelar.classList.remove("hidden");
         
-        alert(`✏️ Modo Edición activado para el Lote: ${idLote}. Modifique los valores y presione Guardar.`);
+        alert(`✏️ Modo Edición activado para el Lote: ${loteEncontrado.idLote} (${loteEncontrado.producto}). Modifique los valores y presione "Guardar Cambios y Reimprimir".`);
     });
+}
+
+// Restaura el formulario de Prepago a su estado normal de "nuevo registro"
+function restaurarBotonPrepagoNormal() {
+    modoEdicionActivo = null;
+    referenciaEdicionActual = null;
+    const btnGuardar = document.getElementById("btn-guardar-prepago");
+    if (btnGuardar) btnGuardar.innerText = "💾 Procesar Guardado";
+    const btnCancelar = document.getElementById("btn-cancelar-edicion-prepago");
+    if (btnCancelar) btnCancelar.classList.add("hidden");
+}
+
+function cancelarEdicionPrepago() {
+    const formPrepago = document.getElementById("form-prepago");
+    if (formPrepago) formPrepago.reset();
+    const cont = document.getElementById("contenedor-items-prepago");
+    if (cont) cont.innerHTML = "";
+    restaurarBotonPrepagoNormal();
+    calcularTotalesPrepago();
 }
 
 function reimpresionSeguraPrepago() {
@@ -1845,6 +1945,215 @@ function reimpresionSeguraPrepago() {
 function reimpresionSeguraRecepcion() {
     solicitarPinSeguridad(function() {
         imprimirComprobanteRecepcion();
+    });
+}
+
+// Restaura el formulario de Recepción de Carga a su estado normal de "nueva recepción"
+function restaurarBotonRecepcionNormal() {
+    modoEdicionActivo = null;
+    referenciaEdicionActual = null;
+    const btnGuardar = document.getElementById("btn-guardar-recepcion");
+    if (btnGuardar) btnGuardar.innerText = "📦 Confirmar Recepción de Carga";
+    const btnCancelar = document.getElementById("btn-cancelar-edicion-recepcion");
+    if (btnCancelar) btnCancelar.classList.add("hidden");
+}
+
+function cancelarEdicionRecepcion() {
+    const form = document.getElementById("form-recepcion");
+    if (form) form.reset();
+    modoSeleccionLoteActivo = false;
+    lotesSeleccionadosManual = [];
+    actualizarBotonSeleccionLote();
+    restaurarBotonRecepcionNormal();
+    resetearKPIsRecepcion();
+}
+
+/* =========================================================================
+   ASISTENTE DE EDICIÓN / REIMPRESIÓN ("Seguridad Clave Maestra" en el menú)
+   Flujo: Tipo de registro -> Proveedor -> Mercancía -> Historial -> Abrir
+   ========================================================================= */
+
+// Punto de entrada desde el menú lateral: exige la clave y abre el asistente
+function iniciarAsistenteEdicion() {
+    solicitarPinSeguridad(function() {
+        cambiarModulo('mod-editor-registros');
+        resetearAsistenteEdicion();
+    });
+}
+
+function resetearAsistenteEdicion() {
+    asistenteTipoActual = null;
+
+    const pasoTipo = document.getElementById("asistente-paso-tipo");
+    const pasoFiltro = document.getElementById("asistente-paso-filtro");
+    const pasoHistorial = document.getElementById("asistente-paso-historial");
+    if (pasoTipo) pasoTipo.classList.remove("hidden");
+    if (pasoFiltro) pasoFiltro.classList.add("hidden");
+    if (pasoHistorial) pasoHistorial.classList.add("hidden");
+
+    const btnReiniciar = document.getElementById("btn-reiniciar-asistente");
+    if (btnReiniciar) btnReiniciar.classList.add("hidden");
+
+    const selProv = document.getElementById("asistente-proveedor");
+    if (selProv) selProv.innerHTML = '<option value="">-- Seleccione --</option>';
+
+    const selProd = document.getElementById("asistente-producto");
+    if (selProd) selProd.innerHTML = '<option value="">-- Seleccione primero un proveedor --</option>';
+}
+
+function seleccionarTipoAsistente(tipo) {
+    asistenteTipoActual = tipo;
+
+    const pasoTipo = document.getElementById("asistente-paso-tipo");
+    const pasoFiltro = document.getElementById("asistente-paso-filtro");
+    const pasoHistorial = document.getElementById("asistente-paso-historial");
+    if (pasoTipo) pasoTipo.classList.add("hidden");
+    if (pasoFiltro) pasoFiltro.classList.remove("hidden");
+    if (pasoHistorial) pasoHistorial.classList.add("hidden");
+
+    const btnReiniciar = document.getElementById("btn-reiniciar-asistente");
+    if (btnReiniciar) btnReiniciar.classList.remove("hidden");
+
+    const selProv = document.getElementById("asistente-proveedor");
+    if (selProv) {
+        const opciones = (cacheProveedores || []).map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join("");
+        selProv.innerHTML = '<option value="">-- Seleccione --</option>' + opciones;
+    }
+}
+
+function actualizarProductosAsistente(nombreProveedor) {
+    const selProd = document.getElementById("asistente-producto");
+    if (!selProd) return;
+    const prov = (cacheProveedores || []).find(p => p.nombre === nombreProveedor);
+    const productos = prov ? prov.productos : [];
+    selProd.innerHTML = '<option value="">-- Seleccione --</option>' + productos.map(p => `<option value="${p}">${p}</option>`).join("");
+
+    const pasoHistorial = document.getElementById("asistente-paso-historial");
+    if (pasoHistorial) pasoHistorial.classList.add("hidden");
+}
+
+function buscarHistorialAsistente() {
+    const prov = document.getElementById("asistente-proveedor") ? document.getElementById("asistente-proveedor").value : "";
+    const prod = document.getElementById("asistente-producto") ? document.getElementById("asistente-producto").value : "";
+    const pasoHistorial = document.getElementById("asistente-paso-historial");
+    const tbody = document.getElementById("asistente-historial-body");
+    if (!pasoHistorial || !tbody) return;
+
+    if (!prov || !prod) { pasoHistorial.classList.add("hidden"); return; }
+    pasoHistorial.classList.remove("hidden");
+    tbody.innerHTML = "";
+
+    let registros = [];
+
+    if (asistenteTipoActual === 'prepago') {
+        const detalles = (cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) ? cacheUltimosDatos.data.detallesLotes : [];
+        registros = detalles
+            .filter(l => l.proveedor === prov && l.producto === prod)
+            .map(l => {
+                const cantDisp = parseFloat(l.cantDisponible) || 0;
+                return {
+                    fecha: formatearFecha(l.fecha),
+                    referencia: l.idLote,
+                    cantidad: parseFloat(l.cantOriginal) || 0,
+                    montoTxt: `$${formatearMonto((parseFloat(l.cantOriginal) || 0) * (parseFloat(l.costoUsd) || 0))}`,
+                    estadoTexto: cantDisp > 0 ? `ACTIVO (${formatearMonto(cantDisp)} pend.)` : "LIQUIDADO",
+                    estadoClase: cantDisp > 0 ? "bg-cyan-950 text-cyan-400 border-cyan-800" : "bg-slate-800 text-slate-400 border-slate-700",
+                    onClickAttr: `abrirRegistroParaEdicion('prepago', '${l.idLote.replace(/'/g, "\\'")}', '${prod.replace(/'/g, "\\'")}')`
+                };
+            });
+    } else if (asistenteTipoActual === 'recepcion') {
+        const historial = Array.isArray(cacheHistorialDespachos) ? cacheHistorialDespachos : [];
+        registros = historial
+            .filter(h => h.proveedor === prov && h.producto === prod)
+            .map(h => ({
+                fecha: formatearFecha(h.fechaRecepcion),
+                referencia: `${h.idLote} / Fact. ${h.nroFactura || 'S/N'}`,
+                cantidad: parseFloat(h.cantidadRecibida) || 0,
+                montoTxt: `Bs. ${formatearMonto(parseFloat(h.montoFactura) || 0)}`,
+                estadoTexto: "RECEPCIONADO",
+                estadoClase: "bg-emerald-950 text-emerald-400 border-emerald-800",
+                onClickAttr: `abrirRegistroParaEdicion('recepcion', ${h.fila})`
+            }));
+    }
+
+    if (registros.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-4 text-center text-xs text-slate-500 italic">No hay registros de este tipo para ese proveedor y esa mercancía.</td></tr>`;
+        return;
+    }
+
+    registros.forEach(r => {
+        tbody.insertAdjacentHTML("beforeend", `
+            <tr class="hover:bg-slate-900/50 border-b border-slate-800">
+                <td class="px-3 py-2 font-mono text-slate-400">${r.fecha}</td>
+                <td class="px-3 py-2 font-mono font-bold text-blue-400">${r.referencia}</td>
+                <td class="px-3 py-2 text-right font-mono text-white">${formatearMonto(r.cantidad)}</td>
+                <td class="px-3 py-2 text-right font-mono text-slate-300">${r.montoTxt}</td>
+                <td class="px-3 py-2 text-center"><span class="${r.estadoClase} border px-2 py-0.5 rounded text-[10px] font-bold">${r.estadoTexto}</span></td>
+                <td class="px-3 py-2 text-center"><button type="button" onclick="${r.onClickAttr}" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-[10px] font-bold transition">Abrir ✏️</button></td>
+            </tr>
+        `);
+    });
+}
+
+// Router: abre el registro elegido en el formulario correspondiente, ya en modo edición
+function abrirRegistroParaEdicion(tipo, referencia, productoFiltro) {
+    if (tipo === 'prepago') {
+        iniciarEdicionPrepago(referencia, productoFiltro);
+    } else {
+        iniciarEdicionRegistroDespacho(referencia);
+    }
+}
+
+// Abre una recepción (despacho) ya registrada para edición, reutilizando el motor de
+// "selección manual de lote": se fuerza a que la cascada trabaje EXCLUSIVAMENTE sobre el
+// lote de origen de ese despacho, tal como estaba cuando se recibió originalmente.
+function iniciarEdicionRegistroDespacho(fila) {
+    solicitarPinSeguridad(function() {
+        const registro = Array.isArray(cacheHistorialDespachos) ? cacheHistorialDespachos.find(h => h.fila === fila) : null;
+        if (!registro) {
+            alert("No se encontró el registro de recepción para editar.");
+            return;
+        }
+
+        cambiarModulo('mod-recepcion');
+
+        modoEdicionActivo = 'recepcion';
+        referenciaEdicionActual = fila;
+
+        const elProv = document.getElementById("rec-proveedor");
+        if (elProv) {
+            elProv.value = registro.proveedor;
+            filtrarProductosPorProveedor(registro.proveedor, "rec-producto");
+        }
+
+        const elProd = document.getElementById("rec-producto");
+        if (elProd) elProd.value = registro.producto;
+
+        const elGuia = document.getElementById("rec-guia");
+        if (elGuia) elGuia.value = registro.nroFactura || "";
+
+        const elFecha = document.getElementById("rec-fecha");
+        if (elFecha && registro.fechaRecepcion) {
+            elFecha.value = registro.fechaRecepcion.split('T')[0];
+        }
+
+        const elCantidad = document.getElementById("rec-cantidad");
+        if (elCantidad) elCantidad.value = registro.cantidadRecibida;
+
+        const elMontoBs = document.getElementById("rec-monto-bs");
+        if (elMontoBs) elMontoBs.value = registro.montoFactura;
+
+        // Forzar selección manual restringida únicamente al lote de origen de este despacho
+        modoSeleccionLoteActivo = true;
+        lotesSeleccionadosManual = [registro.idLote];
+        actualizarBotonSeleccionLote();
+
+        const btnCancelar = document.getElementById("btn-cancelar-edicion-recepcion");
+        if (btnCancelar) btnCancelar.classList.remove("hidden");
+
+        actualizarTablaRecepcionCascada();
+
+        alert(`✏️ Modo Edición activado para la Recepción del Lote: ${registro.idLote} (Fact. ${registro.nroFactura || 'S/N'}). Modifique los valores y presione "Guardar Cambios y Reimprimir".`);
     });
 }
 
