@@ -134,6 +134,34 @@ function cambiarModulo(idModulo) {
     }
 }
 
+// Navegación por "carpetas" dentro de Reportes y Auditoría
+function abrirCarpetaReporte(carpeta) {
+    const pasoCarpeta = document.getElementById("reportes-paso-carpeta");
+    const contenido = document.getElementById("reportes-carpeta-contenido");
+    const carpetaTraz = document.getElementById("carpeta-trazabilidad");
+    const carpetaMayor = document.getElementById("carpeta-libro-mayor");
+
+    if (pasoCarpeta) pasoCarpeta.classList.add("hidden");
+    if (contenido) contenido.classList.remove("hidden");
+    if (carpetaTraz) carpetaTraz.classList.add("hidden");
+    if (carpetaMayor) carpetaMayor.classList.add("hidden");
+
+    if (carpeta === 'trazabilidad') {
+        if (carpetaTraz) carpetaTraz.classList.remove("hidden");
+        renderizarTablaReportes();
+    } else if (carpeta === 'libro-mayor') {
+        if (carpetaMayor) carpetaMayor.classList.remove("hidden");
+        renderizarLibroMayor();
+    }
+}
+
+function volverCarpetasReportes() {
+    const pasoCarpeta = document.getElementById("reportes-paso-carpeta");
+    const contenido = document.getElementById("reportes-carpeta-contenido");
+    if (pasoCarpeta) pasoCarpeta.classList.remove("hidden");
+    if (contenido) contenido.classList.add("hidden");
+}
+
 function agregarCampoMercancia() {
     const contenedor = document.getElementById('contenedor-mercancias');
     if (!contenedor) return;
@@ -487,7 +515,7 @@ function imprimirReciboPrepago() {
             <title>Soporte Operacional - Lote ${lote}</title>
             <style>
                 @page { size: letter; margin: 45px; }
-                body { font-family: 'Segoe UI', system-ui, Arial, sans-serif; color: #1e293b; background: white; margin: 0; padding: 0; font-size: 14px; }
+                body { font-family: 'Segoe UI', system-ui, Arial, sans-serif; color: #1e293b; background: white; margin: 0; padding: 0; font-size: 14px; font-weight: 500; }
                 .wrapper { width: 100%; max-width: 750px; margin: 0 auto; }
                 .table-info { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
                 .info-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; width: 48%; vertical-align: top; }
@@ -826,14 +854,14 @@ function actualizarTablaRecepcionCascada() {
         row.className = cantTomada > 0 ? "bg-blue-950/30 border-b border-slate-800" : "opacity-40 border-b border-slate-800";
         row.innerHTML = `
             ${celdaCheckbox}
-            <td class="px-3 py-2 font-mono text-xs font-bold text-blue-400">${lote.idLote}</td>
-            <td class="px-3 py-2 font-mono text-xs text-right">${formatearMonto(cantDisponible)}</td>
-            <td class="px-3 py-2 font-mono text-xs text-right text-emerald-400 font-bold">${formatearMonto(cantTomada)}</td>
-            <td class="px-3 py-2 font-mono text-xs text-right">$${formatearMonto(costoUsdUnit)}</td>
-            <td class="px-3 py-2 font-mono text-xs text-right font-bold text-slate-200">$${formatearMonto(totalUsdTomado)}</td>
-            <td class="px-3 py-2 font-mono text-xs text-right">Bs. ${formatearMonto(tasaOrigen)}</td>
-            <td class="px-3 py-2 font-mono text-xs text-right text-slate-300">Bs. ${formatearMonto(totalBsOrigenTomado)}</td>
-            <td class="px-3 py-2 font-mono text-xs text-right text-blue-400 font-bold">Bs. ${formatearMonto(totalBsActualTomado)}</td>
+            <td class="td-rec-lote px-3 py-2 font-mono text-xs font-bold text-blue-400">${lote.idLote}</td>
+            <td class="td-rec-disponible px-3 py-2 font-mono text-xs text-right">${formatearMonto(cantDisponible)}</td>
+            <td class="td-rec-tomado px-3 py-2 font-mono text-xs text-right text-emerald-400 font-bold">${formatearMonto(cantTomada)}</td>
+            <td class="td-rec-costo px-3 py-2 font-mono text-xs text-right">$${formatearMonto(costoUsdUnit)}</td>
+            <td class="td-rec-total-usd px-3 py-2 font-mono text-xs text-right font-bold text-slate-200">$${formatearMonto(totalUsdTomado)}</td>
+            <td class="td-rec-tasa-origen px-3 py-2 font-mono text-xs text-right">Bs. ${formatearMonto(tasaOrigen)}</td>
+            <td class="td-rec-bs-origen px-3 py-2 font-mono text-xs text-right text-slate-300">Bs. ${formatearMonto(totalBsOrigenTomado)}</td>
+            <td class="td-rec-bs-hoy px-3 py-2 font-mono text-xs text-right text-blue-400 font-bold">Bs. ${formatearMonto(totalBsActualTomado)}</td>
         `;
         tbody.appendChild(row);
     });
@@ -989,33 +1017,39 @@ function imprimirComprobanteRecepcion() {
     if (tbody) {
         const trs = tbody.querySelectorAll("tr");
         trs.forEach(tr => {
-            const cols = tr.querySelectorAll("td");
-            if (cols.length >= 8) {
-                const idLote = cols[0].innerText;
-                const cantTomada = cols[2].innerText;
-                const costoUsd = cols[3].innerText;
-                const totalUsd = cols[4].innerText;
-                const tasaOrigen = cols[5].innerText;
-                const totalBsOrigen = cols[6].innerText;
-                const totalBsActual = cols[7].innerText;
+            const elLote = tr.querySelector(".td-rec-lote");
+            // Filas informativas ("seleccione proveedor...", "no hay lotes...", etc.) no tienen
+            // estas clases y deben ignorarse en el comprobante impreso.
+            if (!elLote) return;
 
-                htmlFilasFifo += `
-                    <tr style="border-bottom: 1px solid #e2e8f0;">
-                        <td style="padding: 8px; font-family: monospace; font-weight: bold; color: #1e3a8a;">${idLote}</td>
-                        <td style="padding: 8px; text-align: center; font-family: monospace; font-weight: bold; color: #047857;">${cantTomada}</td>
-                        <td style="padding: 8px; text-align: right; font-family: monospace;">${costoUsd}</td>
-                        <td style="padding: 8px; text-align: right; font-family: monospace; font-weight: bold;">${totalUsd}</td>
-                        <td style="padding: 8px; text-align: right; font-family: monospace; color: #64748b;">${tasaOrigen}</td>
-                        <td style="padding: 8px; text-align: right; font-family: monospace; color: #475569;">${totalBsOrigen}</td>
-                        <td style="padding: 8px; text-align: right; font-family: monospace; font-weight: bold; color: #2563eb;">${totalBsActual}</td>
-                    </tr>
-                `;
-            }
+            const idLote = elLote.innerText;
+            const cantTomada = tr.querySelector(".td-rec-tomado") ? tr.querySelector(".td-rec-tomado").innerText : "0,00";
+            const costoUsd = tr.querySelector(".td-rec-costo") ? tr.querySelector(".td-rec-costo").innerText : "$0,00";
+            const totalUsd = tr.querySelector(".td-rec-total-usd") ? tr.querySelector(".td-rec-total-usd").innerText : "$0,00";
+            const tasaOrigen = tr.querySelector(".td-rec-tasa-origen") ? tr.querySelector(".td-rec-tasa-origen").innerText : "Bs. 0,00";
+            const totalBsOrigen = tr.querySelector(".td-rec-bs-origen") ? tr.querySelector(".td-rec-bs-origen").innerText : "Bs. 0,00";
+            const totalBsActual = tr.querySelector(".td-rec-bs-hoy") ? tr.querySelector(".td-rec-bs-hoy").innerText : "Bs. 0,00";
+
+            htmlFilasFifo += `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 8px; font-family: monospace; font-weight: bold; color: #1e3a8a;">${idLote}</td>
+                    <td style="padding: 8px; text-align: center; font-family: monospace; font-weight: bold; color: #047857;">${cantTomada}</td>
+                    <td style="padding: 8px; text-align: right; font-family: monospace;">${costoUsd}</td>
+                    <td style="padding: 8px; text-align: right; font-family: monospace; font-weight: bold;">${totalUsd}</td>
+                    <td style="padding: 8px; text-align: right; font-family: monospace; color: #64748b;">${tasaOrigen}</td>
+                    <td style="padding: 8px; text-align: right; font-family: monospace; color: #475569;">${totalBsOrigen}</td>
+                    <td style="padding: 8px; text-align: right; font-family: monospace; font-weight: bold; color: #2563eb;">${totalBsActual}</td>
+                </tr>
+            `;
         });
     }
 
     const ventanaImpresion = window.open('', '_blank', 'width=850,height=1100');
     if (!ventanaImpresion) return;
+
+    const metodoUsado = (modoSeleccionLoteActivo && lotesSeleccionadosManual.length > 0)
+        ? { texto: '🔓 Recepción de Carga - Selección Manual de Lote', color: '#b45309', bg: '#fffbeb', borde: '#f59e0b' }
+        : { texto: '🔁 Recepción de Carga - FIFO Automático', color: '#047857', bg: '#f0fdf4', borde: '#047857' };
 
     ventanaImpresion.document.write(`
         <html>
@@ -1023,7 +1057,7 @@ function imprimirComprobanteRecepcion() {
             <title>Comprobante Recepción de Carga - Factura ${factura}</title>
             <style>
                 @page { size: letter; margin: 45px; }
-                body { font-family: 'Segoe UI', system-ui, Arial, sans-serif; color: #1e293b; background: white; margin: 0; padding: 0; font-size: 13px; }
+                body { font-family: 'Segoe UI', system-ui, Arial, sans-serif; color: #1e293b; background: white; margin: 0; padding: 0; font-size: 13px; font-weight: 500; }
                 .wrapper { width: 100%; max-width: 750px; margin: 0 auto; }
                 .table-info { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
                 .info-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; width: 48%; vertical-align: top; }
@@ -1048,6 +1082,10 @@ function imprimirComprobanteRecepcion() {
                         </td>
                     </tr>
                 </table>
+
+                <div style="border: 1px solid ${metodoUsado.borde}; background: ${metodoUsado.bg}; color: ${metodoUsado.color}; border-radius: 6px; padding: 6px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; display: inline-block; margin-bottom: 15px;">
+                    ${metodoUsado.texto}
+                </div>
 
                 <hr style="border:0; border-top: 1px solid #e2e8f0; margin-bottom:20px;">
 
@@ -1522,6 +1560,8 @@ function renderizarLibroMayor() {
 
     const fechaDesde = elDesde && elDesde.value ? new Date(elDesde.value + "T00:00:00") : null;
     const fechaHasta = elHasta && elHasta.value ? new Date(elHasta.value + "T23:59:59") : null;
+    const elTipoMayor = document.getElementById("mayor-filtro-tipo");
+    const tipoMayor = elTipoMayor ? elTipoMayor.value : "todos";
 
     let movimientos = [];
 
@@ -1590,7 +1630,7 @@ function renderizarLibroMayor() {
             const tasaOrig = loteInfo.tasaOriginal || parseFloat(h.tasaRecepcion || h.tasa || h.tasaCambio || 1) || 1;
             
             let haberBs = 0;
-            const possibleBsKeys = ['totalBsRecepcion', 'montoBs', 'totalBs', 'montoRecepcion', 'montoTotalBs', 'totalBsDespacho', 'montoBsDespacho', 'totalBolivares', 'subtotalBs', 'total', 'monto', 'importeBs'];
+            const possibleBsKeys = ['montoFactura', 'totalBsRecepcion', 'montoBs', 'totalBs', 'montoRecepcion', 'montoTotalBs', 'totalBsDespacho', 'montoBsDespacho', 'totalBolivares', 'subtotalBs', 'total', 'monto', 'importeBs'];
             for (let key of possibleBsKeys) {
                 if (h[key] !== undefined && h[key] !== null && !isNaN(parseFloat(h[key]))) {
                     haberBs = parseFloat(h[key]);
@@ -1629,6 +1669,8 @@ function renderizarLibroMayor() {
 
         if (fechaDesde && m.fechaObj < fechaDesde) return;
         if (fechaHasta && m.fechaObj > fechaHasta) return;
+        if (tipoMayor === 'debe' && m.debe <= 0) return;
+        if (tipoMayor === 'haber' && m.haber <= 0) return;
 
         totalDebe += m.debe;
         totalHaber += m.haber;
@@ -1655,6 +1697,108 @@ function renderizarLibroMayor() {
     if (document.getElementById("mayor-total-debe")) document.getElementById("mayor-total-debe").innerText = "Bs. " + formatearMonto(totalDebe);
     if (document.getElementById("mayor-total-haber")) document.getElementById("mayor-total-haber").innerText = "Bs. " + formatearMonto(totalHaber);
     if (document.getElementById("mayor-saldo-final")) document.getElementById("mayor-saldo-final").innerText = "Bs. " + formatearMonto(saldoAcumulado);
+}
+
+// Limpia el rango de fechas del Libro Mayor (deja el filtro de Tipo de Vista tal como esté)
+function limpiarFiltrosFechaMayor() {
+    const elDesde = document.getElementById("mayor-fecha-desde");
+    const elHasta = document.getElementById("mayor-fecha-hasta");
+    if (elDesde) elDesde.value = "";
+    if (elHasta) elHasta.value = "";
+    renderizarLibroMayor();
+}
+
+// Imprime el Libro Mayor Contable tal como está filtrado en pantalla (fechas + tipo de vista)
+function imprimirLibroMayor() {
+    const elDesde = document.getElementById("mayor-fecha-desde");
+    const elHasta = document.getElementById("mayor-fecha-hasta");
+    const elTipo = document.getElementById("mayor-filtro-tipo");
+
+    const desdeTxt = elDesde && elDesde.value ? formatearFecha(elDesde.value) : "Inicio";
+    const hastaTxt = elHasta && elHasta.value ? formatearFecha(elHasta.value) : "Hoy";
+    const tipoTxt = (elTipo && elTipo.selectedIndex >= 0) ? elTipo.options[elTipo.selectedIndex].text : "Todos los Movimientos";
+    const fechaImpresion = formatearFecha(new Date().toISOString());
+
+    const totalDebeTxt = document.getElementById("mayor-total-debe") ? document.getElementById("mayor-total-debe").innerText : "Bs. 0,00";
+    const totalHaberTxt = document.getElementById("mayor-total-haber") ? document.getElementById("mayor-total-haber").innerText : "Bs. 0,00";
+    const saldoFinalTxt = document.getElementById("mayor-saldo-final") ? document.getElementById("mayor-saldo-final").innerText : "Bs. 0,00";
+
+    let filasHtml = "";
+    const tbody = document.getElementById("tabla-libro-mayor-body");
+    if (tbody) {
+        const trs = tbody.querySelectorAll("tr");
+        trs.forEach(tr => {
+            const cols = tr.querySelectorAll("td");
+            if (cols.length >= 8) {
+                filasHtml += `
+                    <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+                        <td style="padding: 6px; font-family: monospace;">${cols[0].innerText}</td>
+                        <td style="padding: 6px;">${cols[1].innerText}</td>
+                        <td style="padding: 6px;">${cols[2].innerText}</td>
+                        <td style="padding: 6px; font-weight: bold; font-family: monospace;">${cols[3].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace;">${cols[4].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace; color: #047857;">${cols[5].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace; color: #b45309;">${cols[6].innerText}</td>
+                        <td style="padding: 6px; text-align: right; font-family: monospace; font-weight: bold;">${cols[7].innerText}</td>
+                    </tr>
+                `;
+            }
+        });
+    }
+
+    const win = window.open('', '_blank', 'width=900,height=1100');
+    if (!win) return;
+
+    win.document.write(`
+        <html>
+        <head>
+            <title>Libro Mayor Contable - SICOOP</title>
+            <style>
+                @page { size: letter landscape; margin: 30px; }
+                body { font-family: 'Segoe UI', system-ui, Arial, sans-serif; color: #1e293b; font-size: 12px; font-weight: 500; }
+                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                th { background: #312e81; color: white; padding: 8px; font-size: 10px; text-transform: uppercase; }
+                tfoot td { border-top: 2px solid #1e293b; font-weight: bold; background: #f1f5f9; }
+            </style>
+        </head>
+        <body>
+            <h2>SICOOP COOPERATIVA - LIBRO MAYOR CONTABLE (AUXILIAR DE PREPAGOS)</h2>
+            <p><strong>Rango:</strong> ${desdeTxt} al ${hastaTxt} | <strong>Tipo de Vista:</strong> ${tipoTxt} | <strong>Fecha de emisión:</strong> ${fechaImpresion}</p>
+
+            <div style="display: flex; gap: 20px; margin: 15px 0;">
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
+                    <small>Total Debe (Prepagado)</small><br><strong>${totalDebeTxt}</strong>
+                </div>
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
+                    <small>Total Haber (Recibido)</small><br><strong>${totalHaberTxt}</strong>
+                </div>
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;">
+                    <small>Saldo Final</small><br><strong>${saldoFinalTxt}</strong>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Proveedor</th>
+                        <th>Producto</th>
+                        <th>Lote / Factura</th>
+                        <th style="text-align:right;">Cantidad</th>
+                        <th style="text-align:right;">Debe (Bs)</th>
+                        <th style="text-align:right;">Haber (Bs)</th>
+                        <th style="text-align:right;">Saldo (Bs)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filasHtml}
+                </tbody>
+            </table>
+            <script>window.onload = function() { window.print(); window.close(); };<\/script>
+        </body>
+        </html>
+    `);
+    win.document.close();
 }
 
 function imprimirReporteAuditoria() {
@@ -1706,7 +1850,7 @@ function imprimirReporteAuditoria() {
             <title>Informe de Auditoría y Trazabilidad - SICOOP</title>
             <style>
                 @page { size: letter landscape; margin: 30px; }
-                body { font-family: sans-serif; color: #1e293b; font-size: 12px; }
+                body { font-family: sans-serif; color: #1e293b; font-size: 12px; font-weight: 500; }
                 table { width: 100%; border-collapse: collapse; margin-top: 15px; }
                 th { background: #0f172a; color: white; padding: 8px; font-size: 10px; text-transform: uppercase; }
             </style>
