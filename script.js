@@ -1824,12 +1824,17 @@ function validarPinSeguridad() {
     }
 
     if (pinIngresado === CLAVE_MAESTRA || (codigoOtpActual && pinIngresado === codigoOtpActual)) {
+        // Se guarda una referencia local ANTES de cerrar el modal, porque cerrarModalSeguridad()
+        // pone accionPendienteSeguridad en null (para dejar todo limpio para la próxima vez).
+        // Si se ejecutara después de cerrar el modal, la acción ya se habría perdido.
+        const accionAEjecutar = accionPendienteSeguridad;
+
         alert("🔓 Acceso autorizado correctamente.");
         cerrarModalSeguridad();
 
         // 1. Ejecutar la acción pendiente original si existía
-        if (typeof accionPendienteSeguridad === 'function') {
-            accionPendienteSeguridad();
+        if (typeof accionAEjecutar === 'function') {
+            accionAEjecutar();
         }
 
         // 2. Habilitar dinámicamente las funciones administrativas
