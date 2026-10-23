@@ -1629,15 +1629,17 @@ function renderizarLibroMayor() {
             const costoUsd = loteInfo.costoUsd || parseFloat(h.costoUsdUnit || h.costoUnitario || h.precioUsd || h.costoUsd || h.costo) || 0;
             const tasaOrig = loteInfo.tasaOriginal || parseFloat(h.tasaRecepcion || h.tasa || h.tasaCambio || 1) || 1;
             
+            // El HABER se valora a COSTO DE ORIGEN (misma tasa con la que se registró el DEBE),
+            // para que al recibirse todo un lote su saldo quede en cero. El monto de la factura
+            // a la tasa de hoy NO va aquí: la diferencia con el origen es el ajuste cambiario.
+            // Costo origen = Monto_Factura - Dif_Cambiaria (lo que el servidor guardó por despacho).
             let haberBs = 0;
-            const possibleBsKeys = ['montoFactura', 'totalBsRecepcion', 'montoBs', 'totalBs', 'montoRecepcion', 'montoTotalBs', 'totalBsDespacho', 'montoBsDespacho', 'totalBolivares', 'subtotalBs', 'total', 'monto', 'importeBs'];
-            for (let key of possibleBsKeys) {
-                if (h[key] !== undefined && h[key] !== null && !isNaN(parseFloat(h[key]))) {
-                    haberBs = parseFloat(h[key]);
-                    if (haberBs > 0) break;
-                }
+            const montoFacturaHoy = parseFloat(h.montoFactura);
+            const difCambiaria = parseFloat(h.difCambiaria);
+            if (!isNaN(montoFacturaHoy) && !isNaN(difCambiaria)) {
+                haberBs = montoFacturaHoy - difCambiaria;
             }
-            if (haberBs === 0) {
+            if (!(haberBs > 0)) {
                 haberBs = cantDesp * costoUsd * tasaOrig;
             }
             
