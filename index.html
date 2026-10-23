@@ -72,7 +72,7 @@
            (debe ir DESPUÉS de las reglas de texto de arriba) */
         html.tema-claro [class*="bg-blue-600"], html.tema-claro [class*="bg-emerald-600"],
         html.tema-claro [class*="bg-amber-600"], html.tema-claro [class*="bg-indigo-600"],
-        html.tema-claro [class*="bg-red-600"] { color: #ffffff !important; }
+        html.tema-claro [class*="bg-red-600"], html.tema-claro [class*="bg-cyan-700"] { color: #ffffff !important; }
 
         /* Bordes y separadores */
         html.tema-claro .border-slate-800, html.tema-claro .border-slate-800\/40 { border-color: #e2e8f0 !important; }
@@ -472,6 +472,10 @@
                                 📦 Mercancía Prepagada Activa (Pendiente por Recibir)
                             </h3>
                             <p class="text-xs text-slate-400">Inventario disponible en lotes prepagados aún no consolidados físicamente</p>
+                            <div class="flex flex-wrap items-center gap-3 mt-2">
+                                <button type="button" onclick="imprimirMercanciaActiva()" class="bg-cyan-700 hover:bg-cyan-600 active:scale-95 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5">🖨️ Imprimir Mercancía Activa</button>
+                                <span class="text-[11px] text-slate-500">Clic en un producto para ver cómo se distribuye entre sus prepagos</span>
+                            </div>
                         </div>
                         <div class="flex gap-4 text-right">
                             <div>

@@ -18,6 +18,10 @@ let lotesSeleccionadosManual = [];
 let _recCascadaUltimoProv = null;
 let _recCascadaUltimoProd = null;
 
+// Mercancía Prepagada Activa: último cálculo (para el desglose y la impresión) y productos desplegados
+let ultimoResumenActivos = null;
+const productosActivosExpandidos = new Set();
+
 // Variables globales del Asistente de Edición / Reimpresión (módulo "Seguridad Clave Maestra")
 let asistenteTipoActual = null;      // 'prepago' | 'recepcion'
 let modoEdicionActivo = null;        // null | 'prepago' | 'recepcion'
@@ -1381,6 +1385,103 @@ function procesarEnvioProveedor(e) {
 }
 
 // REPORTES Y AUDITORÍA
+// Despliega / oculta el desglose por prepago de un producto en Mercancía Prepagada Activa
+function alternarDetalleProductoActivo(i) {
+    if (!ultimoResumenActivos || !ultimoResumenActivos.productos[i]) return;
+    const nombre = ultimoResumenActivos.productos[i].nombre;
+    const abrir = !productosActivosExpandidos.has(nombre);
+    if (abrir) productosActivosExpandidos.add(nombre); else productosActivosExpandidos.delete(nombre);
+
+    document.querySelectorAll(".detalle-activo-" + i).forEach(tr => tr.classList.toggle("hidden", !abrir));
+    const flecha = document.getElementById("flecha-activo-" + i);
+    if (flecha) flecha.innerText = abrir ? '▾' : '▸';
+}
+
+// Imprime SOLO la tarjeta de Mercancía Prepagada Activa, con todos los productos desglosados por prepago
+function imprimirMercanciaActiva() {
+    if (!ultimoResumenActivos) renderizarTablaReportes();
+    const r = ultimoResumenActivos;
+    if (!r || r.productos.length === 0) {
+        alert("No hay mercancía prepagada activa para imprimir.");
+        return;
+    }
+
+    const fechaImpresion = formatearFecha(new Date().toISOString());
+    let filas = "";
+    r.productos.forEach(p => {
+        const costoProm = p.bultos > 0 ? p.totalUsd / p.bultos : 0;
+        const pct = r.totalUsd > 0 ? ((p.totalUsd / r.totalUsd) * 100).toFixed(1) : 0;
+        filas += `
+            <tr style="background:#e2e8f0; border-top: 2px solid #94a3b8; font-weight: 700;">
+                <td style="padding:7px;" colspan="3">${p.nombre} <span style="font-weight:500; color:#475569;">(${p.lotes.length} ${p.lotes.length === 1 ? 'prepago' : 'prepagos'})</span></td>
+                <td style="padding:7px; text-align:right; font-family:monospace;">${formatearMonto(p.bultos)}</td>
+                <td style="padding:7px; text-align:right; font-family:monospace;">$${formatearMonto(costoProm)} <small>prom.</small></td>
+                <td style="padding:7px; text-align:right; font-family:monospace;">$${formatearMonto(p.totalUsd)}</td>
+                <td style="padding:7px; text-align:right; font-family:monospace;">Bs. ${formatearMonto(p.totalBs)}</td>
+                <td style="padding:7px; text-align:right; font-family:monospace;">${pct}%</td>
+            </tr>`;
+        p.lotes.forEach(lt => {
+            const pl = r.totalUsd > 0 ? ((lt.totalUsd / r.totalUsd) * 100).toFixed(1) : 0;
+            filas += `
+            <tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:6px 6px 6px 22px; font-family:monospace; font-weight:700; color:#1e3a8a;">↳ ${lt.idLote}</td>
+                <td style="padding:6px;">${lt.proveedor}</td>
+                <td style="padding:6px; font-family:monospace;">${formatearFecha(lt.fecha)} · Bs. ${formatearMonto(lt.tasa)}</td>
+                <td style="padding:6px; text-align:right; font-family:monospace;">${formatearMonto(lt.bultos)}</td>
+                <td style="padding:6px; text-align:right; font-family:monospace;">$${formatearMonto(lt.costoUsd)}</td>
+                <td style="padding:6px; text-align:right; font-family:monospace;">$${formatearMonto(lt.totalUsd)}</td>
+                <td style="padding:6px; text-align:right; font-family:monospace;">Bs. ${formatearMonto(lt.totalBs)}</td>
+                <td style="padding:6px; text-align:right; font-family:monospace;">${pl}%</td>
+            </tr>`;
+        });
+    });
+
+    const win = window.open('', '_blank', 'width=1000,height=1100');
+    if (!win) return;
+    win.document.write(`
+        <html>
+        <head>
+            <title>Mercancía Prepagada Activa - SICOOP</title>
+            <style>
+                @page { size: letter landscape; margin: 30px; }
+                body { font-family: 'Segoe UI', system-ui, Arial, sans-serif; color: #1e293b; font-size: 12px; font-weight: 500; }
+                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                th { background: #0e7490; color: white; padding: 8px; font-size: 10px; text-transform: uppercase; text-align: left; }
+                th.num { text-align: right; }
+            </style>
+        </head>
+        <body>
+            <h2 style="margin:0;">SICOOP COOPERATIVA - MERCANCÍA PREPAGADA ACTIVA (PENDIENTE POR RECIBIR)</h2>
+            <p style="margin:4px 0 0 0;"><strong>Fecha de emisión:</strong> ${fechaImpresion}${r.filtroProveedor ? ' | <strong>Proveedor:</strong> ' + r.filtroProveedor : ''}</p>
+
+            <div style="display:flex; gap:20px; margin:15px 0;">
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;"><small>Total Bultos Pendientes</small><br><strong>${formatearMonto(r.totalBultos)} bultos</strong></div>
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;"><small>Total Valorizado ($)</small><br><strong>$${formatearMonto(r.totalUsd)}</strong></div>
+                <div style="border:1px solid #cbd5e1; padding:10px; border-radius:5px; width:30%;"><small>Total Pagado (Bs)</small><br><strong>Bs. ${formatearMonto(r.totalBs)}</strong></div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto / Prepago</th>
+                        <th>Proveedor</th>
+                        <th>Fecha · Tasa Prepago</th>
+                        <th class="num">Bultos Pend.</th>
+                        <th class="num">Costo ($)</th>
+                        <th class="num">Total ($)</th>
+                        <th class="num">Total Pagado (Bs)</th>
+                        <th class="num">% Inv.</th>
+                    </tr>
+                </thead>
+                <tbody>${filas}</tbody>
+            </table>
+            <script>window.onload = function() { window.print(); window.close(); };<\/script>
+        </body>
+        </html>
+    `);
+    win.document.close();
+}
+
 function renderizarTablaReportes() {
     const tbodyMovs = document.getElementById("tabla-reportes-body");
     const tbodyProds = document.getElementById("tabla-productos-activos-body");
@@ -1420,7 +1521,8 @@ function renderizarTablaReportes() {
                             bultos: 0,
                             totalUsd: 0,
                             totalBs: 0,
-                            costos: []
+                            costos: [],
+                            lotes: []
                         };
                     }
 
@@ -1428,6 +1530,17 @@ function renderizarTablaReportes() {
                     resumenProductos[prodNombre].totalUsd += totalUsdLote;
                     resumenProductos[prodNombre].totalBs += totalBsLote;
                     resumenProductos[prodNombre].costos.push(costoUsd);
+                    // Desglose por prepago (lote): cada uno con su propio costo, tasa y monto exacto en Bs
+                    resumenProductos[prodNombre].lotes.push({
+                        idLote: l.idLote,
+                        proveedor: l.proveedor || '-',
+                        fecha: l.fecha,
+                        bultos: bultosDisponibles,
+                        costoUsd: costoUsd,
+                        tasa: tasaOrigenLote,
+                        totalUsd: totalUsdLote,
+                        totalBs: totalBsLote
+                    });
 
                     granTotalBultosActivos += bultosDisponibles;
                     granTotalUsdActivos += totalUsdLote;
@@ -1437,20 +1550,34 @@ function renderizarTablaReportes() {
         });
     }
 
+    // Datos calculados, reutilizados por el desglose y por la impresión de esta tarjeta
+    ultimoResumenActivos = {
+        filtroProveedor: filtroProv || "",
+        totalBultos: granTotalBultosActivos,
+        totalUsd: granTotalUsdActivos,
+        totalBs: granTotalBsActivos,
+        productos: Object.keys(resumenProductos).map(nombre => ({ nombre: nombre, ...resumenProductos[nombre] }))
+    };
+
     if (tbodyProds) {
-        const nombresProductos = Object.keys(resumenProductos);
-        if (nombresProductos.length === 0) {
+        const productos = ultimoResumenActivos.productos;
+        if (productos.length === 0) {
             tbodyProds.innerHTML = `<tr><td colspan="6" class="px-4 py-4 text-center text-xs text-slate-500 italic">No hay mercancía prepagada activa para mostrar.</td></tr>`;
         } else {
-            nombresProductos.forEach(prod => {
-                const item = resumenProductos[prod];
+            productos.forEach((item, i) => {
                 const costoPromedio = item.bultos > 0 ? (item.totalUsd / item.bultos) : 0;
                 const porcentaje = granTotalUsdActivos > 0 ? ((item.totalUsd / granTotalUsdActivos) * 100).toFixed(1) : 0;
+                const abierto = productosActivosExpandidos.has(item.nombre);
+                const numLotes = item.lotes.length;
 
                 tbodyProds.insertAdjacentHTML("beforeend", `
-                    <tr class="hover:bg-slate-900/40 border-b border-slate-800/40">
-                        <td class="px-4 py-2 font-bold text-white flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-cyan-400"></span> ${prod}
+                    <tr onclick="alternarDetalleProductoActivo(${i})" title="Clic para ver el desglose por prepago" class="cursor-pointer hover:bg-slate-900/40 border-b border-slate-800/40">
+                        <td class="px-4 py-2 font-bold text-white">
+                            <div class="flex items-center gap-2">
+                                <span id="flecha-activo-${i}" class="text-slate-400 text-[10px] w-3">${abierto ? '▾' : '▸'}</span>
+                                <span class="w-2 h-2 rounded-full bg-cyan-400"></span> ${item.nombre}
+                                <span class="text-[10px] font-normal text-slate-500">(${numLotes} ${numLotes === 1 ? 'prepago' : 'prepagos'})</span>
+                            </div>
                         </td>
                         <td class="px-4 py-2 text-right font-mono font-bold text-amber-400">${formatearMonto(item.bultos)} bultos</td>
                         <td class="px-4 py-2 text-right font-mono text-slate-300">$${formatearMonto(costoPromedio)}</td>
@@ -1461,6 +1588,26 @@ function renderizarTablaReportes() {
                         </td>
                     </tr>
                 `);
+
+                // Filas de desglose por prepago (alineadas con las mismas columnas)
+                item.lotes.forEach(lt => {
+                    const pctLote = granTotalUsdActivos > 0 ? ((lt.totalUsd / granTotalUsdActivos) * 100).toFixed(1) : 0;
+                    tbodyProds.insertAdjacentHTML("beforeend", `
+                        <tr class="detalle-activo-${i} ${abierto ? '' : 'hidden'} bg-slate-950/40 border-b border-slate-800/40">
+                            <td class="px-4 py-2 pl-12">
+                                <span class="font-mono font-bold text-xs text-blue-400">↳ ${lt.idLote}</span>
+                                <span class="block text-[10px] text-slate-500">${lt.proveedor} · Prepago ${formatearFecha(lt.fecha)} · Tasa Bs. ${formatearMonto(lt.tasa)}</span>
+                            </td>
+                            <td class="px-4 py-2 text-right font-mono text-xs text-amber-400">${formatearMonto(lt.bultos)} bultos</td>
+                            <td class="px-4 py-2 text-right font-mono text-xs text-slate-300">$${formatearMonto(lt.costoUsd)}</td>
+                            <td class="px-4 py-2 text-right font-mono text-xs text-emerald-400">$${formatearMonto(lt.totalUsd)}</td>
+                            <td class="px-4 py-2 text-right font-mono text-xs text-blue-400">Bs. ${formatearMonto(lt.totalBs)}</td>
+                            <td class="px-4 py-2 text-center">
+                                <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[10px] font-mono">${pctLote}%</span>
+                            </td>
+                        </tr>
+                    `);
+                });
             });
         }
     }
