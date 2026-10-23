@@ -244,6 +244,31 @@ function renderizarDashboard(data) {
     if (chartsCargados && data.resumenConsolidated) dibujarGraficos(data.resumenConsolidated);
 }
 
+/* =========================================================================
+   TEMA CLARO / OSCURO (botón luna/sol en la barra superior)
+   ========================================================================= */
+function temaActual() {
+    return document.documentElement.classList.contains('tema-claro') ? 'claro' : 'oscuro';
+}
+
+function actualizarBotonesTema() {
+    const t = temaActual();
+    const bOsc = document.getElementById("btn-tema-oscuro");
+    const bCla = document.getElementById("btn-tema-claro");
+    if (bOsc) { bOsc.classList.toggle("activo", t === 'oscuro'); bOsc.setAttribute("aria-pressed", t === 'oscuro'); }
+    if (bCla) { bCla.classList.toggle("activo", t === 'claro'); bCla.setAttribute("aria-pressed", t === 'claro'); }
+}
+
+function aplicarTema(tema) {
+    document.documentElement.classList.toggle('tema-claro', tema === 'claro');
+    try { localStorage.setItem('sicoop-tema', tema === 'claro' ? 'claro' : 'oscuro'); } catch (e) {}
+    actualizarBotonesTema();
+    // Las gráficas de Google se dibujan con colores fijos: se redibujan con los del tema nuevo
+    if (chartsCargados && cacheUltimosDatos && cacheUltimosDatos.data && cacheUltimosDatos.data.resumenConsolidated) {
+        dibujarGraficos(cacheUltimosDatos.data.resumenConsolidated);
+    }
+}
+
 function dibujarGraficos(resumen) {
     try {
         const pDom = document.getElementById('chart-progreso');
@@ -258,7 +283,13 @@ function dibujarGraficos(resumen) {
         const dtT = [['Proveedor', 'Pendiente']];
         resumen.forEach(r => { dtP.addRow([r.proveedor, r.totalRecibido, r.totalPendiente]); dtT.push([r.proveedor, r.totalPendiente]); });
         
-        const opt = { backgroundColor: 'transparent', legend: {textStyle:{color:'#94a3b8'}}, chartArea: {width: '80%', height: '80%'}, hAxis:{textStyle:{color:'#64748b'}}, vAxis:{textStyle:{color:'#64748b'}} };
+        // Colores de textos y líneas de las gráficas según el tema activo
+        const claro = temaActual() === 'claro';
+        const colorLeyenda = claro ? '#334155' : '#94a3b8';
+        const colorEjes = claro ? '#475569' : '#64748b';
+        const ejeCfg = { textStyle: {color: colorEjes} };
+        if (claro) ejeCfg.gridlines = { color: '#e2e8f0' };
+        const opt = { backgroundColor: 'transparent', legend: {textStyle:{color: colorLeyenda}}, chartArea: {width: '80%', height: '80%'}, hAxis: ejeCfg, vAxis: ejeCfg };
         
         new google.visualization.BarChart(pDom).draw(dtP, { ...opt, isStacked: true, colors: ['#10b981', '#f59e0b'] });
         new google.visualization.PieChart(dDom).draw(google.visualization.arrayToDataTable(dtT), { ...opt, colors: ['#3b82f6', '#f59e0b', '#ef4444'], pieHole: 0.4 });
@@ -1368,31 +1399,39 @@ function renderizarTablaReportes() {
     const resumenProductos = {}; 
     let granTotalBultosActivos = 0;
     let granTotalUsdActivos = 0;
+    let granTotalBsActivos = 0;
 
     if (cacheUltimosDatos && cacheUltimosDatos.data && Array.isArray(cacheUltimosDatos.data.detallesLotes)) {
         cacheUltimosDatos.data.detallesLotes.forEach(l => {
             if (!filtroProv || l.proveedor === filtroProv) {
                 const bultosDisponibles = parseFloat(l.cantDisponible) || 0;
                 const costoUsd = parseFloat(l.costoUsd) || 0;
+                const tasaOrigenLote = parseFloat(l.tasaOriginal) || 0;
 
                 if (bultosDisponibles > 0) {
                     const prodNombre = l.producto || "Sin Especificar";
                     const totalUsdLote = bultosDisponibles * costoUsd;
+                    // Monto EXACTO en Bs de lo pendiente: cada lote a SU propia tasa de pago
+                    // (no un promedio), tal como se prepagó realmente.
+                    const totalBsLote = totalUsdLote * tasaOrigenLote;
 
                     if (!resumenProductos[prodNombre]) {
                         resumenProductos[prodNombre] = {
                             bultos: 0,
                             totalUsd: 0,
+                            totalBs: 0,
                             costos: []
                         };
                     }
 
                     resumenProductos[prodNombre].bultos += bultosDisponibles;
                     resumenProductos[prodNombre].totalUsd += totalUsdLote;
+                    resumenProductos[prodNombre].totalBs += totalBsLote;
                     resumenProductos[prodNombre].costos.push(costoUsd);
 
                     granTotalBultosActivos += bultosDisponibles;
                     granTotalUsdActivos += totalUsdLote;
+                    granTotalBsActivos += totalBsLote;
                 }
             }
         });
@@ -1401,7 +1440,7 @@ function renderizarTablaReportes() {
     if (tbodyProds) {
         const nombresProductos = Object.keys(resumenProductos);
         if (nombresProductos.length === 0) {
-            tbodyProds.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-xs text-slate-500 italic">No hay mercancía prepagada activa para mostrar.</td></tr>`;
+            tbodyProds.innerHTML = `<tr><td colspan="6" class="px-4 py-4 text-center text-xs text-slate-500 italic">No hay mercancía prepagada activa para mostrar.</td></tr>`;
         } else {
             nombresProductos.forEach(prod => {
                 const item = resumenProductos[prod];
@@ -1416,6 +1455,7 @@ function renderizarTablaReportes() {
                         <td class="px-4 py-2 text-right font-mono font-bold text-amber-400">${formatearMonto(item.bultos)} bultos</td>
                         <td class="px-4 py-2 text-right font-mono text-slate-300">$${formatearMonto(costoPromedio)}</td>
                         <td class="px-4 py-2 text-right font-mono font-bold text-emerald-400">$${formatearMonto(item.totalUsd)}</td>
+                        <td class="px-4 py-2 text-right font-mono font-bold text-blue-400">Bs. ${formatearMonto(item.totalBs)}</td>
                         <td class="px-4 py-2 text-center">
                             <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[10px] font-mono">${porcentaje}%</span>
                         </td>
@@ -1427,6 +1467,7 @@ function renderizarTablaReportes() {
 
     if (document.getElementById("resumen-total-bultos-activos")) document.getElementById("resumen-total-bultos-activos").innerText = `${formatearMonto(granTotalBultosActivos)} bultos`;
     if (document.getElementById("resumen-total-usd-activos")) document.getElementById("resumen-total-usd-activos").innerText = `$${formatearMonto(granTotalUsdActivos)}`;
+    if (document.getElementById("resumen-total-bs-activos")) document.getElementById("resumen-total-bs-activos").innerText = `Bs. ${formatearMonto(granTotalBsActivos)}`;
     if (document.getElementById("aud-kpi-total-usd-activo")) document.getElementById("aud-kpi-total-usd-activo").innerText = `$${formatearMonto(granTotalUsdActivos)}`;
 
     const listaRender = [];
@@ -2310,6 +2351,7 @@ function iniciarEdicionRegistroDespacho(fila) {
 
 // INICIALIZACIÓN Y ENLACE AUTOMÁTICO DE EVENTOS EN EL DOM
 document.addEventListener("DOMContentLoaded", function() {
+    actualizarBotonesTema();
     cargarDatos();
 
     const formPrepago = document.getElementById("form-prepago");

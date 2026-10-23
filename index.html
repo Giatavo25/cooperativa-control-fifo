@@ -1,15 +1,96 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SICOOP - Control de Inventario FIFO</title>
+    <script>
+        // Tema guardado (claro/oscuro): se aplica antes de pintar la página para evitar parpadeos
+        try { if (localStorage.getItem('sicoop-tema') === 'claro') document.documentElement.classList.add('tema-claro'); } catch (e) {}
+    </script>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Charts -->
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
+        /* =====================================================================
+           SELECTOR DE TEMA (luna = oscuro / sol = claro)
+           ===================================================================== */
+        .tema-toggle { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 12px; border: 1px solid #334155; background: #0b1220; }
+        .tema-btn { width: 38px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid transparent; cursor: pointer; opacity: .5; transition: opacity .15s, box-shadow .15s, transform .1s; }
+        .tema-btn:hover { opacity: 1; }
+        .tema-btn:active { transform: scale(.94); }
+        .tema-btn.activo { opacity: 1; box-shadow: 0 0 0 2px #3b82f6; }
+        .tema-btn-oscuro { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+        .tema-btn-claro { background: #ffffff; color: #f59e0b; border-color: #cbd5e1; }
+        html.tema-claro .tema-toggle { background: #e2e8f0; border-color: #cbd5e1; }
+
+        /* =====================================================================
+           MODO CLARO: reasigna los colores oscuros del sistema (clases Tailwind)
+           ===================================================================== */
+        html { color-scheme: dark; }
+        html.tema-claro { color-scheme: light; }
+
+        /* Fondos */
+        html.tema-claro body.bg-slate-950 { background-color: #f1f5f9 !important; color: #0f172a !important; }
+        html.tema-claro .bg-slate-950 { background-color: #f8fafc !important; }
+        html.tema-claro .bg-slate-950\/80, html.tema-claro .bg-slate-950\/40 { background-color: #f1f5f9 !important; }
+        html.tema-claro .bg-slate-900, html.tema-claro .bg-slate-900\/90, html.tema-claro .bg-slate-900\/80, html.tema-claro .bg-slate-900\/60 { background-color: #ffffff !important; }
+        html.tema-claro .bg-slate-900\/50 { background-color: rgba(255,255,255,.88) !important; }
+        html.tema-claro .bg-slate-800 { background-color: #e2e8f0 !important; }
+        html.tema-claro .hover\:bg-slate-800:hover { background-color: #e2e8f0 !important; }
+        html.tema-claro .hover\:bg-slate-700:hover { background-color: #cbd5e1 !important; }
+        html.tema-claro .hover\:bg-slate-900\/50:hover, html.tema-claro .hover\:bg-slate-900\/40:hover { background-color: #f1f5f9 !important; }
+
+        /* Fondos tintados (alertas, chips, etiquetas) */
+        html.tema-claro .bg-blue-950, html.tema-claro .bg-blue-900\/60, html.tema-claro .bg-blue-900\/50 { background-color: #dbeafe !important; }
+        html.tema-claro .bg-blue-950\/30 { background-color: #eff6ff !important; }
+        html.tema-claro .bg-emerald-950, html.tema-claro .bg-emerald-950\/60 { background-color: #d1fae5 !important; }
+        html.tema-claro .bg-cyan-950 { background-color: #cffafe !important; }
+        html.tema-claro .bg-red-950\/60, html.tema-claro .bg-red-900\/80 { background-color: #fee2e2 !important; }
+        html.tema-claro .bg-amber-950\/60 { background-color: #fef3c7 !important; }
+        html.tema-claro .hover\:bg-blue-800:hover { background-color: #bfdbfe !important; }
+        html.tema-claro .hover\:bg-red-800:hover { background-color: #fecaca !important; }
+
+        /* Textos */
+        html.tema-claro .text-white, html.tema-claro .text-slate-100 { color: #0f172a !important; }
+        html.tema-claro .text-slate-200 { color: #1e293b !important; }
+        html.tema-claro .text-slate-300 { color: #334155 !important; }
+        html.tema-claro .text-slate-400, html.tema-claro .text-slate-600 { color: #475569 !important; }
+        html.tema-claro .text-slate-500 { color: #64748b !important; }
+        html.tema-claro .text-blue-400, html.tema-claro .text-blue-300 { color: #1d4ed8 !important; }
+        html.tema-claro .text-blue-200 { color: #1e40af !important; }
+        html.tema-claro .text-emerald-400 { color: #047857 !important; }
+        html.tema-claro .text-amber-400, html.tema-claro .text-amber-500 { color: #b45309 !important; }
+        html.tema-claro .text-red-400 { color: #b91c1c !important; }
+        html.tema-claro .text-red-500 { color: #dc2626 !important; }
+        html.tema-claro .text-red-200 { color: #991b1b !important; }
+        html.tema-claro .text-cyan-400 { color: #0e7490 !important; }
+        html.tema-claro .hover\:text-red-400:hover { color: #b91c1c !important; }
+
+        /* Botones de color sólido: el texto se mantiene blanco en ambos temas
+           (debe ir DESPUÉS de las reglas de texto de arriba) */
+        html.tema-claro [class*="bg-blue-600"], html.tema-claro [class*="bg-emerald-600"],
+        html.tema-claro [class*="bg-amber-600"], html.tema-claro [class*="bg-indigo-600"],
+        html.tema-claro [class*="bg-red-600"] { color: #ffffff !important; }
+
+        /* Bordes y separadores */
+        html.tema-claro .border-slate-800, html.tema-claro .border-slate-800\/40 { border-color: #e2e8f0 !important; }
+        html.tema-claro .border-slate-700 { border-color: #cbd5e1 !important; }
+        html.tema-claro [class*="divide-slate-800"] > * { border-color: #e2e8f0 !important; }
+        html.tema-claro .border-emerald-800 { border-color: #6ee7b7 !important; }
+        html.tema-claro .border-red-900, html.tema-claro .border-red-800 { border-color: #fca5a5 !important; }
+        html.tema-claro .border-cyan-800, html.tema-claro .border-cyan-800\/50 { border-color: #67e8f9 !important; }
+        html.tema-claro .border-blue-700, html.tema-claro .border-blue-800 { border-color: #93c5fd !important; }
+        html.tema-claro .border-amber-800 { border-color: #fcd34d !important; }
+        html.tema-claro .hover\:border-indigo-600:hover, html.tema-claro .hover\:border-blue-600:hover { border-color: #4f46e5 !important; }
+
+        /* Campos de formulario */
+        html.tema-claro ::placeholder { color: #94a3b8 !important; }
+        html.tema-claro .shadow-2xl, html.tema-claro .shadow-xl { box-shadow: 0 4px 14px rgba(15,23,42,.08) !important; }
+
+        body, aside, header { transition: background-color .2s, color .2s; }
+
         /* Estilos específicos para impresión de recibos */
         @media print {
             aside, header, button, .no-print {
@@ -73,7 +154,18 @@
         <!-- BARRA SUPERIOR -->
         <header class="bg-slate-900/50 border-b border-slate-800 px-8 py-4 flex items-center justify-between backdrop-blur sticky top-0 z-10">
             <h2 id="titulo-modulo" class="text-xl font-bold text-white">Dashboard General</h2>
-            <span class="text-xs bg-blue-950 text-blue-300 border border-blue-800 px-3 py-1 rounded-full font-mono">Barquisimeto Online</span>
+            <div class="flex items-center gap-4">
+                <!-- SELECTOR DE TEMA: luna = modo oscuro | sol = modo claro -->
+                <div class="tema-toggle" role="group" aria-label="Modo de pantalla">
+                    <button type="button" id="btn-tema-oscuro" class="tema-btn tema-btn-oscuro" onclick="aplicarTema('oscuro')" title="Modo oscuro" aria-label="Modo oscuro">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    </button>
+                    <button type="button" id="btn-tema-claro" class="tema-btn tema-btn-claro" onclick="aplicarTema('claro')" title="Modo claro" aria-label="Modo claro">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>
+                    </button>
+                </div>
+                <span class="text-xs bg-blue-950 text-blue-300 border border-blue-800 px-3 py-1 rounded-full font-mono">Barquisimeto Online</span>
+            </div>
         </header>
 
         <div class="p-8 space-y-8">
@@ -390,6 +482,10 @@
                                 <span class="text-[10px] text-slate-400 uppercase block font-semibold">Total Valorizado ($)</span>
                                 <span id="resumen-total-usd-activos" class="font-mono text-lg font-bold text-emerald-400">$0,00</span>
                             </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase block font-semibold">Total Pagado (Bs)</span>
+                                <span id="resumen-total-bs-activos" class="font-mono text-lg font-bold text-blue-400">Bs. 0,00</span>
+                            </div>
                         </div>
                     </div>
 
@@ -402,6 +498,7 @@
                                     <th class="px-4 py-2 text-right">Bultos Pendientes</th>
                                     <th class="px-4 py-2 text-right">Costo Prom. ($)</th>
                                     <th class="px-4 py-2 text-right">Total Valorizado ($)</th>
+                                    <th class="px-4 py-2 text-right">Total Pagado (Bs)</th>
                                     <th class="px-4 py-2 text-center">% Del Inventario Prepagado</th>
                                 </tr>
                             </thead>
